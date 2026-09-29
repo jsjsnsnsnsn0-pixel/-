@@ -1,0 +1,6 @@
+{
+  "name": "مجلس - غرف الدردشة الصوتية",
+  "description": "تطبيق الدردشة الصوتية الاجتماعية الفاخر مع غرف البث المباشر، الهدايا التفاعلية ونظام VIP والمستويات.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

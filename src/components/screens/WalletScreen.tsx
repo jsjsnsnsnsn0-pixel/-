@@ -1,0 +1,217 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { Transaction } from '../../types';
+import {
+  ChevronRight,
+  Plus,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Sparkles,
+  Gift,
+  Clock,
+  CheckCircle2,
+} from 'lucide-react';
+
+export const WalletScreen: React.FC = () => {
+  const { user, transactions, setActiveSubScreen } = useApp();
+  const [filterTab, setFilterTab] = useState<'all' | 'recharge' | 'sent' | 'received'>('all');
+
+  const getFilteredTransactions = () => {
+    switch (filterTab) {
+      case 'recharge':
+        return transactions.filter((t) => t.type === 'recharge');
+      case 'sent':
+        return transactions.filter((t) => t.type === 'gift_sent');
+      case 'received':
+        return transactions.filter((t) => t.type === 'gift_received');
+      default:
+        return transactions;
+    }
+  };
+
+  const filteredList = getFilteredTransactions();
+
+  return (
+    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-28">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-[#0b0c16]/95 border-b border-purple-500/20 px-4 py-3 backdrop-blur-md flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveSubScreen(null)}
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 cursor-pointer"
+          >
+            <ChevronRight size={22} />
+          </button>
+          <h1 className="text-base font-bold text-slate-100">المحفظة والرصيد</h1>
+        </div>
+
+        <button
+          onClick={() => setActiveSubScreen('recharge')}
+          className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30"
+        >
+          + شحن
+        </button>
+      </header>
+
+      {/* Two Main Cards: Gold & Diamonds */}
+      <div className="p-4 space-y-3">
+        {/* GOLD CARD */}
+        <div className="relative rounded-3xl bg-gradient-to-r from-[#2c2010] via-[#1f1910] to-[#121424] border border-amber-500/40 p-4 shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-2xl shadow-md">
+                🪙
+              </div>
+              <div>
+                <span className="text-xs text-amber-300 font-semibold block">رصيد الذهب المتوفر</span>
+                <span className="text-2xl font-black text-amber-400 font-mono tracking-tight">
+                  {user.gold.toLocaleString('ar-SA')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveSubScreen('recharge')}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-xs font-extrabold shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Plus size={14} />
+              <span>شحن ذهب</span>
+            </button>
+          </div>
+        </div>
+
+        {/* DIAMONDS CARD */}
+        <div className="relative rounded-3xl bg-gradient-to-r from-[#0e2136] via-[#101b2a] to-[#121424] border border-cyan-500/40 p-4 shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 flex items-center justify-center text-2xl shadow-md">
+                💎
+              </div>
+              <div>
+                <span className="text-xs text-cyan-300 font-semibold block">رصيد الماس المستلم</span>
+                <span className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
+                  {user.diamonds.toLocaleString('ar-SA')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => alert('يمكنك تحويل الماس إلى ذهب أو سحب المكافآت عند بلوغ الحد الأدنى 5,000 ماسة')}
+              className="px-3.5 py-2 rounded-xl bg-cyan-600/30 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-600 hover:text-white text-xs font-bold transition-all cursor-pointer"
+            >
+              استبدال الماس
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Transaction History Section */}
+      <div className="px-4 mt-2">
+        <h3 className="text-xs font-bold text-slate-300 mb-2">سجل العمليات والتحويلات:</h3>
+
+        {/* 4 Tabs Filter */}
+        <div className="grid grid-cols-4 gap-1.5 p-1 bg-[#141629] rounded-xl border border-purple-500/15 text-xs mb-3">
+          <button
+            onClick={() => setFilterTab('all')}
+            className={`py-1.5 rounded-lg font-medium transition-all ${
+              filterTab === 'all'
+                ? 'bg-purple-600 text-white font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            الكل
+          </button>
+          <button
+            onClick={() => setFilterTab('recharge')}
+            className={`py-1.5 rounded-lg font-medium transition-all ${
+              filterTab === 'recharge'
+                ? 'bg-purple-600 text-white font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            الشحن
+          </button>
+          <button
+            onClick={() => setFilterTab('sent')}
+            className={`py-1.5 rounded-lg font-medium transition-all ${
+              filterTab === 'sent'
+                ? 'bg-purple-600 text-white font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            مرسلة
+          </button>
+          <button
+            onClick={() => setFilterTab('received')}
+            className={`py-1.5 rounded-lg font-medium transition-all ${
+              filterTab === 'received'
+                ? 'bg-purple-600 text-white font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            مستلمة
+          </button>
+        </div>
+
+        {/* Transaction Items List */}
+        <div className="space-y-2">
+          {filteredList.map((tx) => {
+            const isPositive = tx.amount > 0;
+            return (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      tx.type === 'recharge'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : tx.type === 'gift_sent'
+                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}
+                  >
+                    {tx.type === 'recharge' ? (
+                      <ArrowDownLeft size={18} />
+                    ) : tx.type === 'gift_sent' ? (
+                      <ArrowUpRight size={18} />
+                    ) : (
+                      <Gift size={18} />
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-100">{tx.title}</h4>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                      <span>{tx.date}</span>
+                      <span>·</span>
+                      <span>{tx.time}</span>
+                      <span>·</span>
+                      <span className="text-purple-300 font-normal">ID: {tx.id}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span
+                    className={`block text-xs font-extrabold font-mono ${
+                      isPositive ? 'text-emerald-400' : 'text-slate-200'
+                    }`}
+                  >
+                    {isPositive ? `+${tx.amount.toLocaleString('ar-SA')}` : tx.amount.toLocaleString('ar-SA')}{' '}
+                    {tx.currency === 'gold' ? '🪙' : '💎'}
+                  </span>
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 justify-end">
+                    <CheckCircle2 size={10} />
+                    <span>مكتمل</span>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
