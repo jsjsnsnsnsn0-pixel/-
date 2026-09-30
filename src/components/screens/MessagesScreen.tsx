@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
+import { getSystemMessages } from '../../services/systemNotificationService';
 
 // System Messages User
 export const systemMessagesUser: User = {
@@ -44,9 +45,25 @@ export const officialSupportUser: User = {
 };
 
 export const MessagesScreen: React.FC = () => {
-  const { setSelectedChatUser, setActiveSubScreen } = useApp();
+  const { setSelectedChatUser, setActiveSubScreen, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
+  const [latestSysMsg, setLatestSysMsg] = useState(() => {
+    const list = getSystemMessages();
+    return list[0] || null;
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const list = getSystemMessages();
+      setLatestSysMsg(list[0] || null);
+    };
+    window.addEventListener('toti_system_message_received', handleUpdate);
+    return () => {
+      window.removeEventListener('toti_system_message_received', handleUpdate);
+    };
+  }, []);
 
   const handleOpenSystemChat = () => {
+    markSystemMessagesAsRead();
     setSelectedChatUser(systemMessagesUser);
     setActiveSubScreen('chat_detail');
   };
@@ -82,14 +99,16 @@ export const MessagesScreen: React.FC = () => {
           onClick={handleOpenSystemChat}
           className="flex items-start justify-between py-1 cursor-pointer group active:opacity-85 transition-opacity"
         >
-          {/* Left Side: Date "الجمعة" + Red Unread Badge "1" under it */}
+          {/* Left Side: Date / Time + Red Unread Badge under it if unread */}
           <div className="flex flex-col items-center shrink-0 pt-0.5 pl-1">
             <span className="text-[12px] font-medium text-[#8ea396]">
-              الجمعة
+              {latestSysMsg?.timestamp || 'الجمعة'}
             </span>
-            <div className="w-[18px] h-[18px] rounded-full bg-[#ef4444] text-white text-[11px] font-black flex items-center justify-center shadow-xs mt-1.5">
-              1
-            </div>
+            {unreadSystemMessagesCount > 0 && (
+              <div className="w-[18px] h-[18px] rounded-full bg-[#ef4444] text-white text-[11px] font-black flex items-center justify-center shadow-xs mt-1.5 animate-pulse">
+                {unreadSystemMessagesCount}
+              </div>
+            )}
           </div>
 
           {/* Right Side: Text in Middle + Golden Bell Avatar on the Far Right */}
@@ -103,7 +122,7 @@ export const MessagesScreen: React.FC = () => {
                 dir="rtl"
                 className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5"
               >
-                ...تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: [
+                {latestSysMsg?.content || '...تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: ['}
               </p>
             </div>
 

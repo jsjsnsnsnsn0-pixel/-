@@ -36,23 +36,28 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     '2xl': 'w-24 h-24 text-xl',
   };
 
-  const nameInitial = user?.name ? user.name.slice(0, 1) : 'م';
+  const defaultAvatar = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
+  const effectiveAvatar = user?.avatar || defaultAvatar;
 
   const avatarContent = (
     <div
       onClick={onClick}
       className={`relative rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white font-bold select-none cursor-pointer ${dimensionMap[size]} ${className}`}
     >
-      {user?.avatar && !imgError ? (
+      {!imgError ? (
         <img
-          src={user.avatar}
-          alt={user.name || 'User'}
+          src={effectiveAvatar}
+          alt={user?.name || 'User'}
           referrerPolicy="no-referrer"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"
         />
       ) : (
-        <span className="leading-none drop-shadow">{nameInitial}</span>
+        <img
+          src={defaultAvatar}
+          alt={user?.name || 'User'}
+          className="w-full h-full object-cover rounded-full"
+        />
       )}
 
       {/* Online indicator */}

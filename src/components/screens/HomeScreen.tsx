@@ -4,6 +4,9 @@ import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
 import { ChevronDown, Search } from 'lucide-react';
 import { SpecialIdModal } from '../modals/SpecialIdModal';
 import { AgencyOpeningModal } from '../modals/AgencyOpeningModal';
+import { SoulmatesWeeklyModal } from '../modals/SoulmatesWeeklyModal';
+import { CustomGiftModal } from '../modals/CustomGiftModal';
+import { RechargeActivityModal } from '../modals/RechargeActivityModal';
 
 export const HomeScreen: React.FC = () => {
   const { rooms, joinRoom, setActiveSubScreen } = useApp();
@@ -22,6 +25,15 @@ export const HomeScreen: React.FC = () => {
   // Modal for displaying the official Agency Opening rules image (نشاط فتح الوكالات)
   const [showAgencyModal, setShowAgencyModal] = useState(false);
 
+  // Modal for displaying the official Soulmates Weekly event image (رفقاء الروح الاسبوعيه)
+  const [showSoulmatesModal, setShowSoulmatesModal] = useState(false);
+
+  // Modal for displaying the official Custom Gift poster (قيمة الشحن التراكمي الشهري $1500)
+  const [showCustomGiftModal, setShowCustomGiftModal] = useState(false);
+
+  // Modal for displaying the official Recharge Activity tiers ($9.9 to $10,000)
+  const [showRechargeActivityModal, setShowRechargeActivityModal] = useState(false);
+
   // Top Rotating Banners Carousel (6 لوحات منعزلة: المعرف المميز + رفقاء الروح + افتتاح الوكالة + نشاط إعادة الشحن + هدية مخصصة + النجم العالمي)
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
@@ -37,7 +49,7 @@ export const HomeScreen: React.FC = () => {
       id: 'soulmates',
       title: 'رفقاء الروح الأسبوعية',
       image: '/src/assets/images/soulmates_exact_banner_1790725479589.jpg',
-      action: () => setActiveSubScreen('charm_wealth'),
+      action: () => setShowSoulmatesModal(true),
     },
     {
       id: 'agency_opening',
@@ -49,13 +61,13 @@ export const HomeScreen: React.FC = () => {
       id: 'recharge_activity',
       title: 'نشاط إعادة الشحن',
       image: '/src/assets/images/recharge_activity_banner_1790725680784.jpg',
-      action: () => setActiveSubScreen('recharge'),
+      action: () => setShowRechargeActivityModal(true),
     },
     {
       id: 'custom_gift',
       title: 'هدية مخصصة',
       image: '/src/assets/images/custom_gift_banner_1790726268730.jpg',
-      action: () => setActiveSubScreen('store'),
+      action: () => setShowCustomGiftModal(true),
     },
     {
       id: 'global_star',
@@ -228,8 +240,8 @@ export const HomeScreen: React.FC = () => {
 
           {/* Banner 1: هدية مخصصة */}
           <div
-            onClick={() => setActiveSubScreen('store')}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+            onClick={() => setShowCustomGiftModal(true)}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
           >
             <img
               src="/src/assets/images/custom_gift_banner_1790726268730.jpg"
@@ -252,8 +264,8 @@ export const HomeScreen: React.FC = () => {
 
           {/* Banner 3: نشاط إعادة الشحن */}
           <div
-            onClick={() => setActiveSubScreen('recharge')}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+            onClick={() => setShowRechargeActivityModal(true)}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
           >
             <img
               src="/src/assets/images/recharge_activity_banner_1790725680784.jpg"
@@ -264,8 +276,8 @@ export const HomeScreen: React.FC = () => {
 
           {/* Banner 4: رفقاء الروح الأسبوعية */}
           <div
-            onClick={() => setActiveSubScreen('charm_wealth')}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+            onClick={() => setShowSoulmatesModal(true)}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
           >
             <img
               src="/src/assets/images/soulmates_exact_banner_1790725479589.jpg"
@@ -386,52 +398,52 @@ export const HomeScreen: React.FC = () => {
             <span className="text-[10px]">🏮</span>
           </div>
 
-          {/* 3 Podiums with Real Avatars */}
+          {/* 3 Podiums with Real Avatars or Empty Zero States */}
           <div className="relative flex items-end justify-center w-full pb-1">
             {/* 2nd Place (Left) */}
-            <div className="relative z-10 -ml-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥈</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs">
-                {wealthTop2 ? (
+            <div className="relative z-10 -ml-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥈</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs flex items-center justify-center">
+                {wealthTop2 && wealthTop2.score > 0 ? (
                   <img
                     src={wealthTop2.avatar}
                     alt={wealthTop2.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 1st Place (Center - Elevated) */}
-            <div className="relative z-20 mb-1">
-              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[11px] drop-shadow-sm">👑</span>
-              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md">
-                {wealthTop1 ? (
+            <div className="relative z-20 mb-1 flex flex-col items-center">
+              <span className="text-[11px] drop-shadow-sm mb-0.5">👑</span>
+              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md flex items-center justify-center">
+                {wealthTop1 && wealthTop1.score > 0 ? (
                   <img
                     src={wealthTop1.avatar}
                     alt={wealthTop1.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-black text-amber-300 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 3rd Place (Right) */}
-            <div className="relative z-10 -mr-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥉</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs">
-                {wealthTop3 ? (
+            <div className="relative z-10 -mr-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥉</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs flex items-center justify-center">
+                {wealthTop3 && wealthTop3.score > 0 ? (
                   <img
                     src={wealthTop3.avatar}
                     alt={wealthTop3.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-bold text-amber-500/80 font-mono">--</span>
                 )}
               </div>
             </div>
@@ -452,52 +464,52 @@ export const HomeScreen: React.FC = () => {
             <span className="text-[10px]">🏮</span>
           </div>
 
-          {/* 3 Podiums with Real Avatars */}
+          {/* 3 Podiums with Real Avatars or Zero States */}
           <div className="relative flex items-end justify-center w-full pb-1">
             {/* 2nd Place */}
-            <div className="relative z-10 -ml-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥈</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs">
-                {charmTop2 ? (
+            <div className="relative z-10 -ml-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥈</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs flex items-center justify-center">
+                {charmTop2 && charmTop2.score > 0 ? (
                   <img
                     src={charmTop2.avatar}
                     alt={charmTop2.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 1st Place */}
-            <div className="relative z-20 mb-1">
-              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[11px] drop-shadow-sm">👑</span>
-              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md">
-                {charmTop1 ? (
+            <div className="relative z-20 mb-1 flex flex-col items-center">
+              <span className="text-[11px] drop-shadow-sm mb-0.5">👑</span>
+              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md flex items-center justify-center">
+                {charmTop1 && charmTop1.score > 0 ? (
                   <img
                     src={charmTop1.avatar}
                     alt={charmTop1.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-black text-amber-300 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 3rd Place */}
-            <div className="relative z-10 -mr-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥉</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs">
-                {charmTop3 ? (
+            <div className="relative z-10 -mr-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥉</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs flex items-center justify-center">
+                {charmTop3 && charmTop3.score > 0 ? (
                   <img
                     src={charmTop3.avatar}
                     alt={charmTop3.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">👤</div>
+                  <span className="text-[11px] font-bold text-amber-500/80 font-mono">--</span>
                 )}
               </div>
             </div>
@@ -518,52 +530,52 @@ export const HomeScreen: React.FC = () => {
             <span className="text-[10px]">🏮</span>
           </div>
 
-          {/* 3 Podiums with Real Room Avatars */}
+          {/* 3 Podiums with Real Room Avatars or Zero States */}
           <div className="relative flex items-end justify-center w-full pb-1">
             {/* 2nd Place */}
-            <div className="relative z-10 -ml-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥈</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs">
-                {roomTop2 ? (
+            <div className="relative z-10 -ml-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥈</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-slate-300 overflow-hidden bg-slate-900 shadow-xs flex items-center justify-center">
+                {roomTop2 && roomTop2.supportScore > 0 ? (
                   <img
                     src={roomTop2.roomCover}
                     alt={roomTop2.roomName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">🏰</div>
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 1st Place */}
-            <div className="relative z-20 mb-1">
-              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[11px] drop-shadow-sm">👑</span>
-              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md">
-                {roomTop1 ? (
+            <div className="relative z-20 mb-1 flex flex-col items-center">
+              <span className="text-[11px] drop-shadow-sm mb-0.5">👑</span>
+              <div className="w-[32px] h-[32px] rounded-full border-2 border-amber-300 overflow-hidden bg-amber-950 shadow-md flex items-center justify-center">
+                {roomTop1 && roomTop1.supportScore > 0 ? (
                   <img
                     src={roomTop1.roomCover}
                     alt={roomTop1.roomName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">🏰</div>
+                  <span className="text-[11px] font-black text-amber-300 font-mono">--</span>
                 )}
               </div>
             </div>
 
             {/* 3rd Place */}
-            <div className="relative z-10 -mr-1">
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] drop-shadow-xs">🥉</span>
-              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs">
-                {roomTop3 ? (
+            <div className="relative z-10 -mr-1 flex flex-col items-center">
+              <span className="text-[9px] drop-shadow-xs mb-0.5">🥉</span>
+              <div className="w-[28px] h-[28px] rounded-full border border-amber-600 overflow-hidden bg-amber-950 shadow-xs flex items-center justify-center">
+                {roomTop3 && roomTop3.supportScore > 0 ? (
                   <img
                     src={roomTop3.roomCover}
                     alt={roomTop3.roomName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px]">🏰</div>
+                  <span className="text-[11px] font-bold text-amber-500/80 font-mono">--</span>
                 )}
               </div>
             </div>
@@ -727,6 +739,24 @@ export const HomeScreen: React.FC = () => {
       <AgencyOpeningModal
         isOpen={showAgencyModal}
         onClose={() => setShowAgencyModal(false)}
+      />
+
+      {/* Soulmates Weekly Event (رفقاء الروح الاسبوعيه) Modal when clicking on Soulmates Banner */}
+      <SoulmatesWeeklyModal
+        isOpen={showSoulmatesModal}
+        onClose={() => setShowSoulmatesModal(false)}
+      />
+
+      {/* Custom Gift Poster Modal (قيمة الشحن التراكمي الشهري $1500) */}
+      <CustomGiftModal
+        isOpen={showCustomGiftModal}
+        onClose={() => setShowCustomGiftModal(false)}
+      />
+
+      {/* Recharge Activity Modal ($9.9 to $10,000) */}
+      <RechargeActivityModal
+        isOpen={showRechargeActivityModal}
+        onClose={() => setShowRechargeActivityModal(false)}
       />
     </div>
   );

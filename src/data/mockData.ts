@@ -1,45 +1,34 @@
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData } from '../types';
 
-// The verified royal account with ID 1000 and max levels
+// The default clean initial user with uploaded default avatar, level 1, 0 gold, 0 diamonds, 0 wealth/charm
 export const currentUser: User = {
   id: '1000',
-  username: 'royal_master_1000',
-  name: '»xدولة العراق🖤«',
-  avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
+  username: 'user_1000',
+  name: 'مستخدم جديد',
+  avatar: '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
   gender: 'male',
-  level: 150,
-  vipLevel: 8,
-  charmLevel: 100,
-  wealthLevel: 150,
-  bio: 'ماتاجرت بسمك بس تعاطيت ❗m',
-  birthday: '1995-04-12',
+  level: 1,
+  vipLevel: 0,
+  charmLevel: 1,
+  wealthLevel: 1,
+  bio: 'أهلاً بك في حسابي في توتي شات 🌹',
+  birthday: '2000-01-01',
   region: 'الشرق الأوسط',
   country: 'العراق',
   countryCode: 'IQ',
   countryFlag: '🇮🇶',
   isOnline: true,
-  gold: 99000000000, // 99 مليار عملات ذهبية
-  diamonds: 99000000000, // 99 مليار ماس
-  silverCoins: 99000000000, // 99 مليار عملات فضية
-  friendsCount: 9999,
-  followersCount: 99999,
-  followingCount: 1372,
-  visitorsCount: 999999,
-  sentGiftsCount: '99.9B',
-  receivedTotal: '99.9B',
-  receivedGiftsCount: 999999,
-  isHost: true,
-  agencyName: 'ملاذي',
-  agencyOwner: 'مالك',
-  agencyId: '1000',
-  agencyMembersCount: 99,
-  agencyAvatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
-  coupleAvatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg',
-  coupleName: 'xنَفِسهـ🍁',
-  customTitle: 'المالك الأعلى 👑',
-  nobleRank: 'VIP8',
-  rankingTitle: 'إمبراطور الترتيب العالمي 🏆',
-  nameShimmerStyle: 'quad_luxury',
+  gold: 0,
+  diamonds: 0,
+  silverCoins: 0,
+  friendsCount: 0,
+  followersCount: 0,
+  followingCount: 0,
+  visitorsCount: 0,
+  sentGiftsCount: '0',
+  receivedTotal: '0',
+  receivedGiftsCount: 0,
+  isHost: false,
 };
 
 // Verified real accounts
@@ -328,128 +317,11 @@ export const sampleRooms: Room[] = [
   },
 ];
 
-export const sampleTransactions: Transaction[] = [
-  {
-    id: 'TX-9901',
-    type: 'recharge',
-    title: 'شحن رصيد ذهب (باقة VIP الكبرى)',
-    amount: 500000,
-    currency: 'gold',
-    date: '2026-09-28',
-    time: '20:15',
-    status: 'completed',
-    iconType: 'plus',
-  },
-  {
-    id: 'TX-9892',
-    type: 'gift_sent',
-    title: 'إرسال هدية: قصر الأساطير الذهبي إلى xنَفِسهـ🍁',
-    amount: -12000,
-    currency: 'gold',
-    date: '2026-09-28',
-    time: '19:40',
-    status: 'completed',
-    iconType: 'gift',
-  },
-  {
-    id: 'TX-9844',
-    type: 'gift_received',
-    title: 'استلام هدية: صاروخ نحو الفضاء في الغرفة 1331',
-    amount: 4000,
-    currency: 'diamonds',
-    date: '2026-09-27',
-    time: '23:10',
-    status: 'completed',
-    iconType: 'sparkle',
-  },
-  {
-    id: 'TX-9781',
-    type: 'vip_upgrade',
-    title: 'ترقية إلى VIP 8 الماسي الملكي',
-    amount: 0,
-    currency: 'gold',
-    date: '2026-09-25',
-    time: '14:22',
-    status: 'completed',
-    iconType: 'crown',
-  },
-];
+export const sampleTransactions: Transaction[] = [];
 
-export const sampleConversations: Conversation[] = [
-  {
-    id: 'c1',
-    user: partnerUser,
-    lastMessage: 'مساء الخير يا غالي، الروم منور الليلة بحضورك وحضور الأصدقاء 🌹🖤',
-    timestamp: 'منذ 5 د',
-    unreadCount: 1,
-    messages: [
-      { id: 'm1', senderId: partnerUser.id, senderName: partnerUser.name, senderAvatar: partnerUser.avatar, content: 'السلام عليكم ورحمة الله، كيف حالك يا أبو فهد؟', timestamp: '20:30', isMe: false, type: 'text' },
-      { id: 'm2', senderId: currentUser.id, senderName: currentUser.name, senderAvatar: currentUser.avatar, content: 'وعليكم السلام ورحمة الله، هلا وغلا xنَفِسهـ، منورة الروم كالعادة', timestamp: '20:32', isMe: true, type: 'text' },
-      { id: 'm3', senderId: partnerUser.id, senderName: partnerUser.name, senderAvatar: partnerUser.avatar, content: 'مساء الخير يا غالي، الروم منور الليلة بحضورك وحضور الأصدقاء 🌹🖤', timestamp: '20:35', isMe: false, type: 'text' },
-    ],
-  },
-  {
-    id: 'c2',
-    user: bintHomsUser,
-    lastMessage: 'أهلاً أخي دولة العراق، شكراً على كرمك ودعمك الدائم في الروم 👑',
-    timestamp: 'منذ ساعة',
-    unreadCount: 0,
-    messages: [
-      { id: 'm20', senderId: bintHomsUser.id, senderName: bintHomsUser.name, senderAvatar: bintHomsUser.avatar, content: 'أهلاً أخي دولة العراق، شكراً على كرمك ودعمك الدائم في الروم 👑', timestamp: '18:10', isMe: false, type: 'text' },
-      { id: 'm21', senderId: currentUser.id, senderName: currentUser.name, senderAvatar: currentUser.avatar, content: 'أهلاً وسهلاً بكِ دائماً في مجلسنا وملاذنا', timestamp: '18:15', isMe: true, type: 'text' },
-    ],
-  },
-  {
-    id: 'c3',
-    user: ibnSyriaUser,
-    lastMessage: 'حي الله دولة العراق ونخبة ملاذي، سهرتنا الليلة نار 🔥',
-    timestamp: 'أمس',
-    unreadCount: 0,
-    messages: [
-      { id: 'm30', senderId: ibnSyriaUser.id, senderName: ibnSyriaUser.name, senderAvatar: ibnSyriaUser.avatar, content: 'حي الله دولة العراق ونخبة ملاذي، سهرتنا الليلة نار 🔥', timestamp: 'أمس', isMe: false, type: 'text' },
-    ],
-  },
-];
+export const sampleConversations: Conversation[] = [];
 
-export const sampleNotifications: NotificationItemData[] = [
-  {
-    id: 'n1',
-    type: 'gift',
-    title: 'هدية دعم جديدة!',
-    description: 'أرسل لك سلطان القحطاني "تاج الأمراء الذهبي" في الروم 1331',
-    timestamp: 'منذ 10 د',
-    isRead: false,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces',
-  },
-  {
-    id: 'n2',
-    type: 'follower',
-    title: 'متابع جديد',
-    description: 'بدأت بنت حمص 👑 بمتابعة حسابك',
-    timestamp: 'منذ ساعة',
-    isRead: false,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces',
-  },
-  {
-    id: 'n3',
-    type: 'room_invite',
-    title: 'دعوة سهرة دعم',
-    description: 'دعاك إبن سوريا للصعود للمايك في سهرة الليلة',
-    timestamp: 'منذ 3 ساعات',
-    isRead: true,
-    avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
-    roomId: '5500',
-    actionText: 'انضمام للغرفة',
-  },
-  {
-    id: 'n4',
-    type: 'system',
-    title: 'مكافأة VIP 8 اليومية!',
-    description: 'تم إيداع مكافأة تسجيل الدخول الملكي بحسابك: 50,000 ذهب.',
-    timestamp: 'اليوم 09:00 ص',
-    isRead: true,
-  },
-];
+export const sampleNotifications: NotificationItemData[] = [];
 
 export const rechargePackages = [
   { id: 'p1', gold: 500, price: '$0.99', sar: '3.75 ر.س', bonus: 0, popular: false },

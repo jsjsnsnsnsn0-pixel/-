@@ -50,7 +50,7 @@ export const CharmWealthScreen: React.FC<CharmWealthScreenProps> = ({ initialTab
   ];
 
   const maxLvl = isWealth ? 150 : 110;
-  const currentLevel = isWealth ? (user.wealthLevel ?? user.level ?? 53) : (user.charmLevel ?? 32);
+  const currentLevel = isWealth ? (user.wealthLevel ?? user.level ?? 1) : (user.charmLevel ?? 1);
   const isMax = currentLevel >= maxLvl;
   const nextLevel = isMax ? 'MAX 👑' : currentLevel + 1;
 

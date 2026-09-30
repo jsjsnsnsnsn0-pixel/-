@@ -164,19 +164,6 @@ export const UserDetailProfileScreen: React.FC = () => {
               >
                 {user.gender === 'female' ? '♀' : '♂'}
               </div>
-
-              {/* Small Red Custom Badge - only if user has agency */}
-              {user.agencyName && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSubScreen('agency')}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-gradient-to-r from-red-800 to-rose-700 hover:from-red-700 hover:to-rose-600 text-amber-200 border border-amber-400/50 text-[10px] font-bold shadow-xs cursor-pointer active:scale-95 transition-transform"
-                  title="عرض تفاصيل بيانات الوكالة"
-                >
-                  <span>👑</span>
-                  <span>{user.agencyName}</span>
-                </button>
-              )}
             </div>
 
             {/* Line 2: Account ID (Plain black by default, VIP gradient if VIP) */}

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
+import { getSystemMessages, SystemNotificationMessage } from '../../services/systemNotificationService';
 import {
   ChevronRight,
   Send,
@@ -25,6 +26,17 @@ export const ChatDetailScreen: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
+  const [systemMsgs, setSystemMsgs] = useState<SystemNotificationMessage[]>(() => getSystemMessages());
+
+  useEffect(() => {
+    const handleSystemMsg = () => {
+      setSystemMsgs(getSystemMessages());
+    };
+    window.addEventListener('toti_system_message_received', handleSystemMsg);
+    return () => {
+      window.removeEventListener('toti_system_message_received', handleSystemMsg);
+    };
+  }, []);
 
   if (!selectedChatUser) return null;
 
@@ -58,35 +70,12 @@ export const ChatDetailScreen: React.FC = () => {
     },
   ];
 
-  const defaultSystemMessages = [
-    {
-      id: 'sys-msg-1',
-      senderId: selectedChatUser.id,
-      senderName: 'رسائل النظام',
-      senderAvatar: selectedChatUser.avatar,
-      content: 'تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: [100,000 عملة ذهبية ودرع ملكي إمبراطوري]',
-      timestamp: 'الجمعة',
-      isMe: false,
-      type: 'text' as const,
-    },
-    {
-      id: 'sys-msg-2',
-      senderId: selectedChatUser.id,
-      senderName: 'رسائل النظام',
-      senderAvatar: selectedChatUser.avatar,
-      content: '🎁 مرحباً بك في تطبيق توتي شات! استمتع بأقوى الغرف الصوتية وأرقى المسابقات.',
-      timestamp: 'الجمعة',
-      isMe: false,
-      type: 'text' as const,
-    },
-  ];
-
   const [extraMessages, setExtraMessages] = useState<any[]>([]);
 
   const baseMessages = isOfficial
     ? defaultOfficialMessages
     : isSystem
-    ? defaultSystemMessages
+    ? [...systemMsgs].reverse()
     : conversation
     ? conversation.messages
     : [

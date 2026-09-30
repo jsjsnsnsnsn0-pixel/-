@@ -26,7 +26,17 @@ import {
 } from 'lucide-react';
 
 export const ProfileScreen: React.FC = () => {
-  const { user, setActiveSubScreen, joinRoom, rooms, logout } = useApp();
+  const {
+    user,
+    setActiveSubScreen,
+    joinRoom,
+    rooms,
+    logout,
+    hasUnseenVisitors,
+    hasUnseenFollowers,
+    markVisitorsAsSeen,
+    markFollowersAsSeen,
+  } = useApp();
   const [copied, setCopied] = useState(false);
 
   const copyUserId = () => {
@@ -45,7 +55,7 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#eaf6ee] via-[#f4faf6] to-[#f8fafc] text-slate-800 pb-24 select-none">
-      {/* Top Bar with Profile Edit Icon and LogOut / Switch Account Button */}
+      {/* Top Bar with Profile Edit Icon */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
         <button
           onClick={() => setActiveSubScreen('edit_profile')}
@@ -55,14 +65,7 @@ export const ProfileScreen: React.FC = () => {
           <Edit3 size={20} className="stroke-[2] text-slate-700" />
         </button>
 
-        <button
-          onClick={() => logout()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-rose-50 text-rose-600 border border-slate-200/60 text-xs font-bold cursor-pointer shadow-xs transition-all active:scale-95"
-          title="تسجيل الخروج وإعادة تسجيل الدخول"
-        >
-          <LogOut size={14} className="stroke-[2.5]" />
-          <span>تبديل الحساب</span>
-        </button>
+        <div className="w-10" />
       </div>
 
       {/* Main Profile Info Section (Avatar on the Right, Info on the Left) */}
@@ -83,22 +86,6 @@ export const ProfileScreen: React.FC = () => {
               className="flex items-center gap-2 cursor-pointer group"
               title="اسم الحساب"
             >
-              {/* Custom Tag ملاذي 👑 - only shown if user has agency */}
-              {user.agencyName && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveSubScreen('agency');
-                  }}
-                  className="px-2 py-0.5 rounded-full bg-gradient-to-r from-[#991b1b] to-[#dc2626] hover:from-[#b91c1c] hover:to-[#ef4444] border border-amber-400/70 flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-transform"
-                  title={`بيانات الوكالة: ${user.agencyName}`}
-                >
-                  <span className="text-[10px] font-bold text-amber-200">{user.agencyName}</span>
-                  <span className="text-[8px]">👑</span>
-                </button>
-              )}
-
               <ShimmeringAccountName
                 name={user.name || 'مستخدم جديد'}
                 vipLevel={user.vipLevel}
@@ -164,7 +151,10 @@ export const ProfileScreen: React.FC = () => {
         >
           <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-900 ring-2 ring-slate-200/60 relative">
             <img
-              src={user.avatar}
+              src={user.avatar || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg'}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
+              }}
               alt={user.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -176,22 +166,43 @@ export const ProfileScreen: React.FC = () => {
       <div className="px-6 py-3">
         <div className="grid grid-cols-3 text-center">
           {/* Column 1: زائر */}
-          <div>
-            <span className="block text-xl font-black text-slate-900 font-mono">
-              {user.visitorsCount || 0}
-            </span>
-            <span className="text-xs text-slate-500 font-medium">زائر</span>
+          <div
+            onClick={() => {
+              markVisitorsAsSeen();
+              setActiveSubScreen('visitors');
+            }}
+            className="cursor-pointer relative group"
+          >
+            <div className="inline-block relative">
+              <span className="block text-xl font-black text-slate-900 font-mono">
+                {user.visitorsCount || 0}
+              </span>
+              {hasUnseenVisitors && (
+                <span className="absolute -top-1 -right-2 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping ring-2 ring-white" />
+              )}
+            </div>
+            <span className="text-xs text-slate-500 font-medium block">زائر</span>
           </div>
 
           {/* Column 2: متابعين */}
           <div
-            onClick={() => setActiveSubScreen('friends')}
-            className="cursor-pointer"
+            onClick={() => {
+              markFollowersAsSeen();
+              setActiveSubScreen('friends');
+            }}
+            className="cursor-pointer relative group"
           >
-            <span className="block text-xl font-black text-slate-900 font-mono">
-              {user.followersCount || 0}
-            </span>
-            <span className="text-xs text-slate-500 font-medium">متابعين</span>
+            <div className="inline-block relative">
+              <span className="block text-xl font-black text-slate-900 font-mono">
+                {user.followersCount || 0}
+              </span>
+              {hasUnseenFollowers && (
+                <span className="absolute -top-1 -right-2 min-w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
+                  +1
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-slate-500 font-medium block">متابعين</span>
           </div>
 
           {/* Column 3: متابعة */}
@@ -202,7 +213,7 @@ export const ProfileScreen: React.FC = () => {
             <span className="block text-xl font-black text-slate-900 font-mono">
               {user.followingCount || 0}
             </span>
-            <span className="text-xs text-slate-500 font-medium">متابعة</span>
+            <span className="text-xs text-slate-500 font-medium block">متابعة</span>
           </div>
         </div>
       </div>

@@ -3,7 +3,15 @@ import { Home, MessageSquare, User as UserIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const BottomNavigation: React.FC = () => {
-  const { activeTab, setActiveTab, unreadMessagesCount, activeRoom } = useApp();
+  const {
+    activeTab,
+    setActiveTab,
+    unreadMessagesCount,
+    unreadSystemMessagesCount,
+    hasUnseenVisitors,
+    hasUnseenFollowers,
+    activeRoom,
+  } = useApp();
 
   if (activeRoom) {
     return null;
@@ -12,6 +20,9 @@ export const BottomNavigation: React.FC = () => {
   const isHomeActive = activeTab === 'home';
   const isMessagesActive = activeTab === 'messages';
   const isProfileActive = activeTab === 'profile';
+
+  const totalUnreadMessages = unreadMessagesCount + unreadSystemMessagesCount;
+  const profileUnseenCount = (hasUnseenVisitors ? 1 : 0) + (hasUnseenFollowers ? 1 : 0);
 
   return (
     <nav
@@ -54,9 +65,9 @@ export const BottomNavigation: React.FC = () => {
             <div className="w-8 h-8 flex items-center justify-center filter drop-shadow-sm">
               <span className="text-2xl leading-none select-none">🪔</span>
             </div>
-            {unreadMessagesCount > 0 && (
+            {totalUnreadMessages > 0 && (
               <span className="absolute -top-1 -right-2 min-w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
-                {unreadMessagesCount}
+                {totalUnreadMessages}
               </span>
             )}
             <span
@@ -80,10 +91,12 @@ export const BottomNavigation: React.FC = () => {
             {/* Cute Green Owl Mascot */}
             <div className="relative w-8 h-8 flex items-center justify-center filter drop-shadow-sm">
               <span className="text-2xl leading-none select-none">🦉</span>
-              {/* Notification Pill "2" on top left */}
-              <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-[#ef4444] text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
-                2
-              </span>
+              {/* Notification Pill on top left if unseen */}
+              {profileUnseenCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-[#ef4444] text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
+                  {profileUnseenCount}
+                </span>
+              )}
             </div>
             <span
               className={`text-[11px] font-bold mt-0.5 tracking-tight transition-colors ${

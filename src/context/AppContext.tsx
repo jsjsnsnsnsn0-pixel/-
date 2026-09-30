@@ -19,6 +19,12 @@ interface AppContextType {
   isSpeakerOn: boolean;
   unreadMessagesCount: number;
   unreadNotificationsCount: number;
+  unreadSystemMessagesCount: number;
+  hasUnseenVisitors: boolean;
+  hasUnseenFollowers: boolean;
+  markSystemMessagesAsRead: () => void;
+  markVisitorsAsSeen: () => void;
+  markFollowersAsSeen: () => void;
   setUser: React.Dispatch<React.SetStateAction<User>>;
   setActiveTab: (tab: 'home' | 'rooms' | 'create' | 'messages' | 'profile') => void;
   setActiveSubScreen: (screen: string | null) => void;
@@ -49,7 +55,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Store multiple accounts mapped by Google email or account ID
+  // Clean real initial user starting from zero coins, zero level, zero wealth/charm, and default image
   const [user, setUser] = useState<User>(() => {
     try {
       // 1. Check if there is an active account identifier saved
@@ -59,19 +65,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (savedAccount) {
           const parsed = JSON.parse(savedAccount);
           if (parsed && parsed.id) {
-            // Apply requested updates: ID 1000, 99 Billion coins, max level 150, charm 100, VIP 8 (Highest VIP)
             return {
               ...initialUser,
               ...parsed,
-              id: '1000',
-              gold: 99000000000,
-              diamonds: 99000000000,
-              silverCoins: 99000000000,
-              level: 150,
-              wealthLevel: 150,
-              charmLevel: 100,
-              vipLevel: 8,
-              nobleRank: 'VIP8',
             };
           }
         }
@@ -85,15 +81,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           return {
             ...initialUser,
             ...parsed,
-            id: '1000',
-            gold: 99000000000,
-            diamonds: 99000000000,
-            silverCoins: 99000000000,
-            level: 150,
-            wealthLevel: 150,
-            charmLevel: 100,
-            vipLevel: 8,
-            nobleRank: 'VIP8',
           };
         }
       }
@@ -173,56 +160,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     if (existingProfile) {
-      // Restore the exact existing account with all preserved progression, gold, diamonds, level, VIP, etc.
+      // Restore existing account
       setUser({
+        ...initialUser,
         ...existingProfile,
-        id: '1000',
-        gold: Math.max(existingProfile.gold || 0, 99000000000),
-        diamonds: Math.max(existingProfile.diamonds || 0, 99000000000),
-        silverCoins: Math.max(existingProfile.silverCoins || 0, 99000000000),
-        level: 150,
-        wealthLevel: 150,
-        charmLevel: 100,
-        vipLevel: 8,
-        nobleRank: 'VIP8',
       });
     } else {
-      // First time this Google account signs in: create royal user profile with ID 1000 and 99B coins
+      // First time this Google account signs in: create clean real user profile
       const assignedPresetId = '1000';
 
       const newProfile: User = {
         ...initialUser,
         id: assignedPresetId,
         username: googleProfile?.email ? googleProfile.email.split('@')[0] : `user_${assignedPresetId}`,
-        name: googleProfile?.name || 'مستخدم مميز 👑',
-        avatar: googleProfile?.picture || '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
-        bio: 'أهلاً بي في توتي شات 🌹',
-        level: 150,
-        wealthLevel: 150,
-        charmLevel: 100,
-        vipLevel: 8,
-        nobleRank: 'VIP8',
-        gold: 99000000000,
-        diamonds: 99000000000,
-        silverCoins: 99000000000,
-        friendsCount: 9999,
-        followersCount: 99999,
-        followingCount: 1372,
-        visitorsCount: 999999,
-        sentGiftsCount: '99.9B',
-        receivedTotal: '99.9B',
-        receivedGiftsCount: 999999,
-        isHost: true,
-        agencyName: 'ملاذي',
-        agencyOwner: 'مالك',
-        agencyId: '1000',
-        agencyMembersCount: 99,
-        agencyAvatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
-        coupleName: 'xنَفِسهـ🍁',
-        customTitle: 'المالك الأعلى 👑',
-        nobleRank: 'VIP10',
-        rankingTitle: 'إمبراطور الترتيب العالمي 🏆',
-        nameShimmerStyle: 'quad_luxury',
+        name: googleProfile?.name || 'مستخدم جديد',
+        // Use user's real picture if available from Google, otherwise the uploaded default avatar
+        avatar: googleProfile?.picture || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
+        bio: 'أهلاً بك في حسابي في توتي شات 🌹',
+        level: 1,
+        wealthLevel: 1,
+        charmLevel: 1,
+        vipLevel: 0,
+        gold: 0,
+        diamonds: 0,
+        silverCoins: 0,
+        friendsCount: 0,
+        followersCount: 0,
+        followingCount: 0,
+        visitorsCount: 0,
+        sentGiftsCount: '0',
+        receivedTotal: '0',
+        receivedGiftsCount: 0,
+        isHost: false,
       };
 
       setUser(newProfile);
@@ -250,18 +219,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...prev,
       id: assignedPresetId,
       username: `user_${assignedPresetId}`,
-      name: 'مستخدم الهاتف',
+      name: 'مستخدم جديد',
+      avatar: '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
       level: 1,
       wealthLevel: 1,
       charmLevel: 1,
       vipLevel: 0,
-      gold: 5000,
-      diamonds: 1000,
-      silverCoins: 10000,
+      gold: 0,
+      diamonds: 0,
+      silverCoins: 0,
       friendsCount: 0,
       followersCount: 0,
       followingCount: 0,
-      visitorsCount: 1,
+      visitorsCount: 0,
       sentGiftsCount: '0',
       receivedTotal: '0',
       receivedGiftsCount: 0,
@@ -381,11 +351,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return false;
     }
 
-    // Deduct gold from user
-    setUser((prev) => ({
-      ...prev,
-      gold: prev.gold - gift.price,
-    }));
+    // Deduct gold from sender, increase wealth points & sent gifts
+    setUser((prev) => {
+      const prevSpent = parseInt(prev.sentGiftsCount || '0', 10) || 0;
+      const newSpent = prevSpent + gift.price;
+      // Realistic level progression: every 1,000 gold spent = +1 wealth level
+      const calculatedWealth = Math.max(1, Math.min(150, Math.floor(newSpent / 1000) + 1));
+      const calculatedLevel = Math.max(1, Math.min(150, Math.floor(newSpent / 1000) + 1));
+
+      return {
+        ...prev,
+        gold: Math.max(0, prev.gold - gift.price),
+        wealthLevel: calculatedWealth,
+        level: calculatedLevel,
+        sentGiftsCount: newSpent.toLocaleString(),
+      };
+    });
+
+    // If recipient is in the active room seats, update their charm level and received gifts
+    if (activeRoom) {
+      setRooms((prevRooms) =>
+        prevRooms.map((room) => {
+          if (room.id !== activeRoom.id) return room;
+          const updatedSeats = room.seats.map((seat) => {
+            if (seat.user && seat.user.id === recipient.id) {
+              const currentGifts = seat.user.receivedGiftsCount || 0;
+              const currentReceivedVal = parseInt(seat.user.receivedTotal || '0', 10) || 0;
+              const newReceivedVal = currentReceivedVal + gift.price;
+              const calculatedCharm = Math.max(1, Math.min(150, Math.floor(newReceivedVal / 1000) + 1));
+
+              return {
+                ...seat,
+                user: {
+                  ...seat.user,
+                  receivedGiftsCount: currentGifts + 1,
+                  receivedTotal: newReceivedVal.toLocaleString(),
+                  charmLevel: calculatedCharm,
+                },
+              };
+            }
+            return seat;
+          });
+          return { ...room, seats: updatedSeats };
+        })
+      );
+    }
 
     // Add transaction
     const newTx: Transaction = {
@@ -552,6 +562,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  const [unreadSystemMessagesCount, setUnreadSystemMessagesCount] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('toti_unread_system_count');
+      return saved !== null ? parseInt(saved, 10) : 1;
+    } catch {
+      return 1;
+    }
+  });
+
+  // Track profile visitor / follower badges (disappear after user views them)
+  const [hasUnseenVisitors, setHasUnseenVisitors] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('toti_seen_visitors') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const [hasUnseenFollowers, setHasUnseenFollowers] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('toti_seen_followers') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const markSystemMessagesAsRead = () => {
+    setUnreadSystemMessagesCount(0);
+    try {
+      localStorage.setItem('toti_unread_system_count', '0');
+    } catch {
+      // ignore
+    }
+  };
+
+  const markVisitorsAsSeen = () => {
+    setHasUnseenVisitors(false);
+    try {
+      localStorage.setItem('toti_seen_visitors', 'true');
+    } catch {
+      // ignore
+    }
+  };
+
+  const markFollowersAsSeen = () => {
+    setHasUnseenFollowers(false);
+    try {
+      localStorage.setItem('toti_seen_followers', 'true');
+    } catch {
+      // ignore
+    }
+  };
+
+  // Listen for new system messages to increment unread counter
+  useEffect(() => {
+    const handleNewSysMsg = () => {
+      setUnreadSystemMessagesCount((prev) => {
+        const next = prev + 1;
+        try {
+          localStorage.setItem('toti_unread_system_count', next.toString());
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    };
+    window.addEventListener('toti_system_message_received', handleNewSysMsg);
+    return () => {
+      window.removeEventListener('toti_system_message_received', handleNewSysMsg);
+    };
+  }, []);
+
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
@@ -579,6 +661,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isSpeakerOn,
         unreadMessagesCount,
         unreadNotificationsCount,
+        unreadSystemMessagesCount,
+        hasUnseenVisitors,
+        hasUnseenFollowers,
+        markSystemMessagesAsRead,
+        markVisitorsAsSeen,
+        markFollowersAsSeen,
         setUser,
         setActiveTab,
         setActiveSubScreen,
