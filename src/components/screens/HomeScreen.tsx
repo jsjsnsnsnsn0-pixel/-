@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
 import { ChevronDown, Search } from 'lucide-react';
+import { SpecialIdModal } from '../modals/SpecialIdModal';
+import { AgencyOpeningModal } from '../modals/AgencyOpeningModal';
 
 export const HomeScreen: React.FC = () => {
   const { rooms, joinRoom, setActiveSubScreen } = useApp();
@@ -13,6 +15,80 @@ export const HomeScreen: React.FC = () => {
   // Filter bar: trending | iraq | saudi
   const [selectedFilter, setSelectedFilter] = useState<'trending' | 'iraq' | 'saudi'>('trending');
   const [showCountryMenu, setShowCountryMenu] = useState(false);
+
+  // Modal for displaying the official Special ID rules image (المعرف الجميل)
+  const [showSpecialIdModal, setShowSpecialIdModal] = useState(false);
+
+  // Modal for displaying the official Agency Opening rules image (نشاط فتح الوكالات)
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+
+  // Top Rotating Banners Carousel (6 لوحات منعزلة: المعرف المميز + رفقاء الروح + افتتاح الوكالة + نشاط إعادة الشحن + هدية مخصصة + النجم العالمي)
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
+
+  const banners = [
+    {
+      id: 'distinguished_id',
+      title: 'المعرف المميز - Toti Chat',
+      image: '/src/assets/images/toti_distinguished_id_1790717836703.jpg',
+      action: () => setShowSpecialIdModal(true),
+    },
+    {
+      id: 'soulmates',
+      title: 'رفقاء الروح الأسبوعية',
+      image: '/src/assets/images/soulmates_exact_banner_1790725479589.jpg',
+      action: () => setActiveSubScreen('charm_wealth'),
+    },
+    {
+      id: 'agency_opening',
+      title: 'افتتاح الوكالة جديده - Toty Chat',
+      image: '/src/assets/images/agency_opening_banner_1790725265910.jpg',
+      action: () => setShowAgencyModal(true),
+    },
+    {
+      id: 'recharge_activity',
+      title: 'نشاط إعادة الشحن',
+      image: '/src/assets/images/recharge_activity_banner_1790725680784.jpg',
+      action: () => setActiveSubScreen('recharge'),
+    },
+    {
+      id: 'custom_gift',
+      title: 'هدية مخصصة',
+      image: '/src/assets/images/custom_gift_banner_1790726268730.jpg',
+      action: () => setActiveSubScreen('store'),
+    },
+    {
+      id: 'global_star',
+      title: 'النجم العالمي',
+      image: '/src/assets/images/global_star_banner_1790726285845.jpg',
+      action: () => setActiveSubScreen('charm_wealth'),
+    },
+  ];
+
+  // Auto-scroll banners smoothly every 3.5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    const diffX = e.changedTouches[0].clientX - touchStartXRef.current;
+    if (diffX > 40) {
+      // Swiped right -> previous
+      setActiveBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+    } else if (diffX < -40) {
+      // Swiped left -> next
+      setActiveBannerIndex((prev) => (prev + 1) % banners.length);
+    }
+    touchStartXRef.current = null;
+  };
 
   // Real Top 1, 2, 3 for Cards
   const wealthTop1 = wealthRankings && wealthRankings.length > 0 ? wealthRankings[0] : null;
@@ -29,25 +105,31 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen pb-24 select-none font-sans text-slate-800"
+      className="min-h-screen pb-24 select-none font-sans text-slate-800 transition-colors duration-300"
       dir="rtl"
       style={{
-        background: 'linear-gradient(180deg, #1fa373 0%, #30b885 120px, #a8dfc2 320px, #e4f7ed 580px, #f2faf6 100%)',
+        background: activeTopTab === 'discover'
+          ? '#0c0d12'
+          : 'linear-gradient(180deg, #1fa373 0%, #30b885 120px, #a8dfc2 320px, #e4f7ed 580px, #f2faf6 100%)',
       }}
     >
       {/* ============================================================== */}
       {/* 1. TOP HEADER: Icons on Left, Tabs on Right                     */}
       {/* ============================================================== */}
-      <header className="sticky top-0 z-30 pt-3 pb-2.5 px-3.5 flex items-center justify-between backdrop-blur-xs">
+      <header className={`sticky top-0 z-30 pt-3 pb-2.5 px-3.5 flex items-center justify-between backdrop-blur-xs transition-colors duration-300 ${
+        activeTopTab === 'discover' ? 'bg-[#0c0d12]/90 border-b border-white/10' : ''
+      }`}>
         {/* Right: Text Tabs (حفلة | ملكي | اكتشف | ترتيب) */}
-        <div className="flex items-center gap-3.5 text-emerald-950 font-bold">
+        <div className="flex items-center gap-3.5 font-bold">
           <button
             type="button"
             onClick={() => setActiveTopTab('party')}
-            className={`text-xl font-black transition-all cursor-pointer ${
+            className={`transition-all cursor-pointer ${
               activeTopTab === 'party'
-                ? 'text-[#063321] text-[22px] scale-105'
-                : 'text-emerald-900/70 hover:text-emerald-950'
+                ? 'text-[#063321] text-[22px] font-black scale-105'
+                : activeTopTab === 'discover'
+                  ? 'text-slate-400 hover:text-white text-base'
+                  : 'text-emerald-900/70 hover:text-emerald-950 text-base'
             }`}
           >
             حفلة
@@ -61,7 +143,9 @@ export const HomeScreen: React.FC = () => {
             className={`text-base font-bold transition-all cursor-pointer ${
               activeTopTab === 'royal'
                 ? 'text-[#063321] font-black'
-                : 'text-emerald-900/70 hover:text-emerald-950'
+                : activeTopTab === 'discover'
+                  ? 'text-slate-400 hover:text-white'
+                  : 'text-emerald-900/70 hover:text-emerald-950'
             }`}
           >
             ملكي
@@ -69,10 +153,10 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTopTab('discover')}
-            className={`text-base font-bold transition-all cursor-pointer ${
+            className={`transition-all cursor-pointer ${
               activeTopTab === 'discover'
-                ? 'text-[#063321] font-black'
-                : 'text-emerald-900/70 hover:text-emerald-950'
+                ? 'text-amber-400 text-[22px] font-black scale-105 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                : 'text-emerald-900/70 hover:text-emerald-950 text-base'
             }`}
           >
             اكتشف
@@ -80,7 +164,11 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveSubScreen('wealth_ranking')}
-            className="text-base font-bold transition-all cursor-pointer text-emerald-900/80 hover:text-emerald-950 flex items-center gap-1 hover:scale-105"
+            className={`text-base font-bold transition-all cursor-pointer flex items-center gap-1 hover:scale-105 ${
+              activeTopTab === 'discover'
+                ? 'text-slate-400 hover:text-white'
+                : 'text-emerald-900/80 hover:text-emerald-950'
+            }`}
           >
             <span>👑</span>
             <span>ترتيب</span>
@@ -93,10 +181,14 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveSubScreen('search')}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-emerald-950 hover:bg-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             title="بحث"
           >
-            <div className="w-7 h-7 rounded-full bg-amber-300/40 border border-amber-300 flex items-center justify-center text-[#113f2a] shadow-xs">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center shadow-xs border ${
+              activeTopTab === 'discover'
+                ? 'bg-amber-400/20 border-amber-400/60 text-amber-300'
+                : 'bg-amber-300/40 border-amber-300 text-[#113f2a]'
+            }`}>
               <Search size={16} className="stroke-[3]" />
             </div>
           </button>
@@ -117,25 +209,161 @@ export const HomeScreen: React.FC = () => {
       </header>
 
       {/* ============================================================== */}
-      {/* 2. TOP BANNER: رفقاء الروح الأسبوعية (TOP 1)                      */}
+      {/* 2. MAIN CONTENT AREA: Switch between حفلة (Party) and اكتشف (Discover) */}
       {/* ============================================================== */}
-      <div className="px-3 mt-1">
+      {activeTopTab === 'discover' ? (
+        /* DISCOVER VIEW: Exact vertical stack of banners like the screenshot + المعرف المميز */
+        <div className="px-3 pt-2 pb-6 space-y-3.5 animate-fade-in bg-black/90 min-h-[calc(100vh-60px)]">
+          {/* Banner 0: Toti Chat - المعرف المميز */}
+          <div
+            onClick={() => setShowSpecialIdModal(true)}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
+          >
+            <img
+              src="/src/assets/images/toti_distinguished_id_1790717836703.jpg"
+              alt="المعرف المميز - Toti Chat"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Banner 1: هدية مخصصة */}
+          <div
+            onClick={() => setActiveSubScreen('store')}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+          >
+            <img
+              src="/src/assets/images/custom_gift_banner_1790726268730.jpg"
+              alt="هدية مخصصة"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Banner 2: النجم العالمي */}
+          <div
+            onClick={() => setActiveSubScreen('charm_wealth')}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+          >
+            <img
+              src="/src/assets/images/global_star_banner_1790726285845.jpg"
+              alt="النجم العالمي"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Banner 3: نشاط إعادة الشحن */}
+          <div
+            onClick={() => setActiveSubScreen('recharge')}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+          >
+            <img
+              src="/src/assets/images/recharge_activity_banner_1790725680784.jpg"
+              alt="نشاط إعادة الشحن"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Banner 4: رفقاء الروح الأسبوعية */}
+          <div
+            onClick={() => setActiveSubScreen('charm_wealth')}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+          >
+            <img
+              src="/src/assets/images/soulmates_exact_banner_1790725479589.jpg"
+              alt="رفقاء الروح الأسبوعية"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Banner 5: Toty Chat افتتاح الوكالة جديده */}
+          <div
+            onClick={() => setShowAgencyModal(true)}
+            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
+          >
+            <img
+              src="/src/assets/images/agency_opening_banner_1790725265910.jpg"
+              alt="افتتاح الوكالة جديده"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      ) : (
+        /* PARTY (حفلة) VIEW */
+        <>
+          {/* ============================================================== */}
+          {/* 2. TOP BANNER: Moving Carousel (رفقاء الروح + المعرف المميز)     */}
+          {/* ============================================================== */}
+          <div className="px-3 mt-1">
         <div
-          onClick={() => setActiveSubScreen('charm_wealth')}
-          className="relative w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-md cursor-pointer group active:scale-[0.99] transition-transform bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 border border-white/40"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="relative w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-md cursor-pointer group active:scale-[0.99] transition-transform bg-gradient-to-r from-red-950 via-slate-900 to-amber-950 border border-white/40"
         >
-          <img
-            src="/src/assets/images/soulmates_banner_1790546885593.jpg"
-            alt="رفقاء الروح الأسبوعية"
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-          />
+          {/* Slides Container with smooth horizontal sliding */}
+          <div
+            className="flex w-full h-full transition-transform duration-700 ease-out"
+            style={{
+              transform: `translateX(${activeBannerIndex * 100}%)`, // RTL layout sliding
+            }}
+          >
+            {banners.map((banner, index) => (
+              <div
+                key={banner.id}
+                onClick={banner.action}
+                className="w-full h-full shrink-0 relative"
+              >
+                <img
+                  src={banner.image}
+                  alt={banner.title}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Left Arrow to slide manually */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveBannerIndex((prev) => (prev + 1) % banners.length);
+            }}
+            className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition-opacity opacity-70 hover:opacity-100 cursor-pointer z-10 text-xs font-bold"
+            title="التالي"
+          >
+            ❮
+          </button>
+
+          {/* Right Arrow to slide manually */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+            }}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition-opacity opacity-70 hover:opacity-100 cursor-pointer z-10 text-xs font-bold"
+            title="السابق"
+          >
+            ❯
+          </button>
 
           {/* Slide Indicator Dots at bottom-left */}
-          <div className="absolute bottom-1.5 left-3 flex items-center gap-1">
-            <span className="w-3.5 h-1.5 rounded-full bg-white shadow-xs" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+          <div className="absolute bottom-1.5 left-3 flex items-center gap-1 z-10">
+            {banners.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveBannerIndex(idx);
+                }}
+                className={`transition-all duration-300 rounded-full cursor-pointer ${
+                  activeBannerIndex === idx
+                    ? 'w-4 h-1.5 bg-amber-300 shadow-xs'
+                    : 'w-1.5 h-1.5 bg-white/60 hover:bg-white'
+                }`}
+                aria-label={`الشريحة ${idx + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -486,6 +714,20 @@ export const HomeScreen: React.FC = () => {
           );
         })}
       </div>
+        </>
+      )}
+
+      {/* Special ID Rules (المعرف الجميل) Modal when clicking on the Distinguished ID Banner */}
+      <SpecialIdModal
+        isOpen={showSpecialIdModal}
+        onClose={() => setShowSpecialIdModal(false)}
+      />
+
+      {/* Agency Opening Rules (نشاط فتح الوكالات) Modal when clicking on the Agency Opening Banner */}
+      <AgencyOpeningModal
+        isOpen={showAgencyModal}
+        onClose={() => setShowAgencyModal(false)}
+      />
     </div>
   );
 };
