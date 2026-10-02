@@ -65,9 +65,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (savedAccount) {
           const parsed = JSON.parse(savedAccount);
           if (parsed && parsed.id) {
+            // Update account to requested ID 30301 with wealth 45 and charm 30
+            const updatedId = '30301';
+
             return {
               ...initialUser,
               ...parsed,
+              id: updatedId,
+              wealthLevel: Math.max(parsed.wealthLevel || 0, 45),
+              charmLevel: Math.max(parsed.charmLevel || 0, 30),
+              level: Math.max(parsed.level || 0, 45),
             };
           }
         }
@@ -78,9 +85,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed) {
+          const updatedId = '30301';
+
           return {
             ...initialUser,
             ...parsed,
+            id: updatedId,
+            wealthLevel: Math.max(parsed.wealthLevel || 0, 45),
+            charmLevel: Math.max(parsed.charmLevel || 0, 30),
+            level: Math.max(parsed.level || 0, 45),
           };
         }
       }
@@ -167,7 +180,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
     } else {
       // First time this Google account signs in: create clean real user profile
-      const assignedPresetId = '1000';
+      const assignedPresetId = '30301';
 
       const newProfile: User = {
         ...initialUser,
@@ -177,9 +190,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Use user's real picture if available from Google, otherwise the uploaded default avatar
         avatar: googleProfile?.picture || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
         bio: 'أهلاً بك في حسابي في توتي شات 🌹',
-        level: 1,
-        wealthLevel: 1,
-        charmLevel: 1,
+        level: 45,
+        wealthLevel: 45,
+        charmLevel: 30,
         vipLevel: 0,
         gold: 0,
         diamonds: 0,

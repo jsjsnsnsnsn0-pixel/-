@@ -500,8 +500,18 @@ export const LoginScreen: React.FC = () => {
           {/* Exact Android GMS Google Account Picker Box from screenshot */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[370px] bg-[#323232] text-white rounded-[26px] shadow-2xl overflow-hidden font-sans border border-white/5 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+            className="w-full max-w-[370px] bg-[#323232] text-white rounded-[26px] shadow-2xl overflow-hidden font-sans border border-white/5 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] relative"
           >
+            {/* Close button on top-right */}
+            <button
+              type="button"
+              onClick={() => setShowGoogleAccountsSheet(false)}
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+              title="إغلاق"
+            >
+              <X size={18} />
+            </button>
+
             {/* Top Logo & App Header */}
             <div className="pt-6 pb-5 px-6 text-center flex flex-col items-center">
               {/* App Icon: Golden lion & crowned falcon logo on dark background with Toti Chat - توتي شات */}

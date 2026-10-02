@@ -43,21 +43,11 @@ export const VoiceRoomScreen: React.FC = () => {
 
   if (!activeRoom) return null;
 
-  // Real user data for Host: »xدولة العراق🖤«
+  // Dynamic room host user based on the joined activeRoom
   const hostUser: User = {
-    ...user,
-    id: '1331',
-    name: '»xدولة العراق🖤«',
-    username: 'dawlat_iraq_1331',
-    avatar: user.avatar || '/src/assets/images/syrian_host_avatar_1790345251849.jpg',
-    level: 53,
-    wealthLevel: 53,
-    charmLevel: 32,
-    vipLevel: 8,
-    gender: 'male',
-    countryCode: 'IQ',
-    countryFlag: '🇮🇶',
-    agencyName: 'ملاذي',
+    ...activeRoom.owner,
+    avatar: activeRoom.owner.avatar || activeRoom.coverImage,
+    isOnline: true,
   };
 
   // Armchair SVG Icon for empty seats
@@ -85,11 +75,11 @@ export const VoiceRoomScreen: React.FC = () => {
       {/* 0. ROOM WALLPAPER */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden flex justify-center z-0">
         <img
-          src="/src/assets/images/room_wallpaper_crown_queen_1790560306491.jpg"
+          src={activeRoom.coverImage || "/src/assets/images/room_wallpaper_crown_queen_1790560306491.jpg"}
           alt="خلفية الغرفة"
           className="w-full h-full object-cover max-w-[480px]"
         />
-        <div className="absolute inset-0 bg-black/15" />
+        <div className="absolute inset-0 bg-black/30" />
       </div>
 
       {/* Interactive Toast Notification */}
@@ -124,7 +114,7 @@ export const VoiceRoomScreen: React.FC = () => {
               setIsProfileModalOpen(true);
             }}
             className="flex items-center gap-2 bg-black/70 border border-teal-500/40 rounded-full py-1 px-1.5 shadow-[0_0_20px_rgba(0,0,0,0.8)] backdrop-blur-md cursor-pointer hover:bg-black/85 active:scale-95 transition-transform"
-            title="معلومات الغرفة والمالك: دولة العراق"
+            title={`معلومات الغرفة: ${activeRoom.title}`}
           >
             {/* Green Back Circle with Chevron */}
             <button
@@ -141,11 +131,11 @@ export const VoiceRoomScreen: React.FC = () => {
 
             {/* Room Title & ID */}
             <div className="flex flex-col text-right pr-1">
-              <span className="text-[11px] font-black text-slate-100 truncate max-w-[100px] drop-shadow">
-                »xدولة العراق«
+              <span className="text-[11px] font-black text-slate-100 truncate max-w-[120px] drop-shadow">
+                {activeRoom.title}
               </span>
               <span className="text-[9px] font-mono text-teal-300 font-bold -mt-0.5">
-                ID:1331
+                ID:{activeRoom.id}
               </span>
             </div>
 
@@ -286,35 +276,35 @@ export const VoiceRoomScreen: React.FC = () => {
 
         {/* ROW 2: Seats */}
         <div className="grid grid-cols-5 gap-2 text-center mt-3 items-start">
-          {/* Seat (Host): »xدولة العراق🖤« */}
+          {/* Seat (Host): Dynamic host */}
           <div
             onClick={() => {
               setSelectedSeatUser(hostUser);
               setIsProfileModalOpen(true);
             }}
             className="flex flex-col items-center cursor-pointer select-none relative group -mt-1 active:scale-95 transition-transform"
-            title="عرض بروفايل المضيف: »xدولة العراق🖤«"
+            title={`عرض بروفايل المضيف: ${hostUser.name}`}
           >
             <div className="relative flex items-center justify-center">
               {/* Luxury Ruby Winged Frame */}
               <div className="relative w-15 h-15 flex items-center justify-center">
-                <div className="w-13 h-13 rounded-full p-0.5 bg-gradient-to-tr from-pink-600 via-rose-400 to-purple-600 shadow-[0_0_18px_rgba(244,63,94,0.9)] flex items-center justify-center overflow-hidden">
+                <div className="w-13 h-13 rounded-full p-0.5 bg-gradient-to-tr from-cyan-600 via-teal-400 to-emerald-600 shadow-[0_0_18px_rgba(20,184,166,0.9)] flex items-center justify-center overflow-hidden">
                   <img
                     src={hostUser.avatar}
                     alt={hostUser.name}
                     className="w-full h-full rounded-full object-cover"
                   />
                 </div>
-                {/* VIP8 Badge */}
+                {/* Host Badge */}
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-gradient-to-r from-amber-600 to-yellow-500 text-[8px] font-black text-black shadow-md border border-white/60">
-                  VIP8
+                  {hostUser.vipLevel ? `VIP${hostUser.vipLevel}` : 'مضيف'}
                 </span>
               </div>
             </div>
 
             {/* Name + Home Badge */}
             <div className="flex items-center gap-0.5 mt-1">
-              <span className="text-[9px] font-black text-amber-300 truncate max-w-[46px] drop-shadow">
+              <span className="text-[9px] font-black text-amber-300 truncate max-w-[56px] drop-shadow">
                 {hostUser.name}
               </span>
               <div className="w-3.5 h-3.5 rounded-full bg-teal-500 text-white flex items-center justify-center text-[8px] shadow-xs">
@@ -322,7 +312,7 @@ export const VoiceRoomScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* 1.6K Gift Pill */}
+            {/* Support / Gift Pill */}
             <div
               onClick={(e) => {
                 e.stopPropagation();
@@ -330,7 +320,7 @@ export const VoiceRoomScreen: React.FC = () => {
               }}
               className="mt-0.5 px-1.5 py-0.2 rounded-full bg-black/70 border border-amber-500/40 text-[9px] font-mono font-bold text-amber-200 flex items-center gap-0.5 shadow-sm hover:scale-105 active:scale-95 transition-transform"
             >
-              <span>1.6K</span>
+              <span>1.0K</span>
               <span>🎁</span>
             </div>
           </div>

@@ -89,7 +89,7 @@ export const VIP_ID_STYLES: Record<number, { background: string; textShadow?: st
 };
 
 export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
-  id = '313',
+  id = '30301',
   vipLevel,
   size = 'md',
   className = '',

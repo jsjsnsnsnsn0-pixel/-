@@ -161,7 +161,7 @@ export const SpecialIdModal: React.FC<SpecialIdModalProps> = ({ isOpen, onClose 
                       <td className="border-r border-[#caa43b] px-0.5 leading-tight text-[9px] font-bold text-slate-100">
                         <div>AABA</div>
                         <div>AAAB</div>
-                        <div>AABB</div>
+                        <div>30301</div>
                         <div>ABBA</div>
                         <div>ABBB</div>
                         <div>ABAB</div>
