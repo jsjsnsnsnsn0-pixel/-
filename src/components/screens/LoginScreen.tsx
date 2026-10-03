@@ -32,7 +32,7 @@ export const LoginScreen: React.FC = () => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [showGoogleAccountsSheet, setShowGoogleAccountsSheet] = useState(true);
+  const [showGoogleAccountsSheet, setShowGoogleAccountsSheet] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState('');
   const [customGoogleName, setCustomGoogleName] = useState('');
   const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
@@ -60,43 +60,18 @@ export const LoginScreen: React.FC = () => {
       if (current >= 5) {
         return false;
       }
-      localStorage.setItem('toti_created_accounts_count', (current + 1).toString());
       return true;
     } catch {
       return true;
     }
   };
 
-  // Detect and prompt official Google Accounts if client is loaded
   const handleGoogleClick = () => {
-    const count = getCreatedAccountsCount();
-    if (count >= 5) {
-      setShowMaxAccountsNotice(true);
-      return;
-    }
-
-    // Check if Google GIS is available in window
-    const gWindow = window as any;
-    if (gWindow.google && gWindow.google.accounts && gWindow.google.accounts.id) {
-      try {
-        gWindow.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setShowGoogleAccountsSheet(true);
-          }
-        });
-        setShowGoogleAccountsSheet(true);
-        return;
-      } catch {
-        setShowGoogleAccountsSheet(true);
-        return;
-      }
-    }
-    // Show Google Accounts picker sheet
-    setShowGoogleAccountsSheet(true);
+    loginWithGoogle();
   };
 
   const handleSelectGoogleAccount = (acc: GoogleAccountProfile) => {
-    const accountKey = acc.email ? acc.email.toLowerCase().trim() : '';
+    const accountKey = acc.email ? acc.email.toLowerCase().trim() : "";
     const isExistingAccount = Boolean(
       accountKey && localStorage.getItem(`toti_account_${accountKey}`)
     );
@@ -113,11 +88,7 @@ export const LoginScreen: React.FC = () => {
     }
 
     setShowGoogleAccountsSheet(false);
-    loginWithGoogle({
-      name: acc.name,
-      email: acc.email,
-      picture: acc.picture,
-    });
+loginWithGoogle();
   };
 
   const handleCustomGoogleSubmit = (e: React.FormEvent) => {

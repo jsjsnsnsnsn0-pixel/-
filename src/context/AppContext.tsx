@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
 import { currentUser as initialUser, sampleRooms, sampleTransactions, sampleConversations, sampleNotifications } from '../data/mockData';
 import { getNextSequentialId } from '../utils/accountIds';
+import { supabase } from '../services/supabase';
 
 interface AppContextType {
   user: User;
@@ -130,99 +131,63 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isHandRaised, setIsHandRaised] = useState<boolean>(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState<boolean>(true);
 
-  // Authentication State: checked from localStorage
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    try {
-      const auth = localStorage.getItem('app_is_authenticated');
-      if (auth !== null) {
-        return auth === 'true';
-      }
-    } catch {
-      // fallback
-    }
-    return false; // Show LoginScreen so user can sign in with their desired Google account
-  });
+  // Authentication State: controlled by Supabase Auth
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const logout = () => {
+  // Sync authentication state with Supabase Auth
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        setIsAuthenticated(!!session);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (mounted) {
+          setIsAuthenticated(!!session);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('Supabase logout error:', error);
+      return;
+    }
+
     setIsAuthenticated(false);
     setActiveRoom(null);
     setActiveSubScreen(null);
+
     try {
-      localStorage.setItem('app_is_authenticated', 'false');
+      localStorage.removeItem('app_is_authenticated');
+      localStorage.removeItem('toti_active_account_key');
     } catch {
       // ignore
     }
   };
 
-  const loginWithGoogle = (googleProfile?: { name?: string; email?: string; picture?: string }) => {
-    const accountKey = googleProfile?.email ? googleProfile.email.toLowerCase().trim() : 'guest_google';
-    localStorage.setItem('toti_active_account_key', accountKey);
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
 
-    // 1. Check if this Google account was already registered and has saved data & progression
-    let existingProfile: User | null = null;
-    try {
-      const saved = localStorage.getItem(`toti_account_${accountKey}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.id) {
-          existingProfile = parsed;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    if (existingProfile) {
-      // Restore existing account
-      setUser({
-        ...initialUser,
-        ...existingProfile,
-      });
-    } else {
-      // First time this Google account signs in: create clean real user profile
-      const assignedPresetId = '30301';
-
-      const newProfile: User = {
-        ...initialUser,
-        id: assignedPresetId,
-        username: googleProfile?.email ? googleProfile.email.split('@')[0] : `user_${assignedPresetId}`,
-        name: googleProfile?.name || 'مستخدم جديد',
-        // Use user's real picture if available from Google, otherwise the uploaded default avatar
-        avatar: googleProfile?.picture || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
-        bio: 'أهلاً بك في حسابي في توتي شات 🌹',
-        level: 45,
-        wealthLevel: 45,
-        charmLevel: 30,
-        vipLevel: 0,
-        gold: 0,
-        diamonds: 0,
-        silverCoins: 0,
-        friendsCount: 0,
-        followersCount: 0,
-        followingCount: 0,
-        visitorsCount: 0,
-        sentGiftsCount: '0',
-        receivedTotal: '0',
-        receivedGiftsCount: 0,
-        isHost: false,
-      };
-
-      setUser(newProfile);
-      try {
-        localStorage.setItem(`toti_account_${accountKey}`, JSON.stringify(newProfile));
-      } catch {
-        // ignore
-      }
-    }
-
-    setIsAuthenticated(true);
-    setActiveTabState('home');
-    setActiveSubScreen(null);
-
-    try {
-      localStorage.setItem('app_is_authenticated', 'true');
-    } catch {
-      // ignore
+    if (error) {
+      console.error('Supabase Google login error:', error);
     }
   };
 
