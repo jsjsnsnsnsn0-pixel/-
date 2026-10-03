@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getNextSequentialId } from '../../utils/accountIds';
+import { supabase } from '../../services/supabase';
 import { ChevronLeft, Check } from 'lucide-react';
 
 interface FillInfoScreenProps {
@@ -44,8 +45,18 @@ export const FillInfoScreen: React.FC<FillInfoScreenProps> = ({ onComplete, onBa
   const [tempName, setTempName] = useState('');
 
   // Handle completing registration with the sequential ID
-  const handleComplete = () => {
-    try {
+const handleComplete = async () => {
+    try {  const { data: { user: authUser } } = await supabase.auth.getUser();
+
+  if (authUser) {
+    await supabase
+      .from('profiles')
+      .update({
+        country_code: selectedCountry.code,
+        country_name: selectedCountry.name,
+      })
+      .eq('id', authUser.id);
+  }
       const savedCount = localStorage.getItem('toti_created_accounts_count');
       const count = savedCount ? parseInt(savedCount, 10) : 0;
       localStorage.setItem('toti_created_accounts_count', (count + 1).toString());
