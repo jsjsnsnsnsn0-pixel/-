@@ -1,0 +1,150 @@
+name: Build TotiChat Beta APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/main.yml"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Enable offline beta demo mode
+        shell: bash
+        run: |
+          cat > src/services/supabase.ts <<'EOF'
+          const demoUser = {
+            id: 'totichat-beta-user',
+            email: 'beta@totichat.local',
+            user_metadata: {
+              full_name: 'TotiChat Beta',
+              name: 'TotiChat Beta'
+            }
+          };
+
+          const result = { data: null, error: null };
+
+          const chain: any = new Proxy(function () {}, {
+            get(_target, prop) {
+              if (prop === 'then') {
+                return (resolve: any) => Promise.resolve(result).then(resolve);
+              }
+              if (prop === 'getPublicUrl') {
+                return () => ({ data: { publicUrl: '' } });
+              }
+              return chain;
+            },
+            apply() {
+              return chain;
+            }
+          });
+
+          export const supabase: any = {
+            auth: {
+              getSession: async () => ({
+                data: { session: { user: demoUser } },
+                error: null
+              }),
+
+              getUser: async () => ({
+                data: { user: demoUser },
+                error: null
+              }),
+
+              onAuthStateChange: (callback: any) => {
+                setTimeout(() => {
+                  callback('SIGNED_IN', { user: demoUser });
+                }, 0);
+
+                return {
+                  data: {
+                    subscription: {
+                      unsubscribe() {}
+                    }
+                  }
+                };
+              },
+
+              signOut: async () => ({ error: null }),
+              signInWithOAuth: async () => ({ error: null }),
+              signInWithOtp: async () => ({ error: null }),
+
+              verifyOtp: async () => ({
+                data: {
+                  user: demoUser,
+                  session: { user: demoUser }
+                },
+                error: null
+              })
+            },
+
+            from: () => chain,
+
+            rpc: async () => ({
+              data: null,
+              error: null
+            }),
+
+            storage: {
+              from: () => chain
+            },
+
+            channel: () => chain,
+
+            removeChannel: async () => ({})
+          };
+          EOF
+
+      - name: Build TotiChat web app
+        run: npm run build
+
+      - name: Install Capacitor
+        run: |
+          npm install --no-save \
+            @capacitor/core \
+            @capacitor/cli \
+            @capacitor/android
+
+      - name: Create Android project
+        run: |
+          npx cap init "TotiChat Beta" "com.totichat.beta" --web-dir=dist
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk \
+             TotiChat-Beta.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TotiChat-Beta-APK
+          path: TotiChat-Beta.apk
+          retention-days: 14
