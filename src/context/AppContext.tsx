@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
 import { signInWithGoogle, listenForNativeAuth } from '../services/nativeAuth';
 import { supabase } from '../services/supabase';
-import { emptyUser, profileToUser, editableProfile } from '../services/profile';
+import { emptyUser, profileToUser, editableProfile, roomMemberToUser } from '../services/profile';
 
 interface AppContextType {
   user: User; rooms: Room[]; activeRoom: Room | null;
@@ -150,11 +150,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     if (id !== authRef.current) return [];
     const mapped: Room[] = (rs.data || []).map(row => {
       const members = (ms.data || []).filter(m => m.room_id === row.id);
-      const memberUser = (m: any): User => m.user_id === id ? userRef.current : profileToUser({
-        id: m.user_id, public_id: m.member_public_id, display_name: m.member_display_name,
-        avatar_url: m.member_avatar_url, username: m.member_username, level: m.member_level,
-        vip_level: m.member_vip_level,
-      });
+      const memberUser = (m: Record<string, unknown>): User => m.user_id === id ? userRef.current : roomMemberToUser(m);
       const owner = row.owner_id === id ? userRef.current : profileToUser({
         id: row.owner_id, public_id: row.owner_public_id, display_name: row.owner_display_name,
         avatar_url: row.owner_avatar_url,

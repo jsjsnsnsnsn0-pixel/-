@@ -21,12 +21,12 @@ export const VoiceRoomScreen: React.FC = () => {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [micBusy, setMicBusy] = useState(false);
-  const {connected, enableMicrophone} = useRoomAudioContext();
+  const {connected, enableMicrophone, speakingIds} = useRoomAudioContext();
 
   useEffect(() => {
     if (!activeRoom) return;
     const roomId = activeRoom.id;
-    setMessages([]);
+    setMessages([]); setSelectedUser(null);
     let disposed = false;
     const load = async () => {
       const {data, error} = await supabase.from('room_messages').select('*').eq('room_id', roomId)
@@ -64,8 +64,8 @@ export const VoiceRoomScreen: React.FC = () => {
   };
   const clickSeat = (index: number) => {
     const seat = activeRoom.seats[index];
-    if (seat.user?.authId === user.authId) { if (index !== 0) void leaveSeat(index); else void handleMic(); }
-    else if (seat.user) setSelectedUser(seat.user);
+    if (!seat) return;
+    if (seat.user) setSelectedUser(seat.user);
     else if (!seat.isLocked) void takeSeat(index);
     else reportError('هذا المقعد مقفل.');
   };
@@ -78,8 +78,8 @@ export const VoiceRoomScreen: React.FC = () => {
       {activeRoom.canModerate && <button onClick={() => setManagementOpen(true)} aria-label="إدارة الغرفة" className="p-2 rounded-full bg-white/10"><Settings /></button>}
     </header>
     <div className="relative p-4"><p className="text-sm text-slate-300 mb-5">{activeRoom.description}</p>
-      <div className="grid grid-cols-4 gap-x-2 gap-y-5">{activeRoom.seats.map(seat => <MicrophoneSeat key={seat.seatIndex} seat={seat} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId === user.authId} />)}</div>
-      <p className="text-xs text-slate-400 mt-4">اضغط مقعداً فارغاً للجلوس، واضغط مقعدك لمغادرته.</p>
+      <div className="grid grid-cols-4 gap-x-2 gap-y-5">{activeRoom.seats.map(seat => <MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId && speakingIds.includes(seat.user.authId)) && !seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId === user.authId} />)}</div>
+      <p className="text-xs text-slate-400 mt-4">اضغط مقعداً فارغاً للجلوس، واضغط صورة مستخدم لعرض ملفه.</p>
     </div>
     <div className="relative mx-4 mt-4 flex-1 rounded-2xl bg-black/40 p-3">
       <h2 className="text-sm font-bold text-amber-300 mb-3">دردشة الغرفة</h2>
@@ -88,13 +88,14 @@ export const VoiceRoomScreen: React.FC = () => {
     </div>
     <footer className="fixed bottom-0 inset-x-0 max-w-md mx-auto z-20 bg-[#080914]/95 border-t border-white/10 flex justify-around items-center p-4">
       <button onClick={handleMic} disabled={micBusy} aria-label={isMyMicMuted ? 'تشغيل المايكروفون' : 'كتم المايكروفون'} className="p-3 rounded-full bg-white/10">{isMyMicMuted ? <MicOff className="text-rose-400"/> : <Mic className="text-teal-300"/>}</button>
+      {mySeat && <button onClick={() => void leaveSeat(mySeat.seatIndex)} aria-label="مغادرة المقعد" className="text-xs text-slate-300">مغادرة المقعد</button>}
       <button onClick={toggleSpeaker} aria-label="تبديل الصوت" className="p-3 rounded-full bg-white/10">{isSpeakerOn ? <Volume2/> : <VolumeX/>}</button>
       <button onClick={() => setGiftOpen(true)} aria-label="إرسال هدية" className="p-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-500"><Gift/></button>
       <button onClick={toggleRaiseHand} aria-label="طلب المايكروفون" className={`p-3 rounded-full ${isHandRaised ? 'bg-amber-500' : 'bg-white/10'}`}><Hand/></button>
       <button onClick={() => setActiveSubScreen('recharge')} className="text-xs text-amber-300">شحن</button>
     </footer>
     {activeGiftOverlay && <GiftOverlayAnimation overlayData={activeGiftOverlay}/>}
-    <RoomUserProfileModal isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={() => setSelectedUser(null)} onOpenMore={() => { setSelectedChatUser(selectedUser); setSelectedUser(null); setActiveSubScreen('user_detail_profile'); }}/>
+    <RoomUserProfileModal isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={() => setSelectedUser(null)} onOpenMore={() => { if (!selectedUser) return; setSelectedChatUser(selectedUser); setSelectedUser(null); setActiveSubScreen('user_detail_profile'); }}/>
     <GiftStoreModal isOpen={giftOpen} onClose={() => setGiftOpen(false)} room={activeRoom} onRechargeClick={() => {setGiftOpen(false); setActiveSubScreen('recharge');}}/>
     <RoomManagementModal isOpen={managementOpen} onClose={() => setManagementOpen(false)} room={activeRoom}/>
   </div>;

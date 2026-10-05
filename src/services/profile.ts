@@ -1,6 +1,6 @@
 import { User } from '../types';
 
-export const defaultAvatar = '/assets/images/default_arab_user_avatar_1790806239365.jpg';
+export const defaultAvatar = '/assets/images/default-user.svg';
 export const emptyUser: User = {
   id: '', username: '', name: 'مستخدم جديد', avatar: defaultAvatar,
   level: 1, vipLevel: 0, wealthLevel: 1, charmLevel: 1, isOnline: false,
@@ -22,7 +22,7 @@ export function profileToUser(row: Record<string, any>): User {
     gender: row.gender, region: row.region || '', country: row.country_name || '',
     countryCode: row.country_code || '', countryFlag: countryFlag(row.country_code),
     equipment: row.equipment || undefined,
-    level: Number(row.level || 1), wealthLevel: Number(row.level || 1),
+    level: Number(row.level ?? 1), wealthLevel: Number(row.level ?? 1),
     charmLevel: Math.min(150, Math.floor(Number(row.received_gold || 0) / 1000) + 1),
     vipLevel: row.vip_expires_at && new Date(row.vip_expires_at).getTime() <= Date.now() ? 0 : Number(row.vip_level || 0), vipExpiresAt: row.vip_expires_at, gold: Number(row.gold || 0),
     diamonds: Number(row.diamonds || 0), silverCoins: Number(row.silver_coins || 0),
@@ -43,4 +43,14 @@ export function editableProfile(user: User) {
     region: user.region || null, country_code: user.countryCode || null,
     country_name: user.country || null, name_shimmer_style: user.nameShimmerStyle || null,
   };
+}
+
+// Member snapshots are server-backed but intentionally abbreviated. Do not
+// fabricate charm/wealth from missing snapshot fields.
+export function roomMemberToUser(row: Record<string, unknown>): User {
+  const user = profileToUser({id: row.user_id, public_id: row.member_public_id,
+    display_name: row.member_display_name, avatar_url: row.member_avatar_url,
+    username: row.member_username, level: row.member_level, vip_level: row.member_vip_level,
+    equipment: row.member_equipment});
+  return {...user, level: Number(row.member_level ?? 0), hasPublicLevel: typeof row.member_level === 'number' && Number.isFinite(row.member_level), charmLevel: undefined, wealthLevel: undefined};
 }

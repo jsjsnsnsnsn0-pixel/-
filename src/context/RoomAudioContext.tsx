@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext } from 'react';
 import { useApp } from './AppContext';
 import { useRoomAudio } from '../hooks/useRoomAudio';
-const Context = createContext<{connected: boolean; enableMicrophone: () => Promise<void>} | null>(null);
+const Context = createContext<{connected: boolean; speakingIds: string[]; enableMicrophone: () => Promise<void>} | null>(null);
 export function RoomAudioProvider({children}: {children: ReactNode}) {
   const {activeRoom, user, isMyMicMuted, isSpeakerOn, reportError, noiseSuppression} = useApp();
   const audio = useRoomAudio(activeRoom, user.authId, isMyMicMuted, isSpeakerOn, reportError, noiseSuppression);

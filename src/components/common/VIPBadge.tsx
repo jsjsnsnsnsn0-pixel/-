@@ -68,7 +68,7 @@ export const VIPBadge: React.FC<VIPBadgeProps> = ({
       className={`inline-flex items-center rounded-full font-black tracking-tight shrink-0 select-none transition-transform active:scale-95 cursor-pointer ${getBadgeStyle()} ${sizeClasses[size]} ${className}`}
     >
       <Crown size={iconSizes[size]} className="fill-current drop-shadow-xs" />
-      <span>VIP{clampedLevel}</span>
+      <span>VIP{level}</span>
     </span>
   );
 };

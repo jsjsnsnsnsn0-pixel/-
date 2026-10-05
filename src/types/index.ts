@@ -5,6 +5,7 @@ export interface User {
   name: string;
   avatar: string;
   level: number;
+  hasPublicLevel?: boolean;
   vipLevel: number;
   vipExpiresAt?: string | null;
   gender?: 'male' | 'female';

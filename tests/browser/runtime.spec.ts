@@ -7,7 +7,7 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
@@ -35,17 +35,21 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       return respond(directMessages);
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [room] : []);
-    if (path.endsWith('/room_members')) return respond(overrides.rooms ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:451306,member_display_name:'مشارك آخر'}] : [])] : []);
+    if (path.endsWith('/room_members')) return respond(overrides.rooms ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
     if (path.endsWith('/create_recharge_request')) {
       if (overrides.noAgent) return respond({message:'no official recharge agent is configured for this country'},400);
       return respond([{request_id:'request',agent_id:'existing-agent',agent_display_name:'TotiChat Official Recharge',country_code:'IQ',country_name:'Iraq',agent_phone:null,gold_amount:4900,price_usd:0.99,payment_methods:[],contact_info:{channel:'in_app',public_id:'451305',phone:null,whatsapp:null}}]);
     }
+    if (path.endsWith('/social_profile') && body.p_public_id===451306) {
+      if(overrides.roomProfileError)return respond({message:'profile unavailable'},500);
+      return respond({id:other,public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0,...overrides.roomProfile});
+    }
     if (path.endsWith('/social_profile')) return respond(body.p_public_id===920003 ? {...current,friends_count:0,following_count:followed?1:0,followers_count:0} : {id:other,public_id:body.p_public_id,display_name:body.p_public_id===451306?'مشارك آخر':'مستخدم البحث',level:1,vip_level:0,is_following:followed,is_blocked:false,friend_status:friendStatus});
     if (path.endsWith('/social_list')) return respond(overrides.social ? [{id:other,public_id:451305,display_name:'مستخدم العلاقة',level:1,vip_level:0}] : []);
     if (path.endsWith('/social_action')) {if(body.p_action==='follow') followed=true;if(body.p_action==='request')friendStatus='sent';return respond({public_id:451305,is_following:followed,friend_status:friendStatus});}
-    if (path.endsWith('/couple_state')) return respond({relations:[],current:[],previous:[]});
-    if (path.endsWith('/agency_state')) return respond({agency:null,members:[],applications:[],available:[]});
+    if (path.endsWith('/couple_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({relations:overrides.roomCouple ? [{accepted_at:'2026-01-01T00:00:00Z',ended_at:null,partner:{public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0}}] : [],current:[],previous:[]});}
+    if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
     if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
     if (path.endsWith('/store_purchases')) return respond(purchased.map(id=>({item_id:id,expires_at:null})));
@@ -159,7 +163,7 @@ test('failed conversion preserves balances and exposes a clear error', async ({p
 
 test('profile screens render without hook errors or blank navigation', async ({page})=>{
   const {errors}=await setup(page); await page.goto('/');
-  for (const [label,heading] of [['شارة','شارة'],['السحر/ الثروة','مستوى الثروة'],['اكسب عملات فضية','مركز العملات الفضية والمهام'],['مركز المساعدة','مركز المساعدة'],['اعدادات','الإعدادات'],['المتجر','المتجر'],['وكالة','بوابة الوكالات']]) {
+  for (const [label,heading] of [['شارة','ميدالية'],['السحر/ الثروة','مستوى الثروة'],['اكسب عملات فضية','مركز العملات الفضية والمهام'],['مركز المساعدة','مركز المساعدة'],['اعدادات','الإعدادات'],['المتجر','المتجر'],['وكالة','بوابة الوكالات']]) {
     await page.goto('/'); await page.getByTitle('أنا').click();
     await page.getByText(label,{exact:true}).first().click();
     await expect(page.locator('body')).not.toContainText('حدث خطأ أثناء تحميل الصفحة');
@@ -331,4 +335,57 @@ test('late microphone permission result is stopped after leaving the room', asyn
   await page.evaluate(()=>(window as any).finishCapture());
   await expect.poll(()=>page.evaluate(()=>(window as any).stoppedCapture)).toBe(1);
   expect(requests.some(r=>r.path.endsWith('/set_my_room_muted'))).toBe(false);expect(errors).toEqual([]);
+});
+
+async function openOtherRoomProfile(page: Page, overrides: Parameters<typeof setup>[2] = {}) {
+  const result=await setup(page,true,{rooms:true,otherMember:true,...overrides});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();await page.getByTestId('occupied-seat').nth(1).click();
+  const card=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});await expect(card).toBeVisible();return {...result,card};
+}
+test('ordinary room user B has no VIP8, invented ranks, CP, medals, agency or Iraq fallback',async({page})=>{
+  const {card,errors,requests}=await openOtherRoomProfile(page);
+  await expect(card.getByRole('status')).toHaveCount(0);await expect(card.getByText('مشارك آخر',{exact:true})).toBeVisible();
+  await expect(card.getByText('حساب الاختبار',{exact:true})).toHaveCount(0);
+  for(const section of ['profile-vip','profile-couple','profile-agency','profile-country'])await expect(card.getByTestId(section)).toHaveCount(0);
+  await expect(card.locator('[aria-label="المستوى 0"]')).toBeVisible();
+  await expect(card.locator('[aria-label^="مستوى السحر"],[aria-label^="مستوى الثروة"]')).toHaveCount(0);
+  for(const fake of ['VIP8','20M','5M','263','1331','IQ','🇮🇶','xنَفِسهـ🍁'])await expect(card).not.toContainText(fake);
+  await expect(card.getByAltText('صورة افتراضية')).toHaveAttribute('src','/assets/images/default-user.svg');
+  expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306&&r.body.p_visit===false)).toBe(true);expect(errors).toEqual([]);
+});
+test('room public data and authorized CP/agency show actual values without private identifiers',async({page})=>{
+  const data={display_name:'الاسم الحقيقي B',avatar_url:'/assets/images/female_luxury_avatar_1790230899789.jpg',level:7,vip_level:2,country_code:'EG',gender:'female',email:'hidden@example.invalid',phone:'private-phone',auth_metadata:{role:'admin'}};
+  const {card,errors}=await openOtherRoomProfile(page,{roomProfile:data,roomCouple:true,roomAgency:true,roomSeatLevel:0,roomSeatVip:8});
+  const seat=page.getByTestId('occupied-seat').nth(1);
+  await expect(seat).toHaveAttribute('aria-label','عرض ملف الاسم الحقيقي B');await expect(seat.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(seat).toContainText('VIP2');await expect(seat).not.toContainText('VIP8');
+  await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('profile-country')).toContainText('EG');
+  await expect(card.getByTestId('profile-agency')).toContainText('وكالة حقيقية للاختبار');await expect(card.getByTestId('profile-couple')).toContainText('حساب الاختبار');
+  await expect(card.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(card.getByTitle('معرف الحساب: 451306 (انقر للنسخ)')).toBeVisible();
+  for(const privateValue of [actor,other,'hidden@example.invalid','private-phone','auth_metadata'])await expect(card).not.toContainText(privateValue);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/room-profile-real-data.png'});expect(errors).toEqual([]);
+});
+test('missing Public ID cannot become 1331 or open the current account details',async({page})=>{
+  const {card,errors,requests}=await openOtherRoomProfile(page,{noMemberId:true});
+  await expect(card.getByRole('alert')).toContainText('معرف المستخدم غير متاح');await expect(card.getByRole('button',{name:'المزيد',exact:true})).toBeDisabled();
+  await expect(card.locator('[title^="معرف الحساب"]')).toHaveCount(0);await expect(card).not.toContainText('1331');await expect(card).not.toContainText('حساب الاختبار');
+  expect(requests.filter(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306)).toHaveLength(0);expect(errors).toEqual([]);
+});
+test('profile lookup failure retains B snapshot and the room remains usable',async({page})=>{
+  const {card,errors}=await openOtherRoomProfile(page,{roomProfileError:true});
+  await expect(card.getByRole('alert')).toContainText('تعذر تحميل تفاصيل المستخدم');await expect(card.getByText('مشارك آخر',{exact:true})).toBeVisible();await expect(card).not.toContainText('حساب الاختبار');
+  await expect(card.getByTestId('profile-vip')).toHaveCount(0);
+  await page.route('**/rest/v1/rpc/social_profile',route=>route.request().postDataJSON()?.p_public_id===451306 ? route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({public_id:451306,display_name:'مشارك آخر',level:3,vip_level:1})}) : route.fallback());
+  await card.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(card.getByTestId('profile-vip')).toContainText('VIP1');await expect(card.getByRole('alert')).toHaveCount(0);
+  await card.getByRole('button',{name:'إغلاق البطاقة'}).click();await expect(page.getByRole('textbox',{name:'رسالة الغرفة'})).toBeVisible();expect(errors).toEqual([]);
+});
+test('optional relationship lookup failure hides CP/agency without losing the public profile',async({page})=>{
+  const {card,errors}=await openOtherRoomProfile(page,{optionalProfileError:true,roomProfile:{level:4,vip_level:1}});
+  await expect(card.getByTestId('profile-vip')).toContainText('VIP1');await expect(card.getByTestId('profile-couple')).toHaveCount(0);await expect(card.getByTestId('profile-agency')).toHaveCount(0);await expect(card.getByRole('alert')).toHaveCount(0);expect(errors).toEqual([]);
+});
+
+test('expired VIP in a room snapshot is never displayed as an active seat entitlement',async({page})=>{
+  const {card,requests,errors}=await openOtherRoomProfile(page,{roomSeatVip:8,roomProfile:{vip_level:0}});
+  await expect(card.getByRole('button',{name:'المزيد',exact:true})).toBeEnabled();
+  await expect(page.getByTestId('occupied-seat').nth(1)).not.toContainText('VIP8');await expect(card.getByTestId('profile-vip')).toHaveCount(0);
+  expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306)).toBe(true);expect(errors).toEqual([]);
 });

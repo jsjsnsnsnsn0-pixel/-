@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import {useAudioActivity, AudioSource} from './useAudioActivity';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { Room } from '../types';
 
@@ -16,6 +17,17 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
   const membersRef = useRef(room?.members || []); membersRef.current = room?.members || [];
   const sendRef = useRef<(to: string, kind: Signal['kind'], payload: object) => Promise<void>>(async () => {});
   const mutedRef = useRef(muted); mutedRef.current = muted;
+  const roomRef = useRef(room); roomRef.current = room;
+  const readAudioSources = useCallback(() => {
+    const active = new Map<string, AudioSource>();
+    if (authId && stream.current) active.set(authId,{stream:stream.current,muted:mutedRef.current});
+    for (const [id,peer] of peers.current) {
+      if (typeof MediaStream !== 'undefined' && peer.audio.srcObject instanceof MediaStream) active.set(id,{stream:peer.audio.srcObject,
+        muted:roomRef.current?.seats.find(seat => seat.user?.authId === id)?.isMuted ?? true});
+    }
+    return active;
+  },[authId]);
+  const speakingIds = useAudioActivity(room?.id, readAudioSources);
 
   useEffect(() => {
     for (const track of stream.current?.getAudioTracks() || []) track.enabled = !muted;
@@ -144,5 +156,5 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
     if (current !== generation.current) throw new Error('انتهت جلسة الغرفة.');
     for (const peer of peers.current.values()) void peer.audio.play().catch(() => {});
   };
-  return {connected, enableMicrophone};
+  return {connected, enableMicrophone, speakingIds};
 }

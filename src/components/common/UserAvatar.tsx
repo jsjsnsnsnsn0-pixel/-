@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { defaultAvatar } from '../../services/profile';
 import { User } from '../../types';
 import { VIPFrame } from './VIPFrame';
 import { LevelBadge } from './LevelBadge';
@@ -37,7 +38,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     '2xl': 'w-24 h-24 text-xl',
   };
 
-  const defaultAvatar = '/assets/images/default_arab_user_avatar_1790806239365.jpg';
   const effectiveAvatar = user?.avatar || defaultAvatar;
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       {!imgError ? (
         <img
           src={effectiveAvatar}
-          alt={user?.name || 'User'}
+          alt={effectiveAvatar === defaultAvatar ? 'صورة افتراضية' : user?.name || 'صورة المستخدم'}
           referrerPolicy="no-referrer"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"
@@ -61,7 +61,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       ) : !fallbackError ? (
         <img
           src={defaultAvatar}
-          alt={user?.name || 'User'}
+          alt="صورة افتراضية"
           onError={() => setFallbackError(true)}
           className="w-full h-full object-cover rounded-full"
         />
