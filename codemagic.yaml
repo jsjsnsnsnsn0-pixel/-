@@ -1,0 +1,45 @@
+workflows:
+  android-debug-apk:
+    name: TotiChat Android Debug APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: 22
+      java: 21
+      vars:
+        VITE_SUPABASE_URL: "https://bfadhdnudmsggylunhlh.supabase.co"
+        VITE_AUTH_REDIRECT_URL: "com.totichat.app://auth/callback"
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Validate required public build configuration
+        script: |
+          if [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY is not configured in Codemagic. Add it as an environment variable before building."
+            exit 1
+          fi
+      - name: Build TotiChat web app
+        script: |
+          npm run build
+      - name: Add Android platform if missing
+        script: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+      - name: Sync Capacitor Android
+        script: |
+          npx cap sync android
+      - name: Build debug APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        notify:
+          success: false
+          failure: false
