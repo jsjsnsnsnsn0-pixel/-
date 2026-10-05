@@ -1,3 +1,5 @@
+import { copyText } from '../../utils/clipboard';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Check } from 'lucide-react';
@@ -95,17 +97,18 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
   className = '',
 }) => {
   const { user } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
 
   // If vipLevel not passed directly as prop, check if this ID is the current user's ID (clamped to max VIP 8)
   const rawVip = vipLevel !== undefined ? vipLevel : (user.id === id ? user.vipLevel : 0);
   const effectiveVip = rawVip ? Math.min(rawVip, 8) : 0;
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard?.writeText(id);
+    if (!await copyText(id)) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
   const textSizes = {

@@ -1,3 +1,4 @@
+import { usePublicChat } from '../../hooks/usePublicChat';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, Headphones, Crown, X, Lock, Check } from 'lucide-react';
@@ -14,32 +15,8 @@ export const AgencyScreen: React.FC = () => {
     reportError('الدخول إلى الوكالة يحتاج حساباً وصلاحيات معتمدة من الإدارة. تواصل مع الدعم.');
   };
 
-  const handleContactOfficialSupport = () => {
-    // Open chat or redirect to official customer service ID 1000
-    setSelectedChatUser({
-      id: 'official_support_hamdan',
-      isOnline: false,
-      name: 'خدمة العملاء الرسمية 👑',
-      avatar: '/assets/images/imperial_lion_crest_1790230829162.jpg',
-      username: 'support_1000',
-      level: 100,
-      wealthLevel: 100,
-      charmLevel: 100,
-      vipLevel: 10,
-      gold: 999999,
-      diamonds: 999999,
-      silverCoins: 999999,
-      friendsCount: 9999,
-      followersCount: 9999,
-      followingCount: 1,
-      visitorsCount: 99999,
-      sentGiftsCount: '999K',
-      receivedTotal: '999K',
-      receivedGiftsCount: 9999,
-      isHost: false,
-    });
-    setActiveSubScreen('chat_detail');
-  };
+  const { opening, openChat } = usePublicChat();
+  const handleContactOfficialSupport = () => { void openChat(); };
 
   return (
     <div
@@ -177,7 +154,8 @@ export const AgencyScreen: React.FC = () => {
           {/* Official Support ID Badge: 1000 + Headset */}
           <div className="flex flex-col items-center justify-center gap-1.5 pt-1">
             <button
-              onClick={handleContactOfficialSupport}
+              disabled={opening}
+                onClick={handleContactOfficialSupport}
               type="button"
               className="inline-flex items-center gap-3 px-7 py-2 rounded-full border border-amber-400/80 bg-black/60 hover:bg-black/90 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.35)] active:scale-95 transition-all cursor-pointer group"
             >
@@ -190,7 +168,7 @@ export const AgencyScreen: React.FC = () => {
 
               {/* ID: 1000 */}
               <span className="text-2xl font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#ffeaa7] via-[#fdcb6e] to-[#fab1a0]">
-                1000
+                451305
               </span>
             </button>
 
@@ -290,7 +268,7 @@ export const AgencyScreen: React.FC = () => {
                 }}
                 className="text-[11px] text-amber-300/80 hover:text-amber-200 underline cursor-pointer"
               >
-                نسيت كلمة المرور؟ تواصل مع خدمة العملاء (1000)
+                نسيت كلمة المرور؟ تواصل مع خدمة العملاء (451305)
               </button>
             </div>
           </div>

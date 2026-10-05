@@ -33,8 +33,16 @@ const RoomRankingsScreen = lazy(() => import('./components/screens/RoomRankingsS
 const CharmRankingScreen = lazy(() => import('./components/screens/CharmRankingScreen').then(m => ({default: m.CharmRankingScreen})));
 const WealthRankingScreen = lazy(() => import('./components/screens/WealthRankingScreen').then(m => ({default: m.WealthRankingScreen})));
 
+const subScreens = [
+  'level', 'vip', 'wallet', 'recharge', 'settings', 'search', 'friends',
+  'chat_detail', 'store', 'agency', 'badges', 'charm_wealth', 'wealth_level',
+  'charm_level', 'silver_coins', 'help_center', 'edit_profile',
+  'user_detail_profile', 'room_rankings', 'charm_ranking', 'wealth_ranking',
+  'fill_info', 'login', 'messages', 'create',
+];
+
 const MainLayout: React.FC = () => {
-  const { activeRoom, activeTab, activeSubScreen, isAuthenticated, authLoading, needsProfile, error, dismissError, refreshProfile, logout } = useApp();
+  const { activeRoom, activeTab, activeSubScreen, isAuthenticated, authLoading, needsProfile, error, dismissError, refreshProfile, logout, setActiveSubScreen } = useApp();
 
   if (authLoading) return <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-white" dir="rtl">
     <p role="status">جارٍ تحميل حسابك…</p>
@@ -58,6 +66,18 @@ const MainLayout: React.FC = () => {
 
   // 2. If viewing a sub-screen modal
   if (activeSubScreen) {
+    if (!subScreens.includes(activeSubScreen)) {
+      return (
+        <div className="max-w-md mx-auto min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+          <p className="font-bold mb-4">
+            {activeSubScreen === 'visitors' ? 'لا توجد بيانات زوار متاحة حالياً' : 'هذه الصفحة غير متاحة حالياً'}
+          </p>
+          <button type="button" onClick={() => setActiveSubScreen(null)} className="px-6 py-2 rounded-full bg-emerald-600 text-white font-bold cursor-pointer">
+            الرجوع
+          </button>
+        </div>
+      );
+    }
     const isLightScreen = [
       'store',
       'agency',
@@ -82,6 +102,7 @@ const MainLayout: React.FC = () => {
         {activeSubScreen === 'search' && <SearchModal />}
         {activeSubScreen === 'friends' && <FriendsModal />}
         {activeSubScreen === 'chat_detail' && <ChatDetailScreen />}
+        {activeSubScreen === 'messages' && <MessagesScreen />}
         {activeSubScreen === 'store' && <StoreScreen />}
         {activeSubScreen === 'agency' && <AgencyScreen />}
         {activeSubScreen === 'badges' && <BadgesScreen />}
@@ -98,7 +119,6 @@ const MainLayout: React.FC = () => {
         {activeSubScreen === 'fill_info' && <FillInfoScreen />}
         {activeSubScreen === 'login' && <LoginScreen />}
         {activeSubScreen === 'create' && <CreateRoomScreen />}
-        {activeSubScreen === 'messages' && <MessagesScreen />}
       </div>
     );
   }

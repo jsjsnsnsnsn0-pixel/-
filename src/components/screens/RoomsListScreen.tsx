@@ -21,7 +21,7 @@ export const RoomsListScreen: React.FC = () => {
     let list = [...rooms];
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       list = list.filter(
         (r) =>
           r.title.toLowerCase().includes(q) ||

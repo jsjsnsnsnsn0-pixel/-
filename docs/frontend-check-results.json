@@ -1,0 +1,545 @@
+{
+  "date": "2026-10-05",
+  "branch": "frontend-fixes",
+  "base_commit": "52714370de7e985eab16f550057b747ebe15bd1b",
+  "scope": "Frontend with browser-only backend fixtures; real authentication, API and payments not validated",
+  "checks": {
+    "typescript": "pass",
+    "lint_script": "pass (tsc --noEmit, no ESLint script)",
+    "build": "pass",
+    "tests_script": "absent",
+    "emitted_images": 128,
+    "emitted_images_identical_to_source": true,
+    "missing_local_image_references": []
+  },
+  "browser": {
+    "results": [
+      {
+        "name": "home create navigation",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "visitors safe state and back",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "messages matrix aligned",
+        "pass": true,
+        "detail": [
+          {
+            "y": 97.5,
+            "x": 20,
+            "width": 320,
+            "columns": "44px 190px 58px"
+          },
+          {
+            "y": 179.5,
+            "x": 20,
+            "width": 320,
+            "columns": "44px 190px 58px"
+          }
+        ]
+      },
+      {
+        "name": "official reply and one outgoing",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "chat composer visible at mobile width",
+        "pass": true,
+        "detail": {
+          "bottom": 740,
+          "right": 360,
+          "left": 0,
+          "viewport": 740,
+          "width": 360,
+          "bodyWidth": 360
+        }
+      },
+      {
+        "name": "render level",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render vip",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render wallet",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render recharge",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render settings",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render search",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render friends",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render chat_detail",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render store",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render agency",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render badges",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render charm_wealth",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render wealth_level",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render charm_level",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render silver_coins",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render help_center",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render edit_profile",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render user_detail_profile",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render room_rankings",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render charm_ranking",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render wealth_ranking",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render fill_info",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render login",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render messages",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "render unknown_screen",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "agency support opens chat",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "chat missing selection recovery",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "chat hook order",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "existing conversation no duplicate",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "existing conversation voice persisted once",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "clipboard rejected safely",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "room recharge reachable and room retained",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "room return",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "room messages reachable",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "invalid caches safe on home",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "invalid system cache safe on chat",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "overflow messages 320",
+        "pass": true,
+        "detail": {
+          "w": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "name": "overflow search 320",
+        "pass": true,
+        "detail": {
+          "w": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "name": "overflow edit_profile 320",
+        "pass": true,
+        "detail": {
+          "w": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "name": "overflow recharge 320",
+        "pass": true,
+        "detail": {
+          "w": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "name": "overflow chat_detail 320",
+        "pass": true,
+        "detail": {
+          "w": 320,
+          "scroll": 320
+        }
+      },
+      {
+        "name": "overflow messages 360",
+        "pass": true,
+        "detail": {
+          "w": 360,
+          "scroll": 360
+        }
+      },
+      {
+        "name": "overflow search 360",
+        "pass": true,
+        "detail": {
+          "w": 360,
+          "scroll": 360
+        }
+      },
+      {
+        "name": "overflow edit_profile 360",
+        "pass": true,
+        "detail": {
+          "w": 360,
+          "scroll": 360
+        }
+      },
+      {
+        "name": "overflow recharge 360",
+        "pass": true,
+        "detail": {
+          "w": 360,
+          "scroll": 360
+        }
+      },
+      {
+        "name": "overflow chat_detail 360",
+        "pass": true,
+        "detail": {
+          "w": 360,
+          "scroll": 360
+        }
+      },
+      {
+        "name": "overflow messages 412",
+        "pass": true,
+        "detail": {
+          "w": 412,
+          "scroll": 412
+        }
+      },
+      {
+        "name": "overflow search 412",
+        "pass": true,
+        "detail": {
+          "w": 412,
+          "scroll": 412
+        }
+      },
+      {
+        "name": "overflow edit_profile 412",
+        "pass": true,
+        "detail": {
+          "w": 412,
+          "scroll": 412
+        }
+      },
+      {
+        "name": "overflow recharge 412",
+        "pass": true,
+        "detail": {
+          "w": 412,
+          "scroll": 412
+        }
+      },
+      {
+        "name": "overflow chat_detail 412",
+        "pass": true,
+        "detail": {
+          "w": 412,
+          "scroll": 412
+        }
+      },
+      {
+        "name": "overflow messages 768",
+        "pass": true,
+        "detail": {
+          "w": 768,
+          "scroll": 768
+        }
+      },
+      {
+        "name": "overflow search 768",
+        "pass": true,
+        "detail": {
+          "w": 768,
+          "scroll": 768
+        }
+      },
+      {
+        "name": "overflow edit_profile 768",
+        "pass": true,
+        "detail": {
+          "w": 768,
+          "scroll": 768
+        }
+      },
+      {
+        "name": "overflow recharge 768",
+        "pass": true,
+        "detail": {
+          "w": 768,
+          "scroll": 768
+        }
+      },
+      {
+        "name": "overflow chat_detail 768",
+        "pass": true,
+        "detail": {
+          "w": 768,
+          "scroll": 768
+        }
+      },
+      {
+        "name": "overflow messages 1280",
+        "pass": true,
+        "detail": {
+          "w": 1280,
+          "scroll": 1280
+        }
+      },
+      {
+        "name": "overflow search 1280",
+        "pass": true,
+        "detail": {
+          "w": 1280,
+          "scroll": 1280
+        }
+      },
+      {
+        "name": "overflow edit_profile 1280",
+        "pass": true,
+        "detail": {
+          "w": 1280,
+          "scroll": 1280
+        }
+      },
+      {
+        "name": "overflow recharge 1280",
+        "pass": true,
+        "detail": {
+          "w": 1280,
+          "scroll": 1280
+        }
+      },
+      {
+        "name": "overflow chat_detail 1280",
+        "pass": true,
+        "detail": {
+          "w": 1280,
+          "scroll": 1280
+        }
+      },
+      {
+        "name": "home modal 1",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "home modal 2",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "home modal 3",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "home modal 4",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "countdown minute rollover",
+        "pass": true,
+        "detail": "👑 نشاط إعادة الشحن والمكافآت 👑\nقواعد\n.\nقواعد\n59\nثواني\n24\nدقائق\n00\nساعات\n15\nأيام\n$0.00\nقيمة الشحن التراكمي الشهري\n$9.9\n$49.9\n$100\n$300\n$500\n$1,000\n$1,500\n$3,000\n$5,000\n$10,000\nإعادة"
+      },
+      {
+        "name": "home modal 5",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "custom gift support opens chat",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "avatar wrong file error",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "avatar native picker clears and loads",
+        "pass": true,
+        "detail": null
+      },
+      {
+        "name": "production bundled login boot",
+        "pass": true,
+        "detail": []
+      },
+      {
+        "name": "production login images loaded",
+        "pass": true,
+        "detail": [
+          {
+            "src": "/src/assets/images/toti_clean_bg_1790424891818.jpg",
+            "loaded": true
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "console": [
+      "Failed to load resource: net::ERR_FAILED"
+    ]
+  },
+  "utilities": {
+    "results": [
+      {
+        "name": "replace stale timer, preserve independent timers",
+        "pass": true
+      },
+      {
+        "name": "cancel timers when dialog or chat changes",
+        "pass": true
+      },
+      {
+        "name": "cancel timers on unmount",
+        "pass": true
+      },
+      {
+        "name": "do not schedule after unmount",
+        "pass": true
+      },
+      {
+        "name": "cache null object string invalid JSON entries and blocked storage",
+        "pass": true
+      },
+      {
+        "name": "clipboard absent rejected successful",
+        "pass": true
+      },
+      {
+        "name": "broken fallback not reloaded infinitely",
+        "pass": true
+      },
+      {
+        "name": "no unhandled errors",
+        "pass": true
+      }
+    ],
+    "errors": []
+  }
+}

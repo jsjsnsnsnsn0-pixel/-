@@ -9,7 +9,7 @@ import { CustomGiftModal } from '../modals/CustomGiftModal';
 import { RechargeActivityModal } from '../modals/RechargeActivityModal';
 
 export const HomeScreen: React.FC = () => {
-  const { rooms, joinRoom, setActiveSubScreen } = useApp();
+  const { rooms, joinRoom, setActiveSubScreen, setActiveTab } = useApp();
   const { wealthRankings, charmRankings, roomRankings } = useRealtimeRankings();
 
   // Top header tab: حفلة | ملكي | اكتشف
@@ -208,7 +208,7 @@ export const HomeScreen: React.FC = () => {
           {/* Green Palace / Room Creation Button with small + */}
           <button
             type="button"
-            onClick={() => setActiveSubScreen('create')}
+            onClick={() => setActiveTab('create')}
             className="relative w-9 h-9 rounded-xl flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title="إنشاء غرفة"
           >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Room } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
@@ -12,6 +12,7 @@ interface RoomCardProps {
 
 export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', onJoin }) => {
   const [imgError, setImgError] = useState(false);
+  useEffect(() => setImgError(false), [room.coverImage]);
 
   // 1. Featured Room Card (Panoramic Carousel)
   if (variant === 'featured') {

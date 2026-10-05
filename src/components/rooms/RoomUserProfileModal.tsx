@@ -1,3 +1,5 @@
+import { copyText } from '../../utils/clipboard';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
@@ -29,17 +31,21 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   targetUser,
 }) => {
   const { user: currentUser, setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts(isOpen);
   const [copied, setCopied] = React.useState(false);
+  React.useEffect(() => {
+    if (!isOpen) setCopied(false);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Use the clicked user or fallback to current logged in user
   const displayUser: User = targetUser || currentUser;
 
-  const handleCopyId = () => {
-    navigator.clipboard?.writeText(displayUser.id || '1331');
+  const handleCopyId = async () => {
+    if (!await copyText(displayUser.id || '1331')) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
   return (

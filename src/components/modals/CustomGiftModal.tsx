@@ -2,6 +2,7 @@ import React from 'react';
 import { X, MessageCircle, Sparkles, Lock, Unlock, CheckCircle } from 'lucide-react';
 import { useMonthlyRecharge } from '../../hooks/useMonthlyRecharge';
 import { useApp } from '../../context/AppContext';
+import { usePublicChat } from '../../hooks/usePublicChat';
 
 interface CustomGiftModalProps {
   isOpen: boolean;
@@ -9,8 +10,9 @@ interface CustomGiftModalProps {
 }
 
 export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClose }) => {
-  const { user, setActiveSubScreen } = useApp();
+  const { user, setActiveSubScreen, setSelectedChatUser } = useApp();
 
+  const { opening, openChat } = usePublicChat(isOpen);
   const currentMonthlyRecharge = useMonthlyRecharge(user.authId, isOpen);
 
   const targetAmount = 1500;
@@ -105,10 +107,8 @@ export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClos
             <div className="mt-3 w-full px-2 flex flex-col gap-2" dir="rtl">
               <button
                 type="button"
-                onClick={() => {
-                  onClose();
-                  setActiveSubScreen('customer_support');
-                }}
+                disabled={opening}
+                onClick={async () => { if (await openChat()) onClose(); }}
                 className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-[#9333ea] via-[#7e22ce] to-[#581c87] border-2 border-amber-300 text-white font-black text-sm shadow-[0_0_20px_rgba(147,51,234,0.6)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
               >
                 <MessageCircle size={18} className="text-amber-300" />

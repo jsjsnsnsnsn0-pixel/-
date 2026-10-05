@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Sparkles, Plus, Gift as GiftIcon, Trophy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { triggerSoulmatesWeeklyWinNotification } from '../../services/systemNotificationService';
+import { isRecord, readStoredArray } from '../../utils/storage';
 
 interface SoulmatesWeeklyModalProps {
   isOpen: boolean;
@@ -26,39 +27,31 @@ export interface CpLeaderboardEntry {
   } | null;
 }
 
+const readLeaderboard = () => {
+  const entries = readStoredArray('soulmates_cp_leaderboard', (value): value is CpLeaderboardEntry => {
+    if (!isRecord(value) || typeof value.rank !== 'number' || !Number.isFinite(value.rank) ||
+        typeof value.cpScore !== 'number' || !Number.isFinite(value.cpScore)) return false;
+    return [value.user1, value.user2].every((user) => user === null ||
+      (isRecord(user) && ['id', 'name', 'avatar'].every((key) => typeof user[key] === 'string'))
+    );
+  });
+  return entries.length ? entries : Array.from({ length: 10 }, (_, i) => ({
+    rank: i + 1, cpScore: 0, user1: null, user2: null,
+  }));
+};
+
 export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOpen, onClose }) => {
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedRank, setSelectedRank] = useState<RankTier>('top1');
 
   // Dynamic ranking entries stored in localStorage so CP gifts add real data
-  const [leaderboard, setLeaderboard] = useState<CpLeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('soulmates_cp_leaderboard');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // ignore
-    }
-    // Clean, empty initial state ready to receive real ranking after sending CP gifts
-    return Array.from({ length: 10 }, (_, i) => ({
-      rank: i + 1,
-      cpScore: 0,
-      user1: null,
-      user2: null,
-    }));
-  });
+  const [leaderboard, setLeaderboard] = useState<CpLeaderboardEntry[]>(readLeaderboard);
 
   useEffect(() => {
-    const handleStorageUpdate = () => {
-      try {
-        const saved = localStorage.getItem('soulmates_cp_leaderboard');
-        if (saved) {
-          setLeaderboard(JSON.parse(saved));
-        }
-      } catch {
-        // ignore
+    const handleStorageUpdate = (event: StorageEvent) => {
+      if (event.key === 'soulmates_cp_leaderboard' || event.key === null) {
+        setLeaderboard(readLeaderboard());
       }
     };
     window.addEventListener('storage', handleStorageUpdate);

@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -6,6 +7,7 @@ import { ChevronRight, Heart, CheckCircle2 } from 'lucide-react';
 export const CharmRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user } = useApp();
   const { charmRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
+  const scheduleTimeout = useTimeouts();
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Top 1, Top 2, Top 3
@@ -20,7 +22,7 @@ export const CharmRankingScreen: React.FC = () => {
   // Simulate receiving charm support on mic
   const handleReceiveCharm = (_amount: number) => {
     setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
-    setTimeout(() => setFeedbackMsg(null), 3500);
+    scheduleTimeout(() => setFeedbackMsg(null), 3500);
   };
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../services/supabase';
+import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import {
   ChevronLeft,
@@ -41,10 +42,12 @@ export const EditProfileModal: React.FC = () => {
   // Hidden native file input for gallery upload
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
   // Handle local image file picker from gallery
   const [uploading, setUploading] = useState(false);
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file || !user.authId || uploading) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
       reportError('اختر صورة JPEG أو PNG أو WebP لا يتجاوز حجمها 5 ميغابايت.'); return;
@@ -142,6 +145,7 @@ export const EditProfileModal: React.FC = () => {
           <ChevronRight size={26} className="stroke-[2.5]" />
         </button>
       </header>
+
 
       {/* List items matching the exact order and look in the screenshot */}
       <div className="divide-y divide-slate-100 px-4">
@@ -305,7 +309,7 @@ export const EditProfileModal: React.FC = () => {
                         : 'border-slate-200 hover:opacity-80'
                     }`}
                   >
-                    <img src={preset} alt={`preset-${idx}`} className="w-full h-full object-cover" />
+                    <img src={preset} alt={`preset-${idx}`} onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

@@ -1,4 +1,6 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect } from 'react';
+import { readStoredArray } from '../../utils/storage';
 import {
   X,
   HelpCircle,
@@ -624,9 +626,13 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
 
 export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ isOpen, onClose }) => {
   const { user, setUser } = useApp();
+  const scheduleTimeout = useTimeouts(isOpen);
   const [selectedTierIndex, setSelectedTierIndex] = useState<number>(0);
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [rewardToast, setRewardToast] = useState<{ title: string; desc: string } | null>(null);
+  useEffect(() => {
+    if (!isOpen) setRewardToast(null);
+  }, [isOpen]);
 
   const monthlyRechargeAmount = useMonthlyRecharge(user.authId, isOpen);
   const claimedTiers: string[] = [];
@@ -643,23 +649,24 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
   });
 
   useEffect(() => {
+    if (!isOpen) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
         if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
         if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
         return prev;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isOpen]);
 
 
   // Real Execute Recharge Function: Recharges the user, unlocks all features, VIP, ID, coins, frames!
   const handleExecuteRechargeAndUnlock = (_tier: ActivityTierData) => {
     setRewardToast({title: 'لم يتم الشحن', desc: 'مكافآت النشاط تُمنح بعد تأكيد الدفع من الوكيل الرسمي. تواصل مع الدعم.'});
-    setTimeout(() => setRewardToast(null), 5000);
+    scheduleTimeout(() => setRewardToast(null), 5000);
   };
 
   if (!isOpen) return null;

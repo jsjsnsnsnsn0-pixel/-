@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-05",
+  "branch": "integration/frontend-backend",
+  "source_heads": {
+    "main": "52714370de7e985eab16f550057b747ebe15bd1b",
+    "frontend-fixes": "8b14d2b38340714df1913a8489f60099aa9b6b02",
+    "codex/repair-totichat-runtime": "4171eb011c16fe8f28856521b3c527428d127952"
+  },
+  "typescript": "PASS",
+  "lint": "PASS (TypeScript + ESLint/react-hooks)",
+  "build": "PASS with and without test configuration",
+  "unit_tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "browser_e2e": {
+    "passed": 20,
+    "failed": 0,
+    "api_mode": "isolated browser routing, never production mock implementation",
+    "widths": [
+      320,
+      360,
+      412,
+      768,
+      1280
+    ]
+  },
+  "database_regressions": {
+    "runtime": "PASS with rollback",
+    "audio": "PASS with rollback",
+    "official_contact": "PASS with rollback",
+    "remaining_test_users": 0,
+    "remaining_test_messages": 0
+  },
+  "assets": {
+    "byte_identical": 128,
+    "total": 128
+  },
+  "audit_vulnerabilities": 0,
+  "android": "add/configure/sync/doctor PASS; no local APK build, Android SDK absent",
+  "remaining": [
+    "Latest social/commerce/agency/notifications backend functions are not fully integrated into branch UI",
+    "Repository migration history is partial",
+    "Auth leaked-password protection disabled",
+    "Device OAuth/SMS/audio/payment verification needed"
+  ]
+}

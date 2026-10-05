@@ -1,3 +1,5 @@
+import { usePublicChat } from '../../hooks/usePublicChat';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../services/supabase';
@@ -9,6 +11,9 @@ import {
 
 export const RechargeScreen: React.FC = () => {
   const { user, convertDiamonds, setActiveSubScreen } = useApp();
+
+  const { opening, openChat } = usePublicChat();
+  const scheduleTimeout = useTimeouts();
 
   // Active tab: 'coins' (عملات معدنية) | 'diamonds' (ألماسي)
   const [activeTab, setActiveTab] = useState<'coins' | 'diamonds'>('coins');
@@ -71,7 +76,9 @@ export const RechargeScreen: React.FC = () => {
       setPackagesLoading(false);
     };
 
-    loadPackages();
+    void loadPackages().catch(() => {
+      if (!cancelled) { setRechargeError('تعذر تحميل باقات الشحن حالياً.'); setCoinPackages([]); setPackagesLoading(false); }
+    });
 
     return () => {
       cancelled = true;
@@ -112,7 +119,7 @@ export const RechargeScreen: React.FC = () => {
       if (!result) throw new Error('missing agent');
       setAgentInfo(result); setShowAgentModal(true);
       setSuccessToast('تم إنشاء طلب الشحن. يرجى الدفع للوكيل الرسمي.');
-      setTimeout(() => setSuccessToast(null), 3500);
+      scheduleTimeout(() => setSuccessToast(null), 3500);
     } catch (e) {
       console.error('Recharge request failed', e);
       const message = e && typeof e === 'object' && 'message' in e ? String(e.message) : '';
@@ -129,7 +136,7 @@ export const RechargeScreen: React.FC = () => {
       if (!await convertDiamonds(amountToConvert)) return;
       setShowConvertModal(false);
       setSuccessToast('تم تحويل الألماس إلى ذهب بنجاح.');
-      setTimeout(() => setSuccessToast(null), 3500);
+      scheduleTimeout(() => setSuccessToast(null), 3500);
     } finally { setConverting(false); }
   };
 
@@ -251,7 +258,7 @@ export const RechargeScreen: React.FC = () => {
               {/* Crisp Glowing Pure White Numbers */}
               <div className="flex items-center justify-center gap-1.5 mt-0.5">
                 <span className="text-[20px] sm:text-[27px] font-black text-white font-mono tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] filter contrast-125">
-                  {(user.gold || 119797499).toLocaleString()}
+                  {(user.gold ?? 0).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -265,6 +272,8 @@ export const RechargeScreen: React.FC = () => {
             </h2>
           </div>
 
+          {packagesLoading && <p role="status" className="text-center text-sm text-slate-500">جارٍ تحميل باقات الشحن…</p>}
+          {!packagesLoading && !rechargeError && coinPackages.length === 0 && <p className="text-center text-sm text-slate-500">لا توجد باقات شحن متاحة حالياً.</p>}
           {/* Grid of 6 Packages (3 Columns x 2 Rows) */}
           <div className="grid grid-cols-3 gap-2.5">
             {coinPackages.map((pkg) => {
@@ -325,7 +334,7 @@ export const RechargeScreen: React.FC = () => {
             </button>
           </div>
 {rechargeError && (
-  <div className="mt-2 rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-center">
+  <div role="alert" className="mt-2 rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-center">
     <p className="text-sm font-bold text-red-600">
       {rechargeError}
     </p>
@@ -575,6 +584,13 @@ export const RechargeScreen: React.FC = () => {
               : JSON.stringify(agentInfo.payment_methods)}
           </p>
         </div>
+      )}
+
+      {agentInfo.contact_info?.channel === 'in_app' && agentInfo.contact_info?.public_id && (
+        <button type="button" disabled={opening} onClick={() => void openChat(agentInfo.contact_info.public_id)}
+          className="w-full py-3 mb-3 rounded-xl bg-emerald-600 text-white font-bold disabled:opacity-50">
+          {opening ? 'جارٍ فتح المحادثة…' : 'تواصل مع وكيل الشحن داخل التطبيق'}
+        </button>
       )}
 
       <p className="text-xs text-slate-500 leading-6 mb-4">

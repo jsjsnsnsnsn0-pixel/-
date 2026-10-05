@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, Coins, Check, Gift, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -13,6 +14,7 @@ interface Task {
 
 export const SilverCoinsScreen: React.FC = () => {
   const { user, setUser, setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: 't1',
@@ -61,7 +63,7 @@ export const SilverCoinsScreen: React.FC = () => {
 
   const handleClaimTask = (_taskId: string) => {
     setJustClaimedNotice('مكافآت المهام غير متاحة حتى اعتماد تقدمك من الخادم.');
-    setTimeout(() => setJustClaimedNotice(null), 3000);
+    scheduleTimeout(() => setJustClaimedNotice(null), 3000);
   };
 
   return (

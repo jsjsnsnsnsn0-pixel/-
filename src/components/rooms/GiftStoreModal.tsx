@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../services/supabase';
@@ -23,6 +24,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const { user, sendGiftInRoom } = useApp();
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [loading, setLoading] = useState(false);
+  const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGift, setSelectedGift] = useState<Gift | null>(sampleGifts[0]);
   
@@ -43,6 +45,13 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSendSuccess(false);
+      setErrorMsg(null);
+    }
+  }, [isOpen]);
 
   const categories = [
     { id: 'all', label: 'الكل' },
@@ -79,7 +88,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       : gifts.filter((g) => g.category === selectedCategory);
 
   const handleSend = async () => {
-    if (sending || loading) return;
+    if (sending || loading || sendSuccess) return;
     if (!selectedGift || !selectedRecipient) {
       setErrorMsg('يرجى اختيار المستلم والهدية');
       return;
@@ -96,7 +105,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     if (ok) {
       setSendSuccess(true);
       setErrorMsg(null);
-      setTimeout(() => {
+      scheduleTimeout(() => {
         setSendSuccess(false);
         onClose();
       }, 900);
@@ -264,7 +273,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             <button
               type="button"
               onClick={handleSend}
-              disabled={sending || loading || !selectedGift || !selectedRecipient}
+              disabled={sending || loading || sendSuccess || !selectedGift || !selectedRecipient}
               className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 sendSuccess
                   ? 'bg-emerald-600 text-white'
