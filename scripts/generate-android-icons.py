@@ -1,7 +1,7 @@
 """Generate launcher resources from the repository's original artwork (Pillow)."""
 from pathlib import Path
 from PIL import Image, ImageOps, ImageDraw
-source=Path('public/assets/images/toti_falcon_logo_1790422919580.jpg')
+source=Path('resources/totichat-official-icon.jpg')
 image=Image.open(source).convert('RGBA')
 root=Path('resources/android-launcher')
 for density,scale in [('mdpi',1),('hdpi',1.5),('xhdpi',2),('xxhdpi',3),('xxxhdpi',4)]:

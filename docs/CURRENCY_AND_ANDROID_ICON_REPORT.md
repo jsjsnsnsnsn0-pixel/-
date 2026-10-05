@@ -62,7 +62,7 @@ Recharge يوضح أن الشحن Coins فقط؛ تبويب Diamonds سمي «أ
 
 ## Icon
 
-وجد المصدر في المستودع: `public/assets/images/toti_falcon_logo_1790422919580.jpg` (1024×1024)، وفُحص بصرياً: صقر، تاج، Toti Chat، توتي شات، الأسود والذهبي، ورمز الصوت. لم تستخدم صورة إنترنت أو placeholder.
+اعتمدت الصورة المرفوعة من المستخدم `1000087857.jpg`، المحفوظة دون تعديل في `resources/totichat-official-icon.jpg` (1280×1280)، بدلاً من المصدر السابق في المستودع. وفُحص بصرياً: صقر، تاج، Toti Chat، توتي شات، الأسود والذهبي، ورمز الصوت. لم تستخدم صورة إنترنت أو placeholder.
 
 حُفظت الموارد المولدة في `resources/android-launcher/` لأن `android/` مجلد Capacitor مولد ومتجاهل في Git. سكربت `scripts/configure-android.mjs` ينسخ الموارد إلى `android/app/src/main/res/` ضمن مسار Android الحالي. `scripts/generate-android-icons.py` يعيد التوليد من المصدر بواسطة Pillow؛ ملفات PNG الجاهزة مضمّنة ولا تحتاج Pillow عند بناء Android.
 
