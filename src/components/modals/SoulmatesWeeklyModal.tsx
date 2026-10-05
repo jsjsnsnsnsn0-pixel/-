@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Sparkles, Plus, Gift as GiftIcon, Trophy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { triggerSoulmatesWeeklyWinNotification } from '../../services/systemNotificationService';
-import { isRecord, readStoredArray } from '../../utils/storage';
+import { rpc, backendMessage } from '../../services/backend';
+import { useServerData } from '../../hooks/useServerData';
 
 interface SoulmatesWeeklyModalProps {
   isOpen: boolean;
@@ -27,36 +27,21 @@ export interface CpLeaderboardEntry {
   } | null;
 }
 
-const readLeaderboard = () => {
-  const entries = readStoredArray('soulmates_cp_leaderboard', (value): value is CpLeaderboardEntry => {
-    if (!isRecord(value) || typeof value.rank !== 'number' || !Number.isFinite(value.rank) ||
-        typeof value.cpScore !== 'number' || !Number.isFinite(value.cpScore)) return false;
-    return [value.user1, value.user2].every((user) => user === null ||
-      (isRecord(user) && ['id', 'name', 'avatar'].every((key) => typeof user[key] === 'string'))
-    );
-  });
-  return entries.length ? entries : Array.from({ length: 10 }, (_, i) => ({
-    rank: i + 1, cpScore: 0, user1: null, user2: null,
-  }));
-};
-
 export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useApp();
+  const { user, refreshWallet, reportError } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedRank, setSelectedRank] = useState<RankTier>('top1');
 
-  // Dynamic ranking entries stored in localStorage so CP gifts add real data
-  const [leaderboard, setLeaderboard] = useState<CpLeaderboardEntry[]>(readLeaderboard);
-
-  useEffect(() => {
-    const handleStorageUpdate = (event: StorageEvent) => {
-      if (event.key === 'soulmates_cp_leaderboard' || event.key === null) {
-        setLeaderboard(readLeaderboard());
-      }
-    };
-    window.addEventListener('storage', handleStorageUpdate);
-    return () => window.removeEventListener('storage', handleStorageUpdate);
-  }, []);
+  const [busy,setBusy] = useState(false);
+  const [notice,setNotice] = useState('');
+  const load=useCallback(async (): Promise<CpLeaderboardEntry[]> => {
+    if(!isOpen)return [];
+    const result=await rpc<{current:{rank:number;score:number;user1:Record<string,any>;user2:Record<string,any>}[]}>('couple_state');
+    if(!result)throw new Error('rankings unavailable');
+    return result.current.map(row=>({rank:Number(row.rank),cpScore:Number(row.score),user1:{id:String(row.user1.public_id),name:row.user1.display_name,avatar:row.user1.avatar_url},user2:{id:String(row.user2.public_id),name:row.user2.display_name,avatar:row.user2.avatar_url}}));
+  },[isOpen,user.authId]);
+  const {data:leaderboard,loading,error,reload}=useServerData(load,[] as CpLeaderboardEntry[]);
+  const claim=async()=>{if(busy)return;setBusy(true);try{const rank=await rpc<number>('claim_couple_reward');if(!rank)throw new Error('claim not confirmed');setNotice(`اعتمد الخادم مكافأة المركز ${rank} للأسبوع السابق.`);await refreshWallet();}catch(e){reportError(backendMessage(e));}finally{setBusy(false);}};
 
   if (!isOpen) return null;
 
@@ -85,6 +70,9 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
+      {loading && <p className="absolute top-4 text-white">جارٍ تحميل الترتيب…</p>}
+      {error && <button onClick={() => void reload()} className="absolute top-4 text-white">{error} — إعادة المحاولة</button>}
+      {notice && <p role="status" className="absolute top-4 text-white">{notice}</p>}
       {/* Modal Container */}
       <div
         onClick={(e) => e.stopPropagation()}
@@ -290,13 +278,11 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
                 {/* Claim Top 1 Winner Celebration Button */}
                 <button
                   type="button"
-                  onClick={() => {
-                    alert('مكافآت الأسبوع تحتاج اعتماد النتائج الفعلية من الخادم. لم تُمنح مكافأة.');
-                  }}
+                  disabled={busy || loading || Boolean(error)} onClick={() => void claim()}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 text-xs font-black border-2 border-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-xl flex items-center justify-center gap-2"
                 >
                   <Trophy size={16} />
-                  <span>تتويج نهاية الأسبوع واستلام مكافأة المرتبة الأولى (السيبي Top 1)</span>
+                  <span>استلام مكافأة الأسبوع السابق إن كنت مستحقاً</span>
                   <Sparkles size={16} />
                 </button>
 

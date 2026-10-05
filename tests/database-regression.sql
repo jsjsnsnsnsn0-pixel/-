@@ -43,6 +43,12 @@ begin
   perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
   perform public.join_room(r);
   perform public.set_my_room_seat(r,2);
+  begin
+   perform public.moderate_room_seat(r,2,'unmute');
+   raise exception 'member moderation was permitted';
+  exception when raise_exception then
+   if sqlerrm<>'room moderation permission required' then raise; end if;
+  end;
   perform public.set_my_room_muted(r,false);
   insert into public.direct_messages(recipient_public_id,content,message_type) values(pa,'Regression message','text');
   begin

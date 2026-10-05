@@ -31,7 +31,7 @@ interface AppContextType {
   error: string | null; dismissError: () => void; reportError: (message: string) => void;
   loginWithGoogle: (profile?: {name?: string; email?: string; picture?: string}) => Promise<void>;
   loginWithPhone: (phone?: string, otp?: string) => Promise<void>;
-  logout: () => Promise<void>; refreshProfile: () => Promise<void>;
+  logout: () => Promise<void>; refreshProfile: () => Promise<void>; refreshWallet: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   convertDiamonds: (amount: number) => Promise<boolean>;
   markConversationAsRead: (id: string) => Promise<void>;
@@ -105,7 +105,10 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const {data, error} = await supabase.from('profiles').select('*').eq('id', id).single();
     if (error) throw error;
     if (id !== authRef.current) return;
-    const next = profileToUser(data);
+    const social = await supabase.rpc('social_profile', {p_public_id: Number(data.public_id), p_visit: false});
+    if (social.error) throw social.error;
+    if (id !== authRef.current) return;
+    const next = profileToUser({...data, ...(social.data || {})});
     userRef.current = next;
     setUserState(next); setProfileReady(true);
   }, []);
@@ -130,7 +133,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       acceptSession(session?.user.id || null);
     });
     supabase.auth.getSession().then(({data, error}) => {
-      if (error) { if (mounted) fail(error); }
+      if (error) { if (mounted) { fail(error); setAuthLoading(false); } }
       else if (!authEventReceived) acceptSession(data.session?.user.id || null);
     }).catch(e => { if (mounted) { fail(e); setAuthLoading(false); } });
     return () => { mounted = false; subscription.unsubscribe(); };
@@ -179,13 +182,15 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const id = authRef.current;
     if (!id) return;
     const {data, error} = await supabase.from('direct_messages').select('*')
-      .or(`sender_id.eq.${id},recipient_id.eq.${id}`).order('created_at', {ascending: true}).limit(1000);
+      .or(`sender_id.eq.${id},recipient_id.eq.${id}`).order('created_at', {ascending: false}).limit(1000);
     if (error) throw error;
     if (id !== authRef.current) return;
     const grouped = new Map<string, Conversation>();
-    for (const row of data || []) {
+    const latest = new Map<string, number>();
+    for (const row of [...(data || [])].reverse()) {
       const mine = row.sender_id === id;
       const publicId = String(mine ? row.recipient_public_id : row.sender_public_id);
+      latest.set(publicId, new Date(row.created_at).getTime());
       let c = grouped.get(publicId);
       if (!c) {
         c = {id: publicId, user: profileToUser({id: mine ? row.recipient_id : row.sender_id,
@@ -201,7 +206,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       c.lastMessage = row.content || 'رسالة صوتية'; c.timestamp = timestamp;
       if (!mine && !row.read_at) c.unreadCount++;
     }
-    setConversations([...grouped.values()].reverse());
+    setConversations([...grouped.values()].sort((a,b) => (latest.get(b.id) || 0) - (latest.get(a.id) || 0)));
   }, []);
 
   const refreshTransactions = useCallback(async () => {
@@ -211,14 +216,63 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       .order('created_at', {ascending: false}).limit(100);
     if (error) throw error;
     if (id !== authRef.current) return;
-    setTransactions((data || []).map(row => ({id: row.id,
-      type: row.transaction_type === 'diamond_conversion' ? 'diamonds_exchange' : row.transaction_type,
-      title: row.transaction_type === 'recharge' ? 'شحن الرصيد' : row.transaction_type === 'diamond_conversion' ? 'تحويل الألماس إلى ذهب' : 'حركة المحفظة',
-      amount: Number(row.gold_delta), currency: 'gold', date: new Date(row.created_at).toLocaleDateString('ar-SA'),
-      time: new Date(row.created_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'}),
-      status: 'completed', iconType: row.transaction_type === 'recharge' ? 'plus' : 'gift',
+    setTransactions((data || []).flatMap(row => (['gold', 'diamonds', 'silver'] as const).flatMap(currency => {
+      const amount = Number(row[currency === 'diamonds' ? 'diamond_delta' : `${currency}_delta`] || 0);
+      if (!amount) return [];
+      return [{id: `${row.id}:${currency}`, type: row.transaction_type === 'diamond_conversion' ? 'diamonds_exchange' : row.transaction_type,
+        title: row.transaction_type === 'recharge' ? 'شحن الرصيد' : 'حركة المحفظة', amount, currency,
+        date: new Date(row.created_at).toLocaleDateString('ar-SA'),
+        time: new Date(row.created_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'}),
+        status: 'completed' as const, iconType: row.transaction_type === 'recharge' ? 'plus' : 'gift'}];
     })));
+
   }, []);
+
+  const refreshNotifications = useCallback(async () => {
+    const id = authRef.current; if (!id) return;
+    const {data, error} = await supabase.from('user_notifications').select('*').eq('user_id', id)
+      .order('created_at', {ascending: false}).limit(100);
+    if (error) throw error;
+    if (id !== authRef.current) return;
+    setNotifications((data || []).map(row => ({id: row.id, type: row.type, title: row.title,
+      description: row.description || '', roomId: row.room_id, isRead: Boolean(row.read_at),
+      timestamp: new Date(row.created_at).toLocaleString('ar-SA')})));
+    setUnreadSystemMessagesCount((data || []).filter(row => !row.read_at).length);
+    setHasUnseenFollowers((data || []).some(row => row.type === 'follower' && !row.read_at));
+  }, []);
+  const refreshWallet = async () => { await Promise.all([refreshProfile(), refreshTransactions(), refreshNotifications()]); };
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      const {error} = await supabase.from('user_notifications').update({read_at: new Date().toISOString()})
+        .eq('id', id).eq('user_id', authRef.current);
+      if (error) throw error;
+      await refreshNotifications();
+    } catch (e) { fail(e); }
+  };
+  const markSystemMessagesAsRead = async () => {
+    try {
+      const {error} = await supabase.from('user_notifications').update({read_at: new Date().toISOString()})
+        .eq('user_id', authRef.current).is('read_at', null);
+      if (error) throw error;
+      await refreshNotifications();
+    } catch (e) { fail(e); }
+  };
+
+  useEffect(() => {
+    if (!authId) return;
+    let disposed = false;
+    const heartbeat = async () => {
+      const roomId = activeRef.current?.id;
+      try {
+        // Refresh membership before presence pruning so an active room is retained.
+        if (roomId) { const {error} = await supabase.rpc('room_heartbeat', {p_room_id: roomId}); if (error) throw error; }
+        const {error} = await supabase.rpc('touch_presence'); if (error) throw error;
+      } catch (e) { if (!disposed) fail(e); }
+    };
+    void heartbeat();
+    const timer = setInterval(() => { void heartbeat(); }, 45000);
+    return () => { disposed = true; clearInterval(timer); };
+  }, [authId, activeRoom?.id, fail]);
 
   useEffect(() => {
     if (!authId) return;
@@ -227,13 +281,13 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const sync = async () => {
       if (disposed || pending) return;
       pending = true;
-      try { await refreshProfile(); await Promise.all([refreshRooms(), refreshMessages(), refreshTransactions()]); }
+      try { await refreshProfile(); await Promise.all([refreshRooms(), refreshMessages(), refreshTransactions(), refreshNotifications()]); }
       catch (e) { if (!disposed) fail(e); }
       finally { pending = false; }
     };
     void sync();
     const channel = supabase.channel(`app:${authId}`);
-    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions']) {
+    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions', 'user_notifications']) {
       channel.on('postgres_changes', {event: '*', schema: 'public', table}, () => { void sync(); });
     }
     channel.subscribe();
@@ -242,7 +296,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const onFocus = () => { void sync(); };
     window.addEventListener('focus', onFocus);
     return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', onFocus); void supabase.removeChannel(channel); };
-  }, [authId, refreshProfile, refreshRooms, refreshMessages, refreshTransactions, fail]);
+  }, [authId, refreshProfile, refreshRooms, refreshMessages, refreshTransactions, refreshNotifications, fail]);
 
   useEffect(() => () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); }, []);
 
@@ -259,7 +313,9 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   };
   const setUser: AppContextType['setUser'] = (action) => {
     // Legacy editors may request wallet changes. Only the editable fields reach the database.
+    const account = authRef.current;
     profileQueue.current = profileQueue.current.then(async () => {
+      if (!account || account !== authRef.current) return;
       const prev = userRef.current;
       const candidate = typeof action === 'function' ? action(prev) : action;
       if (candidate.gold !== prev.gold || candidate.diamonds !== prev.diamonds || candidate.vipLevel !== prev.vipLevel || candidate.id !== prev.id || candidate.silverCoins !== prev.silverCoins) {
@@ -271,7 +327,6 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const setActiveSubScreen = (screen: string | null) => {
     if (screen === 'customer_support') screen = 'help_center';
-    if (screen === 'visitors') { setError('تسجيل زيارات الملف الشخصي لم يُفعّل بعد.'); return; }
     if (screen === 'create' || screen === 'messages') {
       if (activeRef.current) setActiveSubScreenState(screen);
       else { setActiveTabState(screen); setActiveSubScreenState(null); }
@@ -393,16 +448,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     unreadMessagesCount: conversations.reduce((sum, c) => sum + c.unreadCount, 0),
     unreadNotificationsCount: notifications.filter(n => !n.isRead).length, unreadSystemMessagesCount,
     hasUnseenVisitors, hasUnseenFollowers,
-    markSystemMessagesAsRead: () => setUnreadSystemMessagesCount(0),
+    markSystemMessagesAsRead: () => { void markSystemMessagesAsRead(); },
     markVisitorsAsSeen: () => setHasUnseenVisitors(false), markFollowersAsSeen: () => setHasUnseenFollowers(false),
     setUser, setActiveTab, setActiveSubScreen, setSelectedChatUser, joinRoom, leaveRoom,
     toggleMyMic, toggleRaiseHand, toggleSpeaker: () => {setIsSpeakerOn(!isSpeakerOn); saveAudioPreference(!isSpeakerOn, noiseSuppression);}, takeSeat, leaveSeat,
     sendGiftInRoom, rechargeGold: () => setActiveSubScreenState('recharge'), createNewRoom,
     lockSeat, unlockSeat, muteSeatUser, kickSeatUser, sendMessageToConversation,
-    markNotificationAsRead: id => setNotifications(p => p.map(n => n.id === id ? {...n, isRead: true} : n)),
+    markNotificationAsRead: id => { void markNotificationAsRead(id); },
     isAuthenticated: Boolean(authId), authLoading: authLoading || Boolean(authId && !profileReady),
     needsProfile: profileReady && !user.countryCode, error, dismissError: () => setError(null), reportError: setError,
-    loginWithGoogle, loginWithPhone, logout, refreshProfile, updateProfile, convertDiamonds, markConversationAsRead,
+    loginWithGoogle, loginWithPhone, logout, refreshProfile, refreshWallet, updateProfile, convertDiamonds, markConversationAsRead,
   }}>{children}</AppContext.Provider>;
 };
 

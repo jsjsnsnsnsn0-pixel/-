@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Publishable credentials only; never set a service_role key here.
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://bfadhdnudmsggylunhlh.supabase.co' }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'test-publishable-key' }}
-      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,6 +22,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Verify real public build configuration
+        if: github.event_name != 'pull_request'
+        run: node scripts/check-env.mjs
+      - run: npm audit --audit-level=high
       - run: npm run lint
       - run: npm run check:assets
       - run: npm run test:unit
@@ -40,7 +44,7 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL }}
+      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,11 +59,15 @@ jobs:
       - run: node scripts/check-env.mjs
       - run: npm run build
       - run: npx cap add android && node scripts/configure-android.mjs && npx cap sync android
+      - run: npx cap doctor android
       - name: Build Android debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
+      - name: Hash debug APK
+        run: sha256sum android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: TotiChat-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
+          if-no-files-found: error

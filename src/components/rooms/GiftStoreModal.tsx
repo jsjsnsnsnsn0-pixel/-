@@ -26,7 +26,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const [loading, setLoading] = useState(false);
   const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedGift, setSelectedGift] = useState<Gift | null>(sampleGifts[0]);
+  const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   
   // Available recipients: room participants or host
   const potentialRecipients: User[] = (room?.seats || [])
@@ -67,11 +67,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false; setLoading(true); setErrorMsg(null); setSendSuccess(false);
-    supabase.from('gift_catalog').select('id,name,price').then(({data,error}) => {
+    supabase.from('gift_catalog').select('id,name,price').eq('is_active',true).then(({data,error}) => {
       if (cancelled) return;
       if (error) {setGifts([]); setSelectedGift(null); setErrorMsg('تعذر تحميل الهدايا.');}
       else {
-        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || sampleGifts[0]), id: row.id, name: row.name, price: Number(row.price)}));
+        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || {id:row.id,name:row.name,category:'all' as const,price:Number(row.price),icon:'🎁',animationType:'sparkle' as const}), id: row.id, name: row.name, price: Number(row.price)}));
         setGifts(next); setSelectedGift(next[0] || null);
       }
       setLoading(false);

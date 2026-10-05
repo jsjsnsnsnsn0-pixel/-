@@ -7,11 +7,12 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
+  let followed=false; let friendStatus='none'; const purchased:string[]=[]; let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
     const body=route.request().postDataJSON(); if (method !== 'GET') requests.push({path,body});
@@ -40,6 +41,20 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       if (overrides.noAgent) return respond({message:'no official recharge agent is configured for this country'},400);
       return respond([{request_id:'request',agent_id:'existing-agent',agent_display_name:'TotiChat Official Recharge',country_code:'IQ',country_name:'Iraq',agent_phone:null,gold_amount:4900,price_usd:0.99,payment_methods:[],contact_info:{channel:'in_app',public_id:'451305',phone:null,whatsapp:null}}]);
     }
+    if (path.endsWith('/social_profile')) return respond(body.p_public_id===920003 ? {...current,friends_count:0,following_count:followed?1:0,followers_count:0} : {id:other,public_id:body.p_public_id,display_name:body.p_public_id===451306?'مشارك آخر':'مستخدم البحث',level:1,vip_level:0,is_following:followed,is_blocked:false,friend_status:friendStatus});
+    if (path.endsWith('/social_list')) return respond(overrides.social ? [{id:other,public_id:451305,display_name:'مستخدم العلاقة',level:1,vip_level:0}] : []);
+    if (path.endsWith('/social_action')) {if(body.p_action==='follow') followed=true;if(body.p_action==='request')friendStatus='sent';return respond({public_id:451305,is_following:followed,friend_status:friendStatus});}
+    if (path.endsWith('/couple_state')) return respond({relations:[],current:[],previous:[]});
+    if (path.endsWith('/agency_state')) return respond({agency:null,members:[],applications:[],available:[]});
+    if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
+    if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
+    if (path.endsWith('/store_purchases')) return respond(purchased.map(id=>({item_id:id,expires_at:null})));
+    if (path.endsWith('/purchase_store_item')) {
+      if(overrides.purchaseError)return respond({message:'insufficient gold'},400);
+      purchased.push(body.p_item_id);current={...current,gold:current.gold-(body.p_item_id==='vip1'?50:37),vip_level:body.p_item_id==='vip1'?1:current.vip_level};return respond({id:'server-purchase'});
+    }
+    if (path.endsWith('/claim_reward')) {const already=rewardClaimed;rewardClaimed=true;if(!already)current={...current,gold:current.gold+300,silver_coins:150};return respond({gold:300,silver:150,already_claimed:already});}
+    if (path.endsWith('/submit_support_ticket')) return respond('55555555-5555-4555-8555-555555555555');
     if (path.endsWith('/get_gift_rankings')) return respond({wealth:[],charm:[],rooms:[]});
     if (path.endsWith('/search_public_profiles')) return respond([{public_id:451305,display_name:overrides.agent ? 'TR72' : 'مستخدم البحث',username:'other',level:1,vip_level:0}]);
     if (path.endsWith('/convert_diamonds_to_gold')) {
@@ -242,7 +257,7 @@ test('remaining profile navigation and agency support stay usable on a narrow mo
     ['title:تعديل الملف الشخصي والصورة والاسم','الاسم'],
     ['title:عرض الملف الشخصي','حساب الاختبار'],
     ['text:متابعين','شبكة الأصدقاء والمتابعين'],
-    ['text:زائر','تسجيل زيارات الملف الشخصي لم يُفعّل بعد.'],
+    ['text:زائر','شبكة الأصدقاء والمتابعين'],
     ['text:check now','VIP'],
   ]) {
     await page.goto('/'); await page.getByTitle('أنا').click();
@@ -256,4 +271,64 @@ test('remaining profile navigation and agency support stay usable on a narrow mo
   await page.getByText('451305',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'TR72',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('store reads server prices, confirms purchase and equips only owned products', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{commerce:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
+  await expect(page.getByText('إطار الخادم',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'شراء',exact:true}).click();
+  await expect(page.getByText('تم اعتماد الشراء من الخادم.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'تجهيز',exact:true}).click();
+  await expect(page.getByText('تم اعتماد تجهيز المنتج.',{exact:true})).toBeVisible();
+  const purchase=requests.find(r=>r.path.endsWith('/purchase_store_item'))!;
+  expect(purchase.body.p_item_id).toBe('server-frame');expect(purchase.body.p_request_id).toMatch(/^[\da-f-]{36}$/);
+  expect(purchase.body.price).toBeUndefined();expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
+  expect(requests.some(r=>r.path.endsWith('/equip_store_item'))).toBe(true);expect(errors).toEqual([]);
+});
+test('failed store purchase retains retry identifier and never displays success', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{commerce:true,purchaseError:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
+  await page.getByRole('button',{name:'شراء',exact:true}).click();await expect(page.getByText('رصيد الذهب غير كافٍ.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'إغلاق',exact:true}).click();await page.getByRole('button',{name:'شراء',exact:true}).click();
+  await expect(page.getByText('رصيد الذهب غير كافٍ.',{exact:true})).toBeVisible();
+  const attempts=requests.filter(r=>r.path.endsWith('/purchase_store_item'));expect(attempts).toHaveLength(2);expect(attempts[0].body.p_request_id).toBe(attempts[1].body.p_request_id);
+  await expect(page.getByText('تم اعتماد الشراء من الخادم.',{exact:true})).toHaveCount(0);expect(errors).toEqual([]);
+});
+test('real relationships record visits and persist follow/friend requests via RPC', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{social:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('متابعين',{exact:true}).click();
+  await page.getByRole('button').filter({hasText:'مستخدم العلاقة'}).click();await page.getByRole('button',{name:'متابعة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'إلغاء المتابعة',exact:true})).toBeVisible();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'إلغاء الطلب',exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_visit&&r.body.p_public_id===451305)).toBe(true);
+  expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='request')).toBe(true);expect(errors).toEqual([]);
+});
+test('system messages show server notifications and persist read status', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{commerce:true});await page.goto('/');await page.getByTitle('الرسائل',{exact:true}).click();await page.getByRole('heading',{name:'رسائل النظام',exact:true}).click();
+  await expect(page.getByText('إشعار من الخادم\nمحتوى حقيقي من الاستجابة',{exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/user_notifications')&&r.body?.read_at)).toBe(true);expect(errors).toEqual([]);
+});
+test('reward and feedback confirmations require successful server replies', async ({page})=>{
+  const {requests,errors}=await setup(page);await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('اكسب عملات فضية',{exact:true}).click();
+  await page.getByRole('button',{name:'استلام',exact:true}).first().click();await expect(page.getByRole('status')).toContainText('اعتمد الخادم');
+  await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('مركز المساعدة',{exact:true}).click();
+  await page.getByPlaceholder('اكتب رسالتك أو استفسارك هنا بالتفصيل...').fill('ملاحظة اختبار موثقة من الخادم');await page.getByRole('button',{name:'إرسال للدعم الفني',exact:true}).click();
+  await expect(page.getByText('شكراً لك! تم تسجيل ملاحظتك لدى الدعم.',{exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/claim_reward'))).toBe(true);expect(requests.some(r=>r.path.endsWith('/submit_support_ticket'))).toBe(true);expect(errors).toEqual([]);
+});
+
+test('late microphone permission result is stopped after leaving the room', async ({page})=>{
+  const {errors,requests}=await setup(page,true,{rooms:true});
+  await page.addInitScript(()=>{
+    (window as any).stoppedCapture=0;
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:()=>new Promise(resolve=>{
+      (window as any).finishCapture=()=>resolve({getTracks:()=>[{stop:()=>{(window as any).stoppedCapture++;}}],getAudioTracks:()=>[]});
+    })});
+  });
+  await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'تشغيل المايكروفون',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>typeof (window as any).finishCapture)).toBe('function');
+  await page.getByRole('button',{name:'مغادرة الغرفة',exact:true}).click();
+  await expect(page.getByRole('navigation',{name:'التنقل الرئيسي'})).toBeVisible();
+  await page.evaluate(()=>(window as any).finishCapture());
+  await expect.poll(()=>page.evaluate(()=>(window as any).stoppedCapture)).toBe(1);
+  expect(requests.some(r=>r.path.endsWith('/set_my_room_muted'))).toBe(false);expect(errors).toEqual([]);
 });

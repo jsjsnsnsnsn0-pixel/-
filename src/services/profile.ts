@@ -21,13 +21,16 @@ export function profileToUser(row: Record<string, any>): User {
     avatar: row.avatar_url || defaultAvatar, bio: row.bio || '', birthday: row.birthday || '',
     gender: row.gender, region: row.region || '', country: row.country_name || '',
     countryCode: row.country_code || '', countryFlag: countryFlag(row.country_code),
+    equipment: row.equipment || undefined,
     level: Number(row.level || 1), wealthLevel: Number(row.level || 1),
     charmLevel: Math.min(150, Math.floor(Number(row.received_gold || 0) / 1000) + 1),
-    vipLevel: Number(row.vip_level || 0), gold: Number(row.gold || 0),
+    vipLevel: row.vip_expires_at && new Date(row.vip_expires_at).getTime() <= Date.now() ? 0 : Number(row.vip_level || 0), vipExpiresAt: row.vip_expires_at, gold: Number(row.gold || 0),
     diamonds: Number(row.diamonds || 0), silverCoins: Number(row.silver_coins || 0),
     sentGiftsCount: String(row.sent_gold || 0), receivedTotal: String(row.received_gold || 0),
     receivedGiftsCount: Number(row.received_gifts || 0), nameShimmerStyle: row.name_shimmer_style,
-    isOnline: true,
+    friendsCount: Number(row.friends_count || 0), followersCount: Number(row.followers_count || 0),
+    followingCount: Number(row.following_count || 0), visitorsCount: Number(row.visitors_count || 0),
+    isOnline: Boolean(row.last_seen_at && Date.now() - new Date(row.last_seen_at).getTime() < 180000),
   };
 }
 

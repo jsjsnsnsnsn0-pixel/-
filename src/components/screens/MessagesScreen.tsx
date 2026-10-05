@@ -1,10 +1,9 @@
 import { usePublicChat } from '../../hooks/usePublicChat';
 import { emptyUser } from '../../services/profile';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
-import { getSystemMessages } from '../../services/systemNotificationService';
 
 // System Messages User
 export const systemMessagesUser: User = {
@@ -13,23 +12,9 @@ export const systemMessagesUser: User = {
 };
 
 export const MessagesScreen: React.FC = () => {
-  const { setSelectedChatUser, setActiveSubScreen, conversations, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
+  const { setSelectedChatUser, setActiveSubScreen, conversations, notifications, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
   const { opening, openChat } = usePublicChat();
-  const [latestSysMsg, setLatestSysMsg] = useState(() => {
-    const list = getSystemMessages();
-    return list[0] || null;
-  });
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      const list = getSystemMessages();
-      setLatestSysMsg(list[0] || null);
-    };
-    window.addEventListener('toti_system_message_received', handleUpdate);
-    return () => {
-      window.removeEventListener('toti_system_message_received', handleUpdate);
-    };
-  }, []);
+  const latestSysMsg = notifications[0];
 
   const handleOpenSystemChat = () => {
     markSystemMessagesAsRead();
@@ -75,7 +60,7 @@ export const MessagesScreen: React.FC = () => {
               رسائل النظام
             </h2>
             <p className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5">
-              {latestSysMsg?.content || 'لا توجد رسائل'}
+              {latestSysMsg?.description || 'لا توجد رسائل'}
             </p>
           </div>
 
@@ -113,10 +98,10 @@ export const MessagesScreen: React.FC = () => {
             />
           </div>
         </div>
-        {conversations.map(conversation => <button key={conversation.id} className="w-full min-w-0 text-right flex items-center gap-3 p-3 border-b border-white/10" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
-          <img src={conversation.user.avatar} alt="" className="w-12 h-12 shrink-0 rounded-full object-cover" />
-          <div className="flex-1 min-w-0"><p className="font-bold truncate">{conversation.user.name}</p><p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p></div>
-          {conversation.unreadCount > 0 && <span className="bg-emerald-500 rounded-full px-2">{conversation.unreadCount}</span>}
+        {conversations.map(conversation => <button key={conversation.id} className="w-full grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 text-right" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
+          <div className="w-[44px] text-center"><span className="text-[10px] text-slate-400">{conversation.timestamp}</span>{conversation.unreadCount > 0 && <span className="block bg-emerald-500 rounded-full text-xs">{conversation.unreadCount}</span>}</div>
+          <div className="min-w-0"><p className="font-bold truncate">{conversation.user.name}</p><p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p></div>
+          <img src={conversation.user.avatar} alt="" className="w-[58px] h-[58px] rounded-full object-cover" />
         </button>)}
       </div>
     </div>

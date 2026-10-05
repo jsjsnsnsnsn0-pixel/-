@@ -1,5 +1,7 @@
+import { catalog, rpc, backendMessage } from '../../services/backend';
+import { useServerData } from '../../hooks/useServerData';
 import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   ChevronRight,
@@ -179,7 +181,7 @@ interface PreviewModalState {
 }
 
 export const VIPScreen: React.FC = () => {
-  const { user, setUser, setActiveSubScreen } = useApp();
+  const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
 
   // Selected tier (Default to user's active tier or VIP 1)
   const scheduleTimeout = useTimeouts();
@@ -206,15 +208,32 @@ export const VIPScreen: React.FC = () => {
   );
 
   const isUserActiveLevel = user.vipLevel === currentTier.id;
-  const isRenewable = currentTier.daysRemaining !== undefined && isUserActiveLevel;
+  const isRenewable = Boolean(user.vipExpiresAt) && isUserActiveLevel;
+  const daysRemaining = user.vipExpiresAt ? Math.max(0, Math.ceil((new Date(user.vipExpiresAt).getTime() - Date.now()) / 86400000)) : null;
+  const load = useCallback(catalog, []);
+  const {data: products, loading, error, reload} = useServerData(load, []);
+  const product = products.find(item => item.category === 'vip' && item.vip_level === currentTier.id);
+  const [busy, setBusy] = useState(false);
+  const requests = useRef(new Map<string, string>());
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     scheduleTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleAction = () => {
-    showToast('تفعيل VIP يحتاج اشتراكاً معتمداً. تواصل مع الدعم الرسمي.');
+  const handleAction = async () => {
+    if (!product || busy) return;
+    setBusy(true);
+    try {
+      const request = requests.current.get(product.id) || crypto.randomUUID();
+      requests.current.set(product.id, request);
+      const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: product.id, p_request_id: request});
+      if (!result?.id) throw new Error('purchase not confirmed');
+      requests.current.delete(product.id);
+      showToast('تم اعتماد اشتراك VIP من الخادم.');
+      await refreshWallet();
+    } catch (e) { reportError(backendMessage(e)); }
+    finally { setBusy(false); }
   };
 
   // Quick helper to open modal locked to this tier
@@ -236,6 +255,7 @@ export const VIPScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#07080f] text-slate-100 pb-28 select-none font-sans relative overflow-x-hidden">
+      {error && <button onClick={() => void reload()} className="p-3">{error} — إعادة المحاولة</button>}
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 inset-x-4 z-50 flex items-center justify-center pointer-events-none">
@@ -335,8 +355,8 @@ export const VIPScreen: React.FC = () => {
                 }`}
               >
                 {isUserActiveLevel
-                  ? currentTier.daysRemaining
-                    ? `المتبقي ${currentTier.daysRemaining} يوم`
+                  ? daysRemaining
+                    ? `المتبقي ${daysRemaining} يوم`
                     : 'نشط حالياً'
                   : 'مقفل'}
               </span>
@@ -566,11 +586,12 @@ export const VIPScreen: React.FC = () => {
       </div>
 
       {/* 6. BOTTOM ACTION BAR */}
-      <div className="fixed bottom-0 inset-x-0 bg-[#0a0b14]/95 backdrop-blur-md border-t border-white/10 px-5 py-3.5 z-40">
+      <div className="fixed bottom-0 inset-x-0 pb-safe bg-[#0a0b14]/95 backdrop-blur-md border-t border-white/10 px-5 py-3.5 z-40">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           {/* Action Button: شراء or تجديد */}
           <button
-            onClick={handleAction}
+            disabled={busy || loading || !product || (user.vipLevel > currentTier.id)}
+            onClick={() => void handleAction()}
             className="flex-1 py-3 px-6 rounded-full bg-gradient-to-r from-[#ffe59e] via-[#ffd25d] to-[#d49924] hover:brightness-105 active:scale-95 text-slate-950 font-black text-sm shadow-[0_4px_18px_rgba(234,179,8,0.35)] cursor-pointer transition-all border border-amber-200"
           >
             {isRenewable ? 'تجديد' : 'شراء'}
@@ -579,7 +600,7 @@ export const VIPScreen: React.FC = () => {
           {/* Price & Gold Coin indicator */}
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm font-bold text-white tracking-tight" dir="ltr">
-              {currentTier.price}
+              {product ? `${product.price.toLocaleString('ar-SA')} / ${product.duration_days ?? 'دائم'} يوم` : 'غير متاح حالياً'}
             </span>
             <div className="w-5 h-5 rounded-full bg-amber-400 text-amber-950 flex items-center justify-center font-bold text-[10px] shadow-xs">
               🟡

@@ -1,3 +1,5 @@
+import { rpc, backendMessage } from '../../services/backend';
+import { usePublicChat } from '../../hooks/usePublicChat';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -9,6 +11,8 @@ export const HelpCenterScreen: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const {opening, openChat} = usePublicChat();
 
   const faqs = [
     {
@@ -17,7 +21,7 @@ export const HelpCenterScreen: React.FC = () => {
     },
     {
       q: 'كيف أحصل على رتبة VIP وشاراتها؟',
-      a: 'تُمنح رتبة VIP بناءً على مجموع نقاط الشحن ونشاطك. كل مستوى يمنحك تاجا ملكياً وتأثيرات دخول وهدايا حصرية.',
+      a: 'يمكن شراء اشتراك VIP من صفحة VIP وفق أسعار الخادم أو استلام مكافأة شحن مستحقة. كل مستوى يمنحك تاجا ملكياً وتأثيرات دخول وهدايا حصرية.',
     },
     {
       q: 'ما هي طريقة قفل مقاعد المايكروفون في غرفتي؟',
@@ -33,11 +37,16 @@ export const HelpCenterScreen: React.FC = () => {
     },
   ];
 
-  const handleSendFeedback = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!feedback.trim()) return;
-    reportError('إرسال الملاحظات داخل التطبيق لم يُفعّل بعد. تواصل مع خدمة العملاء الرسمية.');
-    scheduleTimeout(() => setFeedbackSent(false), 3500);
+  const handleSendFeedback = async (e: React.FormEvent) => {
+    e.preventDefault(); if (busy || feedback.trim().length < 5) return;
+    setBusy(true); setFeedbackSent(false);
+    try {
+      const id = await rpc<string>('submit_support_ticket', {p_category:'feedback',p_message:feedback.trim()});
+      if (!id) throw new Error('ticket not confirmed');
+      setFeedbackSent(true); setFeedback('');
+      scheduleTimeout(() => setFeedbackSent(false), 3500);
+    } catch (error) { reportError(backendMessage(error)); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -107,13 +116,15 @@ export const HelpCenterScreen: React.FC = () => {
           {feedbackSent && (
             <div className="mb-3 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2">
               <Check size={16} className="text-emerald-600" />
-              <span>شكراً لك! تم استلام رسالتك وسيتواصل معك الدعم الفني قريباً.</span>
+              <span>شكراً لك! تم تسجيل ملاحظتك لدى الدعم.</span>
             </div>
           )}
 
           <form onSubmit={handleSendFeedback} className="space-y-3">
             <textarea
               rows={3}
+              minLength={5}
+              maxLength={2000}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="اكتب رسالتك أو استفسارك هنا بالتفصيل..."
@@ -121,7 +132,7 @@ export const HelpCenterScreen: React.FC = () => {
             />
             <button
               type="submit"
-              disabled={!feedback.trim()}
+              disabled={busy || feedback.trim().length < 5}
               className="w-full py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs cursor-pointer flex items-center justify-center gap-2 transition-all"
             >
               <Send size={14} />

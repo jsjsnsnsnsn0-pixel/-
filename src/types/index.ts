@@ -6,6 +6,7 @@ export interface User {
   avatar: string;
   level: number;
   vipLevel: number;
+  vipExpiresAt?: string | null;
   gender?: 'male' | 'female';
   bio?: string;
   birthday?: string;
@@ -14,6 +15,7 @@ export interface User {
   countryCode?: string;
   countryFlag?: string;
   avatarFrame?: string;
+  equipment?: Partial<Record<'frames' | 'cars' | 'bubbles' | 'badges', {id: string; name: string; icon: string}>>;
   isOnline: boolean;
   gold: number;
   diamonds: number;
@@ -88,7 +90,7 @@ export interface Transaction {
   type: 'recharge' | 'gift_sent' | 'gift_received' | 'vip_upgrade' | 'diamonds_exchange';
   title: string;
   amount: number;
-  currency: 'gold' | 'diamonds';
+  currency: 'gold' | 'diamonds' | 'silver';
   date: string;
   time: string;
   status: 'completed' | 'pending' | 'failed';

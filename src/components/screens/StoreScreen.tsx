@@ -1,5 +1,8 @@
 import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { catalog, rpc, backendMessage } from '../../services/backend';
+import { supabase } from '../../services/supabase';
+import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check } from 'lucide-react';
 
@@ -16,143 +19,41 @@ interface StoreItem {
 }
 
 export const StoreScreen: React.FC = () => {
-  const { user, setUser, setActiveSubScreen } = useApp();
+  const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
   const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges'>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
-  const items: StoreItem[] = [
-    // Frames
-    {
-      id: 'f1',
-      name: 'إطار التنين الذهبي',
-      category: 'frames',
-      price: 2500,
-      currency: 'gold',
-      image: '🐉',
-      description: 'إطار أسطوري مع لهب ذهبي وتأثيرات براقة',
-      duration: '30 يوم',
-    },
-    {
-      id: 'f2',
-      name: 'إطار الأجنحة الملكية',
-      category: 'frames',
-      price: 1800,
-      currency: 'gold',
-      image: '👑',
-      description: 'إطار أنيق بأجنحة ملائكية مشعة لكبار الشخصيات',
-      duration: '30 يوم',
-    },
-    {
-      id: 'f3',
-      name: 'إطار زهرة الكرز الفضي',
-      category: 'frames',
-      price: 450,
-      currency: 'silver',
-      image: '🌸',
-      description: 'إطار رقيق مع بتلات ساكورا متساقطة',
-      duration: '7 أيام',
-    },
-    {
-      id: 'f4',
-      name: 'إطار النيون الفضائي',
-      category: 'frames',
-      price: 1200,
-      currency: 'gold',
-      image: '⚡',
-      description: 'إطار نيون بألوان متغيرة وتوهج إلكتروني',
-      duration: '30 يوم',
-    },
-    // Cars (Entrance Effects)
-    {
-      id: 'c1',
-      name: 'لامبورغيني أفينتادور الذهبية',
-      category: 'cars',
-      price: 9900,
-      currency: 'gold',
-      image: '🏎️',
-      description: 'دخول أسطوري بصوت محرك V12 وأضواء مسرحية كاملة للروم',
-      duration: '30 يوم',
-    },
-    {
-      id: 'c2',
-      name: 'طائرة الهيليكوبتر الخاصة',
-      category: 'cars',
-      price: 6500,
-      currency: 'gold',
-      image: '🚁',
-      description: 'هبوط ملكي على منصة الروم مع تحية خاصة للحضور',
-      duration: '30 يوم',
-    },
-    {
-      id: 'c3',
-      name: 'اليخت الملكي الفاخر',
-      category: 'cars',
-      price: 8000,
-      currency: 'gold',
-      image: '🛥️',
-      description: 'أمواج مائية زرقاء ورذاذ ناصع يدخل به المستخدم',
-      duration: '30 يوم',
-    },
-    {
-      id: 'c4',
-      name: 'الحصان العربي الأبيض',
-      category: 'cars',
-      price: 800,
-      currency: 'silver',
-      image: '🐎',
-      description: 'دخول تراثي أصيل مع أهازيج خليجية ترحيبية',
-      duration: '15 يوم',
-    },
-    // Chat Bubbles
-    {
-      id: 'b1',
-      name: 'فقاعة الملكية الذهبية',
-      category: 'bubbles',
-      price: 800,
-      currency: 'gold',
-      image: '💬',
-      description: 'تصميم ذهبي لرسائلك داخل المحادثات والغرف الصوتية',
-      duration: '30 يوم',
-    },
-    {
-      id: 'b2',
-      name: 'فقاعة الفضاء الأرجوانية',
-      category: 'bubbles',
-      price: 300,
-      currency: 'silver',
-      image: '🔮',
-      description: 'فقاعة نصية بأطراف نيون بنفسجية مشعة',
-      duration: '15 يوم',
-    },
-    // Badges
-    {
-      id: 'bd1',
-      name: 'وسام كبار الداعمين',
-      category: 'badges',
-      price: 3500,
-      currency: 'gold',
-      image: '💎',
-      description: 'شارة شرفية تظهر في ملفك الشخصي وقائمة الحضور',
-      duration: 'دائم',
-    },
-    {
-      id: 'bd2',
-      name: 'وسام فارس المجلس',
-      category: 'badges',
-      price: 500,
-      currency: 'silver',
-      image: '🛡️',
-      description: 'شارة خاصة لرواد المجلس الأوفياء',
-      duration: 'دائم',
-    },
-  ];
-
-  const filteredItems = items.filter((item) => item.category === activeTab);
-
-  const handleBuy = (_item: StoreItem) => {
-    setPurchaseSuccess('الشراء غير متاح حالياً. لم يتم خصم أي رصيد.');
-    scheduleTimeout(() => setPurchaseSuccess(null), 3000);
+  const [busy, setBusy] = useState(false);
+  const requests = useRef(new Map<string, string>());
+  const load = useCallback(async (): Promise<StoreItem[]> => {
+    const [entries, owned] = await Promise.all([catalog(), supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId)]);
+    if (owned.error) throw owned.error;
+    return entries.filter(item => ['frames','cars','bubbles','badges'].includes(item.category)).map(item => ({
+      ...item, category: item.category as StoreItem['category'], image: item.icon,
+      duration: item.duration_days ? `${item.duration_days} يوم` : 'دائم',
+      isOwned: (owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
+    }));
+  }, [user.authId]);
+  const {data: items, loading, error, reload} = useServerData(load, []);
+  const filteredItems = items.filter(item => item.category === activeTab);
+  const handleBuy = async (item: StoreItem) => {
+    if (busy) return;
+    setBusy(true); setPurchaseSuccess(null);
+    try {
+      if (item.isOwned) await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
+      else {
+        const request = requests.current.get(item.id) || crypto.randomUUID();
+        requests.current.set(item.id, request);
+        const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: item.id, p_request_id: request});
+        if (!result?.id) throw new Error('purchase not confirmed');
+        requests.current.delete(item.id);
+      }
+      setPurchaseSuccess(item.isOwned ? 'تم اعتماد تجهيز المنتج.' : 'تم اعتماد الشراء من الخادم.');
+      await Promise.all([reload(), refreshWallet()]);
+      scheduleTimeout(() => setPurchaseSuccess(null), 3000);
+    } catch (e) { reportError(backendMessage(e)); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -222,6 +123,9 @@ export const StoreScreen: React.FC = () => {
         })}
       </div>
 
+      {loading && <p className="p-4 text-center">جارٍ تحميل المتجر…</p>}
+      {error && <button onClick={() => void reload()} className="p-4">{error} — إعادة المحاولة</button>}
+      {!loading && !error && !filteredItems.length && <p className="p-4">لا توجد منتجات متاحة في هذا القسم.</p>}
       {/* Store Items Grid */}
       <div className="p-4 grid grid-cols-2 gap-3">
         {filteredItems.map((item) => (
@@ -250,10 +154,11 @@ export const StoreScreen: React.FC = () => {
                 </span>
               </div>
               <button
-                onClick={() => handleBuy(item)}
+                disabled={busy || loading}
+                onClick={() => void handleBuy(item)}
                 className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-bold rounded-xl shadow-xs hover:from-pink-600 hover:to-rose-600 cursor-pointer active:scale-95 transition-all"
               >
-                شراء
+                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? 'تجهيز' : 'شراء'}
               </button>
             </div>
           </div>

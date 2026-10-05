@@ -200,7 +200,7 @@ export const WalletScreen: React.FC = () => {
                     }`}
                   >
                     {isPositive ? `+${tx.amount.toLocaleString('ar-SA')}` : tx.amount.toLocaleString('ar-SA')}{' '}
-                    {tx.currency === 'gold' ? '🪙' : '💎'}
+                    {tx.currency === 'gold' ? '🪙' : tx.currency === 'silver' ? '🥈' : '💎'}
                   </span>
                   <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 justify-end">
                     <CheckCircle2 size={10} />

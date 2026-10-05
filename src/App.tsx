@@ -34,7 +34,7 @@ const CharmRankingScreen = lazy(() => import('./components/screens/CharmRankingS
 const WealthRankingScreen = lazy(() => import('./components/screens/WealthRankingScreen').then(m => ({default: m.WealthRankingScreen})));
 
 const subScreens = [
-  'level', 'vip', 'wallet', 'recharge', 'settings', 'search', 'friends',
+  'level', 'vip', 'wallet', 'recharge', 'settings', 'search', 'friends', 'visitors',
   'chat_detail', 'store', 'agency', 'badges', 'charm_wealth', 'wealth_level',
   'charm_level', 'silver_coins', 'help_center', 'edit_profile',
   'user_detail_profile', 'room_rankings', 'charm_ranking', 'wealth_ranking',
@@ -101,6 +101,7 @@ const MainLayout: React.FC = () => {
         {activeSubScreen === 'settings' && <SettingsScreen />}
         {activeSubScreen === 'search' && <SearchModal />}
         {activeSubScreen === 'friends' && <FriendsModal />}
+        {activeSubScreen === 'visitors' && <FriendsModal initialKind="visitors" />}
         {activeSubScreen === 'chat_detail' && <ChatDetailScreen />}
         {activeSubScreen === 'messages' && <MessagesScreen />}
         {activeSubScreen === 'store' && <StoreScreen />}

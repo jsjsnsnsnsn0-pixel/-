@@ -1,147 +1,29 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { sampleUsers } from '../../data/mockData';
+import { useServerData } from '../../hooks/useServerData';
+import { rpc, backendMessage } from '../../services/backend';
+import { profileToUser } from '../../services/profile';
 import { UserAvatar } from '../common/UserAvatar';
-import { VIPBadge } from '../common/VIPBadge';
-import { LevelBadge } from '../common/LevelBadge';
-import { ChevronRight, Users, UserPlus, Check, X } from 'lucide-react';
-
-export const FriendsModal: React.FC = () => {
-  const { setActiveSubScreen, setSelectedChatUser } = useApp();
-  const [tab, setTab] = useState<'friends' | 'followers' | 'following' | 'requests'>('friends');
-
-  const [requests, setRequests] = useState<{id: string; user: typeof sampleUsers[number]; time: string}[]>([]);
-
-  const handleAcceptRequest = (reqId: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== reqId));
-    alert('تم قبول طلب الصداقة بنجاح!');
+const kinds = {friends: 'الأصدقاء', followers: 'المتابعون', following: 'أتابعهم', requests: 'الطلبات', visitors: 'الزوار', blocked: 'المحظورون'};
+export const FriendsModal: React.FC<{initialKind?: keyof typeof kinds}> = ({initialKind = 'friends'}) => {
+  const {user, setActiveSubScreen, setSelectedChatUser, reportError} = useApp();
+  const [kind, setKind] = useState(initialKind);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => rpc<Record<string, unknown>[]>('social_list', {p_kind: kind}), [kind, user.authId]);
+  const {data, loading, error, reload} = useServerData(load, []);
+  const act = async (id: string, action: string) => {
+    if (busy) return; setBusy(true);
+    try { await rpc('social_action', {p_public_id: Number(id), p_action: action}); await reload(); }
+    catch (e) { reportError(backendMessage(e)); } finally { setBusy(false); }
   };
-
-  const handleRejectRequest = (reqId: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== reqId));
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-28">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-[#0b0c16]/95 border-b border-purple-500/20 px-4 py-3 backdrop-blur-md flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveSubScreen(null)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 cursor-pointer"
-          >
-            <ChevronRight size={22} />
-          </button>
-          <div className="flex items-center gap-1.5">
-            <Users size={18} className="text-purple-400" />
-            <h1 className="text-base font-bold text-slate-100">شبكة الأصدقاء والمتابعين</h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1 p-2 border-b border-purple-500/10 text-xs font-semibold">
-        {[
-          { id: 'friends', label: 'الأصدقاء' },
-          { id: 'followers', label: 'المتابعون' },
-          { id: 'following', label: 'أتابعهم' },
-          { id: 'requests', label: `الطلبات (${requests.length})` },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id as any)}
-            className={`py-2 rounded-xl text-center transition-all cursor-pointer ${
-              tab === t.id
-                ? 'bg-purple-600 text-white font-bold shadow-xs'
-                : 'bg-[#141629] text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <p className="text-center text-xs text-slate-400 p-4">شبكة الأصدقاء والمتابعين لم تُفعّل بعد.</p>
-      {/* List content */}
-      <div className="p-4 space-y-2.5">
-        {tab === 'requests' ? (
-          requests.length > 0 ? (
-            <div className="space-y-2">
-              <span className="text-xs text-slate-400 block mb-1">طلبات الصداقة المعلقة:</span>
-              {requests.map((req) => (
-                <div
-                  key={req.id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15"
-                >
-                  <div className="flex items-center gap-3">
-                    <UserAvatar user={req.user} size="sm" />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-slate-100">{req.user.name}</span>
-                        <VIPBadge level={req.user.vipLevel} size="sm" />
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">{req.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleAcceptRequest(req.id)}
-                      className="w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer shadow-xs"
-                      title="قبول"
-                    >
-                      <Check size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleRejectRequest(req.id)}
-                      className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center cursor-pointer"
-                      title="رفض"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-xs text-slate-400">
-              لا توجد طلبات صداقة معلقة حالياً
-            </div>
-          )
-        ) : (
-          ([] as typeof sampleUsers).map((usr) => (
-            <div
-              key={usr.id}
-              className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15"
-            >
-              <div className="flex items-center gap-3">
-                <UserAvatar user={usr} size="sm" showOnlineStatus />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs text-slate-100">{usr.name}</span>
-                    <VIPBadge level={usr.vipLevel} size="sm" />
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
-                    <LevelBadge level={usr.level} size="sm" />
-                    <span>·</span>
-                    <span>ID: {usr.id}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setSelectedChatUser(usr);
-                  setActiveSubScreen('chat_detail');
-                }}
-                className="px-3 py-1.5 rounded-xl bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-semibold hover:bg-purple-600 hover:text-white transition-colors"
-              >
-                رسالة
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
+  return <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-28 p-4" dir="rtl">
+    <header className="flex items-center gap-3 mb-4"><button onClick={() => setActiveSubScreen(null)}>الرجوع</button><h1>شبكة الأصدقاء والمتابعين</h1></header>
+    <div className="grid grid-cols-3 gap-2 text-xs mb-4">{Object.entries(kinds).map(([key,label]) => <button key={key} onClick={() => setKind(key as keyof typeof kinds)} className={`rounded-xl p-3 ${kind === key ? 'bg-purple-600' : 'bg-slate-800'}`}>{label}</button>)}</div>
+    {loading && <p>جارٍ تحميل العلاقات…</p>}{error && <button onClick={() => void reload()}>{error} — إعادة المحاولة</button>}
+    {!loading && !error && !data?.length && <p>لا توجد بيانات في هذه القائمة حالياً.</p>}
+    {(data || []).map(row => {const target = profileToUser(row); return <div key={target.id} className="flex items-center gap-3 bg-slate-800 rounded-2xl p-3 mb-2 min-w-0">
+      <UserAvatar user={target} size="sm" /><button className="flex-1 min-w-0 text-right" onClick={() => {setSelectedChatUser(target); setActiveSubScreen('user_detail_profile');}}><p className="truncate">{target.name}</p><span className="text-xs">ID: {target.id}</span></button>
+      {kind === 'requests' ? <><button disabled={busy} onClick={() => void act(target.id,'accept')}>قبول</button><button disabled={busy} onClick={() => void act(target.id,'reject')}>رفض</button></> : kind === 'blocked' ? <button disabled={busy} onClick={() => void act(target.id,'unblock')}>إلغاء الحظر</button> : <button onClick={() => {setSelectedChatUser(target); setActiveSubScreen('chat_detail');}}>رسالة</button>}
+    </div>;})}<button className="p-3 mt-3 bg-purple-600 rounded-xl" onClick={() => setActiveSubScreen('search')}>البحث عن مستخدم</button>
+  </div>;
 };

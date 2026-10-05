@@ -10,6 +10,8 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
   const [connected, setConnected] = useState(false);
   const peers = useRef(new Map<string, Peer>());
   const stream = useRef<MediaStream | null>(null);
+  const generation = useRef(0);
+  const capture = useRef<Promise<void> | null>(null);
   const speakerRef = useRef(speaker); speakerRef.current = speaker;
   const membersRef = useRef(room?.members || []); membersRef.current = room?.members || [];
   const sendRef = useRef<(to: string, kind: Signal['kind'], payload: object) => Promise<void>>(async () => {});
@@ -25,6 +27,7 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
 
   useEffect(() => {
     if (!room?.id || !authId || typeof RTCPeerConnection === 'undefined') return;
+    generation.current++;
     const roomId = room.id;
     let stopped = false;
     const seen = new Set<string>();
@@ -55,6 +58,7 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
       if (stopped || seen.has(signal.id) || signal.sender_id === authId) return;
       // Membership can change between the last room refresh and receipt; RLS is the authority.
       seen.add(signal.id);
+      if (seen.size > 2000) seen.delete(seen.values().next().value!);
       const peer = getPeer(signal.sender_id); const pc = peer.connection;
       if (signal.kind === 'ready') {
         // One deterministic offerer prevents negotiation glare.
@@ -88,20 +92,23 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
     };
     const channel = supabase.channel(`audio:${roomId}:${authId}`).on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'room_audio_signals', filter: `recipient_id=eq.${authId}`,
-    }, event => { if (event.new.room_id === roomId) queue(event.new as Signal); }).subscribe(async status => {
+    }, event => { if (event.new.room_id === roomId) queue(event.new as Signal); }).subscribe(status => {
+      void (async () => {
       if (status === 'SUBSCRIBED' && !stopped) {
         setConnected(true);
         const {data, error} = await supabase.from('room_audio_signals').select('*').eq('room_id', roomId)
           .eq('recipient_id', authId).gte('created_at', startedAt).order('created_at');
+        if (stopped) return;
         if (error) onError('تعذر إعداد الاتصال الصوتي.');
         else for (const signal of data || []) queue(signal);
         for (const member of membersRef.current) if (member.authId && member.authId !== authId) {
           void send(member.authId, 'ready', {}).catch(() => onError('تعذر إعداد الاتصال الصوتي.'));
         }
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { setConnected(false); onError('انقطع اتصال الغرفة الصوتية.'); }
+      } else if (!stopped && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) { setConnected(false); onError('انقطع اتصال الغرفة الصوتية.'); }
+      })().catch(() => {if (!stopped) onError('تعذر إعداد الاتصال الصوتي.');});
     });
     return () => {
-      stopped = true; setConnected(false); void supabase.removeChannel(channel);
+      stopped = true; generation.current++; capture.current = null; sendRef.current = async () => {}; setConnected(false); void supabase.removeChannel(channel);
       for (const peer of peers.current.values()) { peer.connection.close(); peer.audio.pause(); peer.audio.srcObject = null; }
       peers.current.clear();
       for (const track of stream.current?.getTracks() || []) track.stop(); stream.current = null;
@@ -114,18 +121,27 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
   useEffect(() => {
     if (!connected || !authId) return;
     const ids = new Set(memberIds.split(','));
-    for (const [id, peer] of peers.current) if (!ids.has(id)) { peer.connection.close(); peer.audio.pause(); peers.current.delete(id); }
+    for (const [id, peer] of peers.current) if (!ids.has(id)) { peer.connection.close(); peer.audio.pause(); peer.audio.srcObject = null; peers.current.delete(id); }
     for (const id of ids) if (id && id !== authId && !peers.current.has(id)) void sendRef.current(id, 'ready', {}).catch(() => {});
   }, [memberIds, connected, authId]);
 
   const enableMicrophone = async () => {
+    if (!room?.id || !authId) throw new Error('ادخل الغرفة أولاً.');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
-    if (!stream.current) {
-      const captured = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression}, video: false});
-      stream.current = captured;
-      const track = captured.getAudioTracks()[0]; track.enabled = !mutedRef.current;
-      await Promise.all([...peers.current.values()].map(p => p.connection.getSenders().find(s => s.track?.kind === 'audio' || !s.track)?.replaceTrack(track)));
-    }
+    const current = generation.current;
+    if (!stream.current && !capture.current) {
+      const pending = (async () => {
+        const captured = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression}, video: false});
+        if (current !== generation.current) { captured.getTracks().forEach(track => track.stop()); throw new Error('انتهت جلسة الغرفة.'); }
+        const track = captured.getAudioTracks()[0];
+        if (!track) { captured.getTracks().forEach(t => t.stop()); throw new Error('لم يتم العثور على الميكروفون.'); }
+        stream.current = captured; track.enabled = !mutedRef.current;
+        await Promise.all([...peers.current.values()].map(p => p.connection.getSenders().find(s => s.track?.kind === 'audio' || !s.track)?.replaceTrack(track)));
+      })();
+      capture.current = pending;
+      try { await pending; } finally { if (capture.current === pending) capture.current = null; }
+    } else if (capture.current) await capture.current;
+    if (current !== generation.current) throw new Error('انتهت جلسة الغرفة.');
     for (const peer of peers.current.values()) void peer.audio.play().catch(() => {});
   };
   return {connected, enableMicrophone};

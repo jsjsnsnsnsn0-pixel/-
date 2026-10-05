@@ -19,3 +19,8 @@ test('optional fields use safe defaults and raw numeric totals', () => {
 test('country flags reject invalid codes', () => {
   assert.equal(countryFlag('IQ'),'🇮🇶'); assert.equal(countryFlag('INVALID'),'');
 });
+
+test('expired VIP does not display an active privilege and social counters are server-backed', () => {
+  const user = profileToUser({vip_level:8,vip_expires_at:'2000-01-01T00:00:00Z',friends_count:2,followers_count:0,visitors_count:3});
+  assert.equal(user.vipLevel,0);assert.equal(user.friendsCount,2);assert.equal(user.followersCount,0);assert.equal(user.visitorsCount,3);
+});

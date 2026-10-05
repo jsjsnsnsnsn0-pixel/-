@@ -5,7 +5,6 @@ import { copyText } from '../../utils/clipboard';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
-import { getSystemMessages, SystemNotificationMessage } from '../../services/systemNotificationService';
 import {
   ChevronRight,
   Send,
@@ -21,7 +20,7 @@ export const ChatDetailScreen: React.FC = () => {
   const {
     selectedChatUser,
     setActiveSubScreen,
-    conversations,
+    conversations, notifications,
     sendMessageToConversation,
     user, markConversationAsRead, reportError,
   } = useApp();
@@ -30,7 +29,7 @@ export const ChatDetailScreen: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
-  const [systemMsgs, setSystemMsgs] = useState<SystemNotificationMessage[]>(() => getSystemMessages());
+  const systemMsgs = notifications.map(n => ({id: n.id, content: `${n.title}\n${n.description}`, timestamp: n.timestamp, isMe: false, type: 'system' as const}));
   const feedRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setInputText('');
@@ -44,17 +43,6 @@ export const ChatDetailScreen: React.FC = () => {
     const feed = feedRef.current;
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messageCount, isRecording, selectedChatUser?.id]);
-
-  useEffect(() => {
-    const handleSystemMsg = () => {
-      setSystemMsgs(getSystemMessages());
-    };
-    window.addEventListener('toti_system_message_received', handleSystemMsg);
-    return () => {
-      window.removeEventListener('toti_system_message_received', handleSystemMsg);
-    };
-  }, []);
-
 
   const isOfficial = selectedChatUser?.id === officialSupportPublicId;
   const isSystem = selectedChatUser?.id === 'system_official_bot';
@@ -92,6 +80,7 @@ export const ChatDetailScreen: React.FC = () => {
   }
   return (
     <div className="h-screen bg-[#f8fafc] text-slate-800 flex flex-col select-none overflow-hidden">
+      {!isSystem && <button onClick={() => setActiveSubScreen('user_detail_profile')} className="bg-white p-2 text-sm">عرض الملف والعلاقات</button>}
       {/* Top Chat App Bar */}
       <header className="shrink-0 sticky top-0 z-30 bg-white/95 border-b border-slate-200/80 px-4 py-2.5 backdrop-blur-md flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
@@ -210,7 +199,7 @@ export const ChatDetailScreen: React.FC = () => {
               {msg.type === 'voice' ? (
                 <div className="flex items-center gap-2">
                   <Volume2 size={16} className="text-white animate-pulse" />
-                  <span className="text-xs font-mono">رسالة صوتية (0:08)</span>
+                  <span className="text-xs font-mono">رسالة صوتية — التشغيل غير متاح حالياً</span>
                   <div className="flex items-center gap-0.5">
                     <span className="w-1 h-3 bg-white/80 rounded-full" />
                     <span className="w-1 h-4 bg-white/80 rounded-full" />

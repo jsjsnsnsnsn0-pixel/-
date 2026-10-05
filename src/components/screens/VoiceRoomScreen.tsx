@@ -26,18 +26,19 @@ export const VoiceRoomScreen: React.FC = () => {
   useEffect(() => {
     if (!activeRoom) return;
     const roomId = activeRoom.id;
+    setMessages([]);
     let disposed = false;
     const load = async () => {
       const {data, error} = await supabase.from('room_messages').select('*').eq('room_id', roomId)
         .order('created_at', {ascending: false}).limit(100);
       if (disposed) return;
       if (error) reportError('تعذر تحميل دردشة الغرفة.');
-      else setMessages((data || []).reverse());
+      else setMessages(prev => [...new Map([...(data || []).reverse(), ...prev].map(m => [m.id, m])).values()].sort((a,b) => new Date(a.created_at).getTime()-new Date(b.created_at).getTime()).slice(-100));
     };
     void load().catch(() => { if (!disposed) reportError('تعذر تحميل دردشة الغرفة.'); });
     const channel = supabase.channel(`chat:${roomId}`).on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}`,
-    }, event => { setMessages(prev => prev.some(m => m.id === event.new.id) ? prev : [...prev.slice(-99), event.new]); }).subscribe();
+    }, event => { if (disposed) return; setMessages(prev => prev.some(m => m.id === event.new.id) ? prev : [...prev.slice(-99), event.new]); }).subscribe();
     return () => { disposed = true; void supabase.removeChannel(channel); };
   }, [activeRoom?.id]);
 
