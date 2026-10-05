@@ -29,6 +29,8 @@ export interface RoomLeaderboardEntry {
 }
 
 export interface RealtimeRankingsContextType {
+  period: 'daily' | 'weekly' | 'monthly';
+  setPeriod: (period: 'daily' | 'weekly' | 'monthly') => void;
   wealthRankings: LeaderboardEntry[];
   charmRankings: LeaderboardEntry[];
   roomRankings: RoomLeaderboardEntry[];

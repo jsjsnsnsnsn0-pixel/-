@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Sparkles, Plus, Gift as GiftIcon, Trophy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { triggerSoulmatesWeeklyWinNotification } from '../../services/systemNotificationService';
+import { rpc, backendMessage } from '../../services/backend';
+import { useServerData } from '../../hooks/useServerData';
 
 interface SoulmatesWeeklyModalProps {
   isOpen: boolean;
@@ -27,60 +28,37 @@ export interface CpLeaderboardEntry {
 }
 
 export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useApp();
+  const { user, refreshWallet, reportError } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedRank, setSelectedRank] = useState<RankTier>('top1');
 
-  // Dynamic ranking entries stored in localStorage so CP gifts add real data
-  const [leaderboard, setLeaderboard] = useState<CpLeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('soulmates_cp_leaderboard');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // ignore
-    }
-    // Clean, empty initial state ready to receive real ranking after sending CP gifts
-    return Array.from({ length: 10 }, (_, i) => ({
-      rank: i + 1,
-      cpScore: 0,
-      user1: null,
-      user2: null,
-    }));
-  });
-
-  useEffect(() => {
-    const handleStorageUpdate = () => {
-      try {
-        const saved = localStorage.getItem('soulmates_cp_leaderboard');
-        if (saved) {
-          setLeaderboard(JSON.parse(saved));
-        }
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener('storage', handleStorageUpdate);
-    return () => window.removeEventListener('storage', handleStorageUpdate);
-  }, []);
+  const [busy,setBusy] = useState(false);
+  const [notice,setNotice] = useState('');
+  const load=useCallback(async (): Promise<CpLeaderboardEntry[]> => {
+    if(!isOpen)return [];
+    const result=await rpc<{current:{rank:number;score:number;user1:Record<string,any>;user2:Record<string,any>}[]}>('couple_state');
+    if(!result)throw new Error('rankings unavailable');
+    return result.current.map(row=>({rank:Number(row.rank),cpScore:Number(row.score),user1:{id:String(row.user1.public_id),name:row.user1.display_name,avatar:row.user1.avatar_url},user2:{id:String(row.user2.public_id),name:row.user2.display_name,avatar:row.user2.avatar_url}}));
+  },[isOpen,user.authId]);
+  const {data:leaderboard,loading,error,reload}=useServerData(load,[] as CpLeaderboardEntry[]);
+  const claim=async()=>{if(busy)return;setBusy(true);try{const rank=await rpc<number>('claim_couple_reward');if(!rank)throw new Error('claim not confirmed');setNotice(`اعتمد الخادم مكافأة المركز ${rank} للأسبوع السابق.`);await refreshWallet();}catch(e){reportError(backendMessage(e));}finally{setBusy(false);}};
 
   if (!isOpen) return null;
 
   const rankImages: Record<RankTier, { title: string; image: string; tag: string }> = {
     top1: {
       title: 'Top 1 - المركز الأول',
-      image: '/src/assets/images/soulmates_top1_rewards_1790784739419.jpg',
+      image: '/assets/images/soulmates_top1_rewards_1790784739419.jpg',
       tag: 'Top 1',
     },
     top2: {
       title: 'Top 2 - المركز الثاني',
-      image: '/src/assets/images/soulmates_top2_rewards_1790784803070.jpg',
+      image: '/assets/images/soulmates_top2_rewards_1790784803070.jpg',
       tag: 'Top 2',
     },
     top3: {
       title: 'Top 3 - المركز الثالث',
-      image: '/src/assets/images/soulmates_top3_rewards_1790784825470.jpg',
+      image: '/assets/images/soulmates_top3_rewards_1790784825470.jpg',
       tag: 'Top 3',
     },
   };
@@ -92,6 +70,9 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
+      {loading && <p className="absolute top-4 text-white">جارٍ تحميل الترتيب…</p>}
+      {error && <button onClick={() => void reload()} className="absolute top-4 text-white">{error} — إعادة المحاولة</button>}
+      {notice && <p role="status" className="absolute top-4 text-white">{notice}</p>}
       {/* Modal Container */}
       <div
         onClick={(e) => e.stopPropagation()}
@@ -199,7 +180,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
             <div className="relative w-full flex flex-col items-center">
               <div className="relative w-full max-w-[440px]">
                 <img
-                  src="/src/assets/images/soulmates_weekly_user_image_1790784401660.jpg"
+                  src="/assets/images/soulmates_weekly_user_image_1790784401660.jpg"
                   alt="رفقاء الروح الاسبوعيه"
                   className="w-full h-auto object-contain rounded-2xl border border-[#d4af37]/50 shadow-2xl"
                 />
@@ -286,7 +267,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
             <div className="w-full flex flex-col items-center animate-fade-in">
               <div className="relative w-full max-w-[440px] select-none">
                 <img
-                  src="/src/assets/images/soulmates_ranks_1_to_10_poster_1790800855277.jpg"
+                  src="/assets/images/soulmates_ranks_1_to_10_poster_1790800855277.jpg"
                   alt="ترتيب رفقاء الروح الاسبوعيه من 1 إلى 10"
                   className="w-full h-auto object-contain rounded-2xl border border-[#d4af37]/60 shadow-2xl block"
                 />
@@ -297,14 +278,11 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
                 {/* Claim Top 1 Winner Celebration Button */}
                 <button
                   type="button"
-                  onClick={() => {
-                    triggerSoulmatesWeeklyWinNotification();
-                    alert('🎉 مبروك! تم إرسال رسالة التتويج بالمرتبة الأولى إلى رسائل النظام وتفعيل شارة الشرف الإمبراطورية!');
-                  }}
+                  disabled={busy || loading || Boolean(error)} onClick={() => void claim()}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 text-xs font-black border-2 border-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-xl flex items-center justify-center gap-2"
                 >
                   <Trophy size={16} />
-                  <span>تتويج نهاية الأسبوع واستلام مكافأة المرتبة الأولى (السيبي Top 1)</span>
+                  <span>استلام مكافأة الأسبوع السابق إن كنت مستحقاً</span>
                   <Sparkles size={16} />
                 </button>
 

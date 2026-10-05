@@ -9,7 +9,7 @@ import { CustomGiftModal } from '../modals/CustomGiftModal';
 import { RechargeActivityModal } from '../modals/RechargeActivityModal';
 
 export const HomeScreen: React.FC = () => {
-  const { rooms, joinRoom, setActiveSubScreen } = useApp();
+  const { rooms, joinRoom, setActiveSubScreen, setActiveTab } = useApp();
   const { wealthRankings, charmRankings, roomRankings } = useRealtimeRankings();
 
   // Top header tab: حفلة | ملكي | اكتشف
@@ -42,37 +42,37 @@ export const HomeScreen: React.FC = () => {
     {
       id: 'distinguished_id',
       title: 'المعرف المميز - Toti Chat',
-      image: '/src/assets/images/toti_distinguished_id_1790717836703.jpg',
+      image: '/assets/images/toti_distinguished_id_1790717836703.jpg',
       action: () => setShowSpecialIdModal(true),
     },
     {
       id: 'soulmates',
       title: 'رفقاء الروح الأسبوعية',
-      image: '/src/assets/images/soulmates_exact_banner_1790725479589.jpg',
+      image: '/assets/images/soulmates_exact_banner_1790725479589.jpg',
       action: () => setShowSoulmatesModal(true),
     },
     {
       id: 'agency_opening',
       title: 'افتتاح الوكالة جديده - Toty Chat',
-      image: '/src/assets/images/agency_opening_banner_1790725265910.jpg',
+      image: '/assets/images/agency_opening_banner_1790725265910.jpg',
       action: () => setShowAgencyModal(true),
     },
     {
       id: 'recharge_activity',
       title: 'نشاط إعادة الشحن',
-      image: '/src/assets/images/recharge_activity_banner_1790725680784.jpg',
+      image: '/assets/images/recharge_activity_banner_1790725680784.jpg',
       action: () => setShowRechargeActivityModal(true),
     },
     {
       id: 'custom_gift',
       title: 'هدية مخصصة',
-      image: '/src/assets/images/custom_gift_banner_1790726268730.jpg',
+      image: '/assets/images/custom_gift_banner_1790726268730.jpg',
       action: () => setShowCustomGiftModal(true),
     },
     {
       id: 'global_star',
       title: 'النجم العالمي',
-      image: '/src/assets/images/global_star_banner_1790726285845.jpg',
+      image: '/assets/images/global_star_banner_1790726285845.jpg',
       action: () => setActiveSubScreen('charm_wealth'),
     },
   ];
@@ -208,7 +208,7 @@ export const HomeScreen: React.FC = () => {
           {/* Green Palace / Room Creation Button with small + */}
           <button
             type="button"
-            onClick={() => setActiveSubScreen('create')}
+            onClick={() => setActiveTab('create')}
             className="relative w-9 h-9 rounded-xl flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title="إنشاء غرفة"
           >
@@ -232,7 +232,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
           >
             <img
-              src="/src/assets/images/toti_distinguished_id_1790717836703.jpg"
+              src="/assets/images/toti_distinguished_id_1790717836703.jpg"
               alt="المعرف المميز - Toti Chat"
               className="w-full h-full object-cover"
             />
@@ -244,7 +244,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
           >
             <img
-              src="/src/assets/images/custom_gift_banner_1790726268730.jpg"
+              src="/assets/images/custom_gift_banner_1790726268730.jpg"
               alt="هدية مخصصة"
               className="w-full h-full object-cover"
             />
@@ -256,7 +256,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
           >
             <img
-              src="/src/assets/images/global_star_banner_1790726285845.jpg"
+              src="/assets/images/global_star_banner_1790726285845.jpg"
               alt="النجم العالمي"
               className="w-full h-full object-cover"
             />
@@ -268,7 +268,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
           >
             <img
-              src="/src/assets/images/recharge_activity_banner_1790725680784.jpg"
+              src="/assets/images/recharge_activity_banner_1790725680784.jpg"
               alt="نشاط إعادة الشحن"
               className="w-full h-full object-cover"
             />
@@ -280,7 +280,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
           >
             <img
-              src="/src/assets/images/soulmates_exact_banner_1790725479589.jpg"
+              src="/assets/images/soulmates_exact_banner_1790725479589.jpg"
               alt="رفقاء الروح الأسبوعية"
               className="w-full h-full object-cover"
             />
@@ -292,7 +292,7 @@ export const HomeScreen: React.FC = () => {
             className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
           >
             <img
-              src="/src/assets/images/agency_opening_banner_1790725265910.jpg"
+              src="/assets/images/agency_opening_banner_1790725265910.jpg"
               alt="افتتاح الوكالة جديده"
               className="w-full h-full object-cover"
             />

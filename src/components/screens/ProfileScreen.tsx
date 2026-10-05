@@ -1,3 +1,6 @@
+import { copyText } from '../../utils/clipboard';
+import { setImageFallback } from '../../utils/imageFallback';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
@@ -29,6 +32,7 @@ export const ProfileScreen: React.FC = () => {
   const {
     user,
     setActiveSubScreen,
+    setSelectedChatUser,
     joinRoom,
     rooms,
     logout,
@@ -37,12 +41,13 @@ export const ProfileScreen: React.FC = () => {
     markVisitorsAsSeen,
     markFollowersAsSeen,
   } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
 
-  const copyUserId = () => {
-    navigator.clipboard?.writeText(user.id);
+  const copyUserId = async () => {
+    if (!await copyText(user.id)) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
   // Open user's own room or join first room
@@ -75,7 +80,7 @@ export const ProfileScreen: React.FC = () => {
           {/* Row 1: Name, Gender & Detail Profile Chevron */}
           <div className="flex items-center justify-between">
             <button
-              onClick={() => setActiveSubScreen('user_detail_profile')}
+              onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
               className="w-7 h-7 rounded-lg bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
               title="عرض الملف الشخصي الكامل والشارات"
             >
@@ -91,7 +96,7 @@ export const ProfileScreen: React.FC = () => {
                 vipLevel={user.vipLevel}
                 size="xl"
                 showSparkles={Boolean(user.vipLevel && user.vipLevel > 0)}
-                onClick={() => setActiveSubScreen('user_detail_profile')}
+                onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
               />
               {/* Gender Badge */}
               <div
@@ -145,16 +150,14 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Right Avatar with Circular Frame */}
         <div
-          onClick={() => setActiveSubScreen('user_detail_profile')}
+          onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
           className="relative shrink-0 cursor-pointer group"
           title="عرض الملف الشخصي"
         >
           <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-900 ring-2 ring-slate-200/60 relative">
             <img
-              src={user.avatar || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg'}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
-              }}
+              src={user.avatar || '/assets/images/default_arab_user_avatar_1790806239365.jpg'}
+              onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')}
               alt={user.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />

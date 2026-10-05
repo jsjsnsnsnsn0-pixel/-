@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { defaultAvatar } from '../../services/profile';
 import { User } from '../../types';
 import { VIPFrame } from './VIPFrame';
 import { LevelBadge } from './LevelBadge';
@@ -26,6 +27,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   className = '',
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [fallbackError, setFallbackError] = useState(false);
 
   const dimensionMap = {
     xs: 'w-7 h-7 text-[10px]',
@@ -36,8 +38,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     '2xl': 'w-24 h-24 text-xl',
   };
 
-  const defaultAvatar = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
   const effectiveAvatar = user?.avatar || defaultAvatar;
+
+  useEffect(() => {
+    setImgError(false);
+    setFallbackError(false);
+  }, [effectiveAvatar]);
 
   const avatarContent = (
     <div
@@ -47,17 +53,20 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       {!imgError ? (
         <img
           src={effectiveAvatar}
-          alt={user?.name || 'User'}
+          alt={effectiveAvatar === defaultAvatar ? 'صورة افتراضية' : user?.name || 'صورة المستخدم'}
           referrerPolicy="no-referrer"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"
         />
-      ) : (
+      ) : !fallbackError ? (
         <img
           src={defaultAvatar}
-          alt={user?.name || 'User'}
+          alt="صورة افتراضية"
+          onError={() => setFallbackError(true)}
           className="w-full h-full object-cover rounded-full"
         />
+      ) : (
+        <span>{user?.name?.slice(0, 1) || '؟'}</span>
       )}
 
       {/* Online indicator */}
@@ -76,6 +85,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         {avatarContent}
       </VIPFrame>
 
+      {user?.equipment?.frames && <span title={user.equipment.frames.name} aria-label={`الإطار المجهز: ${user.equipment.frames.name}`} className="absolute -top-1 -left-1 bg-amber-950 border border-amber-400 rounded-full px-1 text-sm">{user.equipment.frames.icon}</span>}
+      {user?.equipment?.badges && <span title={user.equipment.badges.name} className="absolute bottom-0 right-0 rounded-full bg-slate-900 text-sm">{user.equipment.badges.icon}</span>}
       {/* Floating level badge */}
       {showLevel && user?.level !== undefined && (
         <div className="absolute -bottom-2 z-10 scale-90">

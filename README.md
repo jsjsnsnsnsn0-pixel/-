@@ -1,0 +1,70 @@
+# TotiChat
+
+واجهة عربية لـReact وTypeScript وVite، مرتبطة بـSupabase Auth وPostgres وStorage وRealtime. تشمل حساب المستخدم والمحفظة والغرف والمقاعد والرسائل النصية والهدايا، مع مشروع Android عبر Capacitor.
+
+## تشغيل المشروع
+
+يتطلب Node.js 22 أو أحدث.
+
+```sh
+npm ci
+cp .env.example .env.local
+# ضع رابط مشروعك ومفتاح Supabase العام في .env.local
+npm run dev
+```
+
+لا تضع مفتاح `service_role` أو أي مفتاح سري في متغير يبدأ بـ`VITE_`. قيم Vite تصل إلى المتصفح. بيانات الهوية والمحفظة تُقرأ من القاعدة؛ ملفات الحسابات القديمة في localStorage لا تُستخدم.
+
+## التحقق
+
+```sh
+npm run check
+npx playwright install chromium
+npm run test:e2e
+npm audit
+```
+
+اختبارات المتصفح تعزل طلبات Supabase ببيانات اختبار. اختبارات القاعدة في `tests/database-regression.sql` و`tests/database-audio-regression.sql` و`tests/database-integration-regression.sql` تُشغّل على القاعدة مع rollback؛ لا تترك حسابات أو أرصدة أو غرفاً بعد التنفيذ.
+
+## Supabase
+
+المشروع الذي فُحص وأُصلح: `bfadhdnudmsggylunhlh`، واسمه **TotiChat**. ملفات `supabase/migrations` تحتوي الإصلاحات التي طُبقت عليه. هذه ملفات تحديث لقاعدته القائمة، وليست مخططاً كاملاً لإنشاء قاعدة جديدة من الصفر. تجنّب `db reset` على قاعدة فيها بيانات.
+
+- التحقق عبر Google وSMS يعتمد على Supabase Auth؛ لا يوجد تجاوز محلي لـOTP.
+- الأرصدة وVIP والمعرّف العام لا يمكن تعديلها من تحرير الملف الشخصي.
+- تحويل الألماس والهدايا وتأكيد الشحن تتم بمعاملات قاعدة البيانات، مع سجل محفظة.
+- قراءة الرسائل تقتصر على طرفي المحادثة. تعديل الرسالة يقتصر على `read_at` للمستلم.
+- الانضمام للغرف والتحكم بالمقاعد يمر عبر وظائف تتحقق من العضوية والدعوة وVIP وصلاحية الإدارة.
+- إشارات WebRTC محمية بهوية المرسل والمستلم وعضوية الغرفة. يبدأ المايك مكتوماً ولا تُطلب صلاحيته إلا عند تشغيله.
+- رفع الصور يستخدم bucket `avatars`، بحد 5 ميغابايت وأنواع JPEG وPNG وWebP.
+
+## إعدادات تحتاج استكمالاً في الحسابات الخارجية
+
+1. **SMS** معطّل في المشروع. فعّل Phone provider واختر مزود SMS ومعلوماته من Supabase Dashboard. لا تستخدم رمزاً وهمياً أو تأكيداً محلياً.
+2. **Google OAuth** مفعّل. أضف أصل موقعك إلى Redirect URLs. لـAndroid أضف `com.totichat.app://auth/callback`؛ التطبيق يستخدم PKCE ومتصفح النظام وعودة التطبيق.
+3. **الشحن**: تحقق Integration بتاريخ 2026-10-05 من حساب المالك الموجود **TR72 / 451305** ووكيل **TotiChat Official Recharge / Iraq / IQ** النشط والمرتبط به. `create_recharge_request` يعيد `contact_info.channel=in_app` و`public_id`؛ زر التواصل يفتح الحساب الفعلي من `search_public_profiles` ويرسل عبر `direct_messages`. لا يوجد هاتف أو WhatsApp لهذا الوكيل، ولا تُنشأ حسابات أو صلاحيات تلقائياً. اعتماد الدفع الفعلي يحتاج اختباراً تشغيلياً من الإدارة.
+4. فعّل [حماية كلمات المرور المسرّبة](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) إذا كان إعدادها متاحاً في خطة المشروع. هذا هو تحذير Security Advisor المتبقي؛ الأدوات المتاحة في الجلسة لا تعدّل إعداد Auth هذا.
+5. الصوت يستخدم WebRTC وSTUN. يلزم اختباره بين أجهزة وشبكات فعلية؛ قد تتطلب الشبكات المقيدة مزود TURN ببيانات قصيرة الصلاحية. لا تضع أسرار TURN الدائمة في Vite.
+
+## الميزات التي لم تُفعّل
+
+اشتراكات VIP، مشتريات المتجر، مكافآت المهام والمكافأة اليومية والفعاليات، شبكة الأصدقاء والمتابعين وتتبع الزوار، والرسائل الصوتية الخاصة لا يوجد لها تنفيذ تجاري/تشغيلي كامل في واجهة الفرعين المدمجين. توجد migrations أحدث لهذه المجالات في قاعدة الإنتاج؛ وجودها لا يعني أن واجهة هذا الفرع تستخدمها أو أنها اختُبرت تجارياً. أُزيل نجاحها الوهمي ومنحها المحلي للأرصدة والصلاحيات. تعرض الواجهة عدم الإتاحة بدلاً من تأكيد عملية لم تحدث.
+
+## Android وGitHub Actions
+
+```sh
+npm run build
+npx cap add android
+node scripts/configure-android.mjs
+npx cap sync android
+```
+
+يتطلب بناء APK الفعلي Android SDK وJava 21. يجهّز السكربت إذن المايك وعودة OAuth؛ لا يطلب مفتاحاً سرياً. مجلد Android المولد مستثنى من Git.
+
+في GitHub Repository Variables اضبط `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY` و`VITE_AUTH_REDIRECT_URL` عند الحاجة. مهمة التحقق تستخدم اتصالاً معزولاً عند غياب القيم، أما مهمة APK فتتطلب قيماً فعلية وتتوقف إن كانت ناقصة. لم يعد workflow يستبدل Supabase بمحاكاة تسجيل دخول تلقائية.
+
+## Integration الحالي
+
+الفرع `integration/frontend-backend` يجمع `origin/main` مع `codex/repair-totichat-runtime` ثم `frontend-fixes`. تقرير الدمج وحدوده في [docs/integration-review-ar.md](docs/integration-review-ar.md). تقارير AUDIT وFrontend السابقة أدلة تاريخية بتاريخها، وليست نتائج تشغيل لهذا الدمج.
+
+ملفات migrations الأربعة مطابقة byte-for-byte لما طُبّق في الإنتاج، وأسماؤها الآن تستخدم timestamps الفعلية في `supabase_migrations.schema_migrations`. لا يُعاد تطبيقها على الإنتاج: القاعدة تحتوي أيضاً migrations أسبق وأحدث غير موجودة في المستودع. سجل المستودع جزئي، فلا تستخدمه لإنشاء schema جديد أو تشغيل `db push` دون مصالحة كامل التاريخ. لم تُنفّذ تغييرات schema أثناء Integration.

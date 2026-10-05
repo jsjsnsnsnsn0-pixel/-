@@ -1,66 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { usePublicChat } from '../../hooks/usePublicChat';
+import { emptyUser } from '../../services/profile';
+import React from 'react';
+import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
-import { getSystemMessages } from '../../services/systemNotificationService';
 
 // System Messages User
 export const systemMessagesUser: User = {
-  id: 'system_official_bot',
-  username: 'system_messages',
-  name: 'رسائل النظام',
-  bio: 'إشعارات النظام الرسمية ومكافآت الحساب والفعاليات',
-  avatar: '/src/assets/images/system_bell_icon_1790421934665.jpg',
-  level: 53,
-  vipLevel: 8,
-  charmLevel: 32,
-  wealthLevel: 53,
-  gold: 99999999,
-  diamonds: 88888888,
-  followersCount: 1000000,
-  followingCount: 0,
-  friendsCount: 0,
-  receivedGiftsCount: 0,
-  isOnline: true,
-};
-
-// Official Customer Service / Messages User (السيد حمدان)
-export const officialSupportUser: User = {
-  id: 'official_support_hamdan',
-  username: 'official_messages',
-  name: 'رسائل رسمية',
-  bio: 'الرسائل الرسمية وتواصل خدمة العملاء - السيد حـمـدان | هاتف: +964 772 645 0081',
-  avatar: '/src/assets/images/official_mascot_1790421946401.jpg',
-  level: 53,
-  vipLevel: 8,
-  charmLevel: 32,
-  wealthLevel: 53,
-  gold: 99999999,
-  diamonds: 88888888,
-  followersCount: 500000,
-  followingCount: 1,
-  friendsCount: 1000,
-  receivedGiftsCount: 99999,
-  isHost: true,
-  isOnline: true,
+  ...emptyUser, id: 'system_official_bot', username: 'system_messages', name: 'رسائل النظام',
+  bio: 'إشعارات النظام', avatar: '/assets/images/system_bell_icon_1790421934665.jpg',
 };
 
 export const MessagesScreen: React.FC = () => {
-  const { setSelectedChatUser, setActiveSubScreen, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
-  const [latestSysMsg, setLatestSysMsg] = useState(() => {
-    const list = getSystemMessages();
-    return list[0] || null;
-  });
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      const list = getSystemMessages();
-      setLatestSysMsg(list[0] || null);
-    };
-    window.addEventListener('toti_system_message_received', handleUpdate);
-    return () => {
-      window.removeEventListener('toti_system_message_received', handleUpdate);
-    };
-  }, []);
+  const { setSelectedChatUser, setActiveSubScreen, conversations, notifications, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
+  const { opening, openChat } = usePublicChat();
+  const latestSysMsg = notifications[0];
 
   const handleOpenSystemChat = () => {
     markSystemMessagesAsRead();
@@ -68,10 +22,7 @@ export const MessagesScreen: React.FC = () => {
     setActiveSubScreen('chat_detail');
   };
 
-  const handleOpenOfficialChat = () => {
-    setSelectedChatUser(officialSupportUser);
-    setActiveSubScreen('chat_detail');
-  };
+  const handleOpenOfficialChat = () => { void openChat(); };
 
   return (
     <div
@@ -95,7 +46,7 @@ export const MessagesScreen: React.FC = () => {
         >
           <div className="w-[44px] flex flex-col items-center justify-center self-stretch shrink-0">
             <span className="text-[12px] font-medium text-[#8ea396] whitespace-nowrap">
-              {latestSysMsg?.timestamp || 'الجمعة'}
+              {latestSysMsg?.timestamp || ''}
             </span>
             {unreadSystemMessagesCount > 0 && (
               <div className="w-[18px] h-[18px] rounded-full bg-[#ef4444] text-white text-[11px] font-black flex items-center justify-center shadow-xs mt-1.5 animate-pulse">
@@ -109,17 +60,14 @@ export const MessagesScreen: React.FC = () => {
               رسائل النظام
             </h2>
             <p className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5">
-              {latestSysMsg?.content || '...تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: ['}
+              {latestSysMsg?.description || 'لا توجد رسائل'}
             </p>
           </div>
 
           <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.22)] border border-amber-200/70 bg-[#f6ba5d] flex items-center justify-center">
             <img
-              src="/src/assets/images/system_bell_icon_1790421934665.jpg"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg';
-              }}
+              src="/assets/images/system_bell_icon_1790421934665.jpg"
+              onError={(e) => setImageFallback(e, '/assets/images/msg_system_bell_avatar_1790349025148.jpg')}
               alt="رسائل النظام"
               className="w-full h-full object-cover"
             />
@@ -127,7 +75,7 @@ export const MessagesScreen: React.FC = () => {
         </div>
 
         <div
-          onClick={handleOpenOfficialChat}
+          onClick={opening ? undefined : handleOpenOfficialChat}
           className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 cursor-pointer group active:opacity-85 transition-opacity"
         >
           <div className="w-[44px]" aria-hidden="true" />
@@ -137,22 +85,24 @@ export const MessagesScreen: React.FC = () => {
               رسائل رسمية
             </h2>
             <p dir="ltr" className="text-[13px] text-[#8ea396] font-normal mt-0.5 font-sans truncate text-right">
-              No message
+              {opening ? 'جارٍ فتح المحادثة…' : 'التواصل داخل التطبيق'}
             </p>
           </div>
 
           <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-emerald-200/70 bg-[#7ee0af] flex items-center justify-center">
             <img
-              src="/src/assets/images/official_mascot_1790421946401.jpg"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  '/src/assets/images/msg_official_mascot_1790349038045.jpg';
-              }}
+              src="/assets/images/official_mascot_1790421946401.jpg"
+              onError={(e) => setImageFallback(e, '/assets/images/msg_official_mascot_1790349038045.jpg')}
               alt="رسائل رسمية"
               className="w-full h-full object-cover"
             />
           </div>
         </div>
+        {conversations.map(conversation => <button key={conversation.id} className="w-full grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 text-right" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
+          <div className="w-[44px] text-center"><span className="text-[10px] text-slate-400">{conversation.timestamp}</span>{conversation.unreadCount > 0 && <span className="block bg-emerald-500 rounded-full text-xs">{conversation.unreadCount}</span>}</div>
+          <div className="min-w-0"><p className="font-bold truncate">{conversation.user.name}</p><p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p></div>
+          <img src={conversation.user.avatar} alt="" className="w-[58px] h-[58px] rounded-full object-cover" />
+        </button>)}
       </div>
     </div>
   );

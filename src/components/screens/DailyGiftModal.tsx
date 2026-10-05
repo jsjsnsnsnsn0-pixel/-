@@ -1,3 +1,4 @@
+import { rpc, backendMessage } from '../../services/backend';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X, Gift, Sparkles, Check } from 'lucide-react';
@@ -7,19 +8,21 @@ interface DailyGiftModalProps {
 }
 
 export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
-  const { setUser } = useApp();
+  const { reportError, refreshWallet } = useApp();
   const [opened, setOpened] = useState(false);
-  const [rewardGold] = useState(300);
-  const [rewardSilver] = useState(150);
+  const [rewardGold,setRewardGold] = useState(0);
+  const [busy,setBusy] = useState(false);
+  const [alreadyClaimed,setAlreadyClaimed] = useState(false);
+  const [rewardSilver,setRewardSilver] = useState(0);
 
-  const handleOpenChest = () => {
-    if (opened) return;
-    setOpened(true);
-    setUser((prev) => ({
-      ...prev,
-      gold: prev.gold + rewardGold,
-      silverCoins: (prev.silverCoins || 0) + rewardSilver,
-    }));
+  const handleOpenChest = async () => {
+    if(busy)return;setBusy(true);
+    try {
+      const result=await rpc<{gold:number;silver:number;already_claimed:boolean}>('claim_reward',{p_key:'daily'});
+      if(!result)throw new Error('claim not confirmed');
+      setRewardGold(Number(result.gold));setRewardSilver(Number(result.silver));setAlreadyClaimed(result.already_claimed);setOpened(true);
+      await refreshWallet();
+    }catch(e){reportError(backendMessage(e));}finally{setBusy(false);}
   };
 
   return (
@@ -43,7 +46,7 @@ export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
             </p>
 
             <button
-              onClick={handleOpenChest}
+              disabled={busy} onClick={() => void handleOpenChest()}
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-rose-500 text-white font-black text-sm rounded-2xl shadow-md shadow-rose-500/25 hover:from-amber-600 hover:to-rose-600 cursor-pointer transition-all active:scale-95"
             >
               افتح الصندوق الآن ✨
@@ -55,7 +58,7 @@ export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
               🎉
             </div>
             <h2 className="text-lg font-black text-slate-900 mb-1">مبروك!</h2>
-            <p className="text-xs text-slate-500 mb-4">حصلت على مكافأتك اليومية:</p>
+            <p className="text-xs text-slate-500 mb-4">{alreadyClaimed ? 'تم استلام مكافأة اليوم مسبقاً؛ لم تُضف مكافأة ثانية.' : 'حصلت على مكافأتك اليومية:'}</p>
 
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-center">

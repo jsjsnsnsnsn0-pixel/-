@@ -1,4 +1,5 @@
 import React from 'react';
+import {useRoomSeatProfile} from '../../hooks/useRoomSeatProfile';
 import { MicrophoneSeatState } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { LevelBadge } from '../common/LevelBadge';
@@ -17,7 +18,8 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
   onSeatClick,
   isCurrentUserSeat = false,
 }) => {
-  const { seatIndex, isLocked, isMuted, isSpeaking, user } = seat;
+  const { seatIndex, isLocked, isMuted, isSpeaking } = seat;
+  const user = useRoomSeatProfile(seat.user);
 
   // Empty or Locked Seat
   if (!user) {
@@ -53,6 +55,8 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
   return (
     <div
       onClick={() => onSeatClick(seatIndex)}
+      role="button" tabIndex={0} aria-label={`عرض ملف ${user.name}`} onKeyDown={event => {if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();onSeatClick(seatIndex);}}}
+      data-testid="occupied-seat"
       className="flex flex-col items-center cursor-pointer select-none relative group"
     >
       {/* Speaking Soundwave Pulse Ring */}
@@ -66,6 +70,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
 
         {/* Mic status badge overlay */}
         <div
+          aria-label={isMuted ? 'المايك مكتوم' : isSpeaking ? 'يتحدث الآن' : 'المايك مفتوح'}
           className={`absolute -bottom-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-white border border-[#0d0f1e] shadow-sm ${
             isMuted ? 'bg-rose-600' : isSpeaking ? 'bg-emerald-500 animate-pulse' : 'bg-purple-600'
           }`}
@@ -94,9 +99,9 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
         >
           {user.name}
         </span>
-        <div className="mt-0.5 scale-75 origin-center">
+        {user.hasPublicLevel !== false && <div aria-label={`المستوى ${user.level}`} className="mt-0.5 scale-75 origin-center">
           <LevelBadge level={user.level} size="sm" />
-        </div>
+        </div>}
       </div>
     </div>
   );

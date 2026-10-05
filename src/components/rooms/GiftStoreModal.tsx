@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import { useTimeouts } from '../../hooks/useTimeouts';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../../services/supabase';
 import { Gift, User, Room } from '../../types';
 import { sampleGifts } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
@@ -20,8 +22,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   onRechargeClick,
 }) => {
   const { user, sendGiftInRoom } = useApp();
+  const [gifts, setGifts] = useState<Gift[]>([]);
+  const [loading, setLoading] = useState(false);
+  const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedGift, setSelectedGift] = useState<Gift | null>(sampleGifts[0]);
+  const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   
   // Available recipients: room participants or host
   const potentialRecipients: User[] = (room?.seats || [])
@@ -37,8 +42,18 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     potentialRecipients.length > 0 ? potentialRecipients[0] : null
   );
 
+  const giftRetry = useRef<{key:string;id:string}|null>(null);
+  const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      giftRetry.current=null;
+      setSendSuccess(false);
+      setErrorMsg(null);
+    }
+  }, [isOpen]);
 
   const categories = [
     { id: 'all', label: 'الكل' },
@@ -51,27 +66,51 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     { id: 'special', label: 'مميز' },
   ];
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false; setLoading(true); setErrorMsg(null); setSendSuccess(false);
+    supabase.from('gift_catalog').select('id,name,price,diamond_source_type').eq('is_active',true).then(({data,error}) => {
+      if (cancelled) return;
+      if (error) {setGifts([]); setSelectedGift(null); setErrorMsg('تعذر تحميل الهدايا.');}
+      else {
+        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || {id:row.id,name:row.name,category:'all' as const,price:Number(row.price),icon:'🎁',animationType:'sparkle' as const}), id: row.id, name: row.name, price: Number(row.price), diamondSourceType: row.diamond_source_type}));
+        setGifts(next); setSelectedGift(next[0] || null);
+      }
+      setLoading(false);
+    });
+    return () => {cancelled = true;};
+  }, [isOpen]);
+  const recipientIds = potentialRecipients.map(u => u.id).join(',');
+  useEffect(() => {
+    if (!potentialRecipients.some(u => u.id === selectedRecipient?.id)) setSelectedRecipient(potentialRecipients[0] || null);
+  }, [recipientIds]);
   const filteredGifts =
     selectedCategory === 'all'
-      ? sampleGifts
-      : sampleGifts.filter((g) => g.category === selectedCategory);
+      ? gifts
+      : gifts.filter((g) => g.category === selectedCategory);
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    if (sending || loading || sendSuccess) return;
     if (!selectedGift || !selectedRecipient) {
       setErrorMsg('يرجى اختيار المستلم والهدية');
       return;
     }
 
     if (user.gold < selectedGift.price) {
-      setErrorMsg('رصيدك من الذهب غير كافٍ. اضغط لشحن الرصيد');
+      setErrorMsg('رصيدك من Coins غير كافٍ. اضغط لشحن الرصيد');
       return;
     }
 
-    const ok = sendGiftInRoom(selectedGift, selectedRecipient);
+    setSending(true);
+    const key = `${room?.id}:${selectedGift.id}:${selectedRecipient.id}`;
+    if(giftRetry.current?.key!==key)giftRetry.current={key,id:crypto.randomUUID()};
+    const ok = await sendGiftInRoom(selectedGift, selectedRecipient, undefined, giftRetry.current.id);
+    if(ok)giftRetry.current=null;
+    setSending(false);
     if (ok) {
       setSendSuccess(true);
       setErrorMsg(null);
-      setTimeout(() => {
+      scheduleTimeout(() => {
         setSendSuccess(false);
         onClose();
       }, 900);
@@ -144,7 +183,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
               </div>
             ) : (
               <div className="text-xs text-purple-300/80 bg-purple-950/40 p-2 rounded-xl border border-purple-500/20">
-                لا يوجد مستخدمون آخرون على المايك حالياً، سيتم إرسال الهدية لمضيف الغرفة.
+                لا يوجد مستلم متاح في الغرفة حالياً.
               </div>
             )}
           </div>
@@ -216,13 +255,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           )}
 
           {/* Footer: User Balance + Send CTA */}
+            {selectedGift && <p className="text-center text-xs text-cyan-300 mb-2">{selectedGift.diamondSourceType === 'LUCKY_GIFT' ? 'ماس هدية الحظ يُفك بنسبة 10%' : 'ماس الهدية الثابتة يُفك بنسبة 30%'}</p>}
           <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-3">
             {/* Balance + Recharge button */}
             <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400">رصيدك الحالي</span>
                 <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1">
-                  🪙 {user.gold.toLocaleString('ar-SA')} ذهب
+                  🪙 {user.gold.toLocaleString('ar-SA')} Coins
                 </span>
               </div>
               <button
@@ -239,7 +279,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             <button
               type="button"
               onClick={handleSend}
-              disabled={!selectedGift || !selectedRecipient}
+              disabled={sending || loading || sendSuccess || !selectedGift || !selectedRecipient}
               className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 sendSuccess
                   ? 'bg-emerald-600 text-white'

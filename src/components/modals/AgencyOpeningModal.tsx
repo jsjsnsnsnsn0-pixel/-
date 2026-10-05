@@ -43,7 +43,7 @@ export const AgencyOpeningModal: React.FC<AgencyOpeningModalProps> = ({ isOpen, 
         <div className="overflow-y-auto flex-1 bg-black flex flex-col items-center p-1 sm:p-2 scrollbar-thin scrollbar-thumb-amber-600/40">
           <div className="w-full flex justify-center">
             <img
-              src="/src/assets/images/agency_opening_rules_exact_1790729202852.jpg"
+              src="/assets/images/agency_opening_rules_exact_1790729202852.jpg"
               alt="نشاط فتح الوكالات"
               className="w-full max-w-[440px] h-auto object-contain rounded-xl border border-[#caa43b]/50 shadow-2xl"
             />

@@ -12,7 +12,7 @@ export const CreateRoomScreen: React.FC = () => {
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [allowInvites, setAllowInvites] = useState<boolean>(true);
   const [isProtected, setIsProtected] = useState<boolean>(false);
-  const [selectedCover, setSelectedCover] = useState<string>('/src/assets/images/room_cover_majlis_1790226059300.jpg');
+  const [selectedCover, setSelectedCover] = useState<string>('/assets/images/room_cover_majlis_1790226059300.jpg');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
@@ -24,30 +24,20 @@ export const CreateRoomScreen: React.FC = () => {
   ];
 
   const presetCovers = [
-    { id: '1', url: '/src/assets/images/room_cover_majlis_1790226059300.jpg', title: 'مجلس عربي' },
-    { id: '2', url: '/src/assets/images/room_cover_poetry_1790226070047.jpg', title: 'طرب وعود' },
+    { id: '1', url: '/assets/images/room_cover_majlis_1790226059300.jpg', title: 'مجلس عربي' },
+    { id: '2', url: '/assets/images/room_cover_poetry_1790226070047.jpg', title: 'طرب وعود' },
     { id: '3', url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80', title: 'حفل وألعاب' },
     { id: '4', url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&auto=format&fit=crop&q=80', title: 'أدب وشعر' },
   ];
 
   const seatOptions = [4, 6, 8, 10, 12];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
-
+    if (!title.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      createNewRoom({
-        title,
-        description,
-        category,
-        seatsCount,
-        isPrivate,
-        coverImage: selectedCover,
-      });
-      setIsSubmitting(false);
-    }, 400);
+    try { await createNewRoom({title, description, category, seatsCount, isPrivate, coverImage: selectedCover}); }
+    finally { setIsSubmitting(false); }
   };
 
   return (

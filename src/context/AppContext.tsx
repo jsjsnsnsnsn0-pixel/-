@@ -1,686 +1,457 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { walletTitles } from '../services/diamonds';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
-import { currentUser as initialUser, sampleRooms, sampleTransactions, sampleConversations, sampleNotifications } from '../data/mockData';
-import { getNextSequentialId } from '../utils/accountIds';
+import { signInWithGoogle, listenForNativeAuth } from '../services/nativeAuth';
 import { supabase } from '../services/supabase';
+import { emptyUser, profileToUser, editableProfile, roomMemberToUser } from '../services/profile';
 
 interface AppContextType {
-  user: User;
-  rooms: Room[];
-  activeRoom: Room | null;
+  user: User; rooms: Room[]; activeRoom: Room | null;
   activeTab: 'home' | 'rooms' | 'create' | 'messages' | 'profile';
-  activeSubScreen: string | null;
-  selectedChatUser: User | null;
-  activeGiftOverlay: ActiveGiftAnimation | null;
-  transactions: Transaction[];
-  conversations: Conversation[];
-  notifications: NotificationItemData[];
-  isMyMicMuted: boolean;
-  isHandRaised: boolean;
-  isSpeakerOn: boolean;
-  unreadMessagesCount: number;
-  unreadNotificationsCount: number;
-  unreadSystemMessagesCount: number;
-  hasUnseenVisitors: boolean;
-  hasUnseenFollowers: boolean;
-  markSystemMessagesAsRead: () => void;
-  markVisitorsAsSeen: () => void;
-  markFollowersAsSeen: () => void;
+  activeSubScreen: string | null; selectedChatUser: User | null;
+  activeGiftOverlay: ActiveGiftAnimation | null; transactions: Transaction[];
+  conversations: Conversation[]; notifications: NotificationItemData[];
+  isMyMicMuted: boolean; isHandRaised: boolean; isSpeakerOn: boolean; noiseSuppression: boolean; toggleNoiseSuppression: () => void;
+  unreadMessagesCount: number; unreadNotificationsCount: number; unreadSystemMessagesCount: number;
+  hasUnseenVisitors: boolean; hasUnseenFollowers: boolean;
+  markSystemMessagesAsRead: () => void; markVisitorsAsSeen: () => void; markFollowersAsSeen: () => void;
   setUser: React.Dispatch<React.SetStateAction<User>>;
-  setActiveTab: (tab: 'home' | 'rooms' | 'create' | 'messages' | 'profile') => void;
-  setActiveSubScreen: (screen: string | null) => void;
-  setSelectedChatUser: (user: User | null) => void;
-  joinRoom: (room: Room) => void;
-  leaveRoom: () => void;
-  toggleMyMic: () => void;
-  toggleRaiseHand: () => void;
-  toggleSpeaker: () => void;
-  takeSeat: (seatIndex: number) => void;
-  leaveSeat: (seatIndex: number) => void;
-  sendGiftInRoom: (gift: Gift, recipient: User, seatIndex?: number) => boolean;
-  rechargeGold: (amount: number, transactionTitle?: string) => void;
-  createNewRoom: (newRoom: Partial<Room>) => Room;
-  lockSeat: (seatIndex: number) => void;
-  unlockSeat: (seatIndex: number) => void;
-  muteSeatUser: (seatIndex: number) => void;
-  kickSeatUser: (seatIndex: number) => void;
-  sendMessageToConversation: (conversationId: string, content: string, type?: 'text' | 'voice' | 'gift') => void;
+  setActiveTab: (tab: AppContextType['activeTab']) => void;
+  setActiveSubScreen: (screen: string | null) => void; setSelectedChatUser: (user: User | null) => void;
+  joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
+  toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
+  takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
+  sendGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
+  rechargeGold: (amount: number, title?: string) => void;
+  createNewRoom: (room: Partial<Room>) => Promise<Room | null>;
+  lockSeat: (seat: number) => Promise<boolean>; unlockSeat: (seat: number) => Promise<boolean>;
+  muteSeatUser: (seat: number) => Promise<boolean>; kickSeatUser: (seat: number) => Promise<boolean>;
+  sendMessageToConversation: (id: string, content: string, type?: 'text' | 'voice' | 'gift') => Promise<boolean>;
   markNotificationAsRead: (id: string) => void;
-  isAuthenticated: boolean;
-  loginWithGoogle: (googleProfile?: { name?: string; email?: string; picture?: string }) => void;
-  loginWithPhone: (phone?: string, otp?: string) => void;
-  logout: () => void;
-  setIsAuthenticated: (val: boolean) => void;
+  isAuthenticated: boolean; authLoading: boolean; needsProfile: boolean;
+  error: string | null; dismissError: () => void; reportError: (message: string) => void;
+  loginWithGoogle: (profile?: {name?: string; email?: string; picture?: string}) => Promise<void>;
+  loginWithPhone: (phone?: string, otp?: string) => Promise<void>;
+  logout: () => Promise<void>; refreshProfile: () => Promise<void>; refreshWallet: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<boolean>;
+  markConversationAsRead: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Clean real initial user starting from zero coins, zero level, zero wealth/charm, and default image
-  const [user, setUser] = useState<User>(() => {
-    try {
-      // 1. Check if there is an active account identifier saved
-      const activeAccountKey = localStorage.getItem('toti_active_account_key');
-      if (activeAccountKey) {
-        const savedAccount = localStorage.getItem(`toti_account_${activeAccountKey}`);
-        if (savedAccount) {
-          const parsed = JSON.parse(savedAccount);
-          if (parsed && parsed.id) {
-            // Update account to requested ID 30301 with wealth 45 and charm 30
-            const updatedId = '30301';
-
-            return {
-              ...initialUser,
-              ...parsed,
-              id: updatedId,
-              wealthLevel: Math.max(parsed.wealthLevel || 0, 45),
-              charmLevel: Math.max(parsed.charmLevel || 0, 30),
-              level: Math.max(parsed.level || 0, 45),
-            };
-          }
-        }
-      }
-
-      // 2. Check general app_user_profile fallback
-      const saved = localStorage.getItem('app_user_profile');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed) {
-          const updatedId = '30301';
-
-          return {
-            ...initialUser,
-            ...parsed,
-            id: updatedId,
-            wealthLevel: Math.max(parsed.wealthLevel || 0, 45),
-            charmLevel: Math.max(parsed.charmLevel || 0, 30),
-            level: Math.max(parsed.level || 0, 45),
-          };
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return initialUser;
-  });
-
-  // Save profile changes immediately to both general profile and specific account store
-  useEffect(() => {
-    try {
-      localStorage.setItem('app_user_profile', JSON.stringify(user));
-
-      // Also persist to account-specific key (e.g. by email or user ID)
-      const activeAccountKey = localStorage.getItem('toti_active_account_key') || user.id;
-      if (activeAccountKey) {
-        localStorage.setItem(`toti_account_${activeAccountKey}`, JSON.stringify(user));
-      }
-    } catch {
-      // ignore storage quota error
-    }
-  }, [user]);
-  const [rooms, setRooms] = useState<Room[]>(sampleRooms);
+export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  const [user, setUserState] = useState<User>(emptyUser);
+  const userRef = useRef(user); userRef.current = user;
+  const [authId, setAuthId] = useState<string | null>(null);
+  const authRef = useRef(authId); authRef.current = authId;
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileReady, setProfileReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
-  const [activeTab, setActiveTabState] = useState<'home' | 'rooms' | 'create' | 'messages' | 'profile'>('home');
-  const [activeSubScreen, setActiveSubScreen] = useState<string | null>(null);
+  const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
+  const [activeTab, setActiveTabState] = useState<AppContextType['activeTab']>('home');
+  const [activeSubScreen, setActiveSubScreenState] = useState<string | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
   const [activeGiftOverlay, setActiveGiftOverlay] = useState<ActiveGiftAnimation | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions);
-  const [conversations, setConversations] = useState<Conversation[]>(sampleConversations);
-  const [notifications, setNotifications] = useState<NotificationItemData[]>(sampleNotifications);
-  const [isMyMicMuted, setIsMyMicMuted] = useState<boolean>(false);
-  const [isHandRaised, setIsHandRaised] = useState<boolean>(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState<boolean>(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItemData[]>([]);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  useEffect(() => {
+    if (!authId) return;
+    try {
+      const prefs = JSON.parse(localStorage.getItem(`toti_audio_preferences_${authId}`) || '{}');
+      setIsSpeakerOn(prefs.speaker !== false); setNoiseSuppression(prefs.noise !== false);
+    } catch {setIsSpeakerOn(true); setNoiseSuppression(true);}
+  }, [authId]);
+  const saveAudioPreference = (speaker: boolean, noise: boolean) => {
+    if (!authRef.current) return;
+    try {localStorage.setItem(`toti_audio_preferences_${authRef.current}`, JSON.stringify({speaker, noise}));} catch {}
+  };
+  const [hasUnseenVisitors, setHasUnseenVisitors] = useState(false);
+  const [hasUnseenFollowers, setHasUnseenFollowers] = useState(false);
+  const [unreadSystemMessagesCount, setUnreadSystemMessagesCount] = useState(0);
+  const profileQueue = useRef(Promise.resolve());
+  const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Authentication State: controlled by Supabase Auth
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const fail = useCallback((e: unknown) => {
+    console.error('TotiChat operation failed:', e);
+    const raw = e && typeof e === 'object' && 'message' in e ? String(e.message) : String(e);
+    const messages: Record<string, string> = {
+      'insufficient diamonds': 'رصيد الألماس غير كافٍ.',
+      'insufficient gold': 'رصيد الذهب غير كافٍ.',
+      'seat is occupied': 'المقعد محجوز، اختر مقعداً آخر.',
+      'private room requires an invitation': 'تحتاج دعوة لدخول هذه الغرفة.',
+      'VIP membership required': 'هذه الغرفة تتطلب عضوية VIP.',
+      'no official recharge agent is configured for this country': 'لا يوجد وكيل شحن رسمي لبلدك حالياً.',
+      'authentication required': 'يرجى تسجيل الدخول مجدداً.',
+    };
+    setError(messages[raw] || 'تعذر إتمام العملية. تحقق من الاتصال وحاول مجدداً.');
+  }, []);
 
-  // Sync authentication state with Supabase Auth
+  useEffect(() => {
+    let disposed = false; let stop = () => {};
+    void listenForNativeAuth(() => setError('تعذر إتمام تسجيل الدخول. حاول مجدداً.')).then(cleanup => {
+      if (disposed) cleanup(); else stop = cleanup;
+    }).catch(fail);
+    return () => {disposed = true; stop();};
+  }, [fail]);
+
+  const refreshProfile = useCallback(async () => {
+    const id = authRef.current;
+    if (!id) return;
+    const {data, error} = await supabase.from('profiles').select('*').eq('id', id).single();
+    if (error) throw error;
+    if (id !== authRef.current) return;
+    const social = await supabase.rpc('social_profile', {p_public_id: Number(data.public_id), p_visit: false});
+    if (social.error) throw social.error;
+    if (id !== authRef.current) return;
+    const next = profileToUser({...data, ...(social.data || {})});
+    userRef.current = next;
+    setUserState(next); setProfileReady(true);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        setIsAuthenticated(!!session);
+    let authEventReceived = false;
+    const acceptSession = (id: string | null) => {
+      if (!mounted) return;
+      if (id !== authRef.current) {
+        authRef.current = id; setAuthId(id); setProfileReady(false);
+        userRef.current = emptyUser; setUserState(emptyUser);
+        setRooms([]); setConversations([]); setTransactions([]); setNotifications([]);
+        setSelectedChatUser(null); setActiveRoom(null); setActiveSubScreenState(null);
+        setActiveGiftOverlay(null); setActiveTabState('home'); setError(null);
       }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (mounted) {
-          setIsAuthenticated(!!session);
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      setAuthLoading(false);
     };
-  }, []);
-
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      console.error('Supabase logout error:', error);
-      return;
-    }
-
-    setIsAuthenticated(false);
-    setActiveRoom(null);
-    setActiveSubScreen(null);
-
-    try {
-      localStorage.removeItem('app_is_authenticated');
-      localStorage.removeItem('toti_active_account_key');
-    } catch {
-      // ignore
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-redirectTo: window.location.origin,
-      },
+    const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, session) => {
+      // Keep this callback synchronous; queries run in the effect below.
+      authEventReceived = true;
+      acceptSession(session?.user.id || null);
     });
+    supabase.auth.getSession().then(({data, error}) => {
+      if (error) { if (mounted) { fail(error); setAuthLoading(false); } }
+      else if (!authEventReceived) acceptSession(data.session?.user.id || null);
+    }).catch(e => { if (mounted) { fail(e); setAuthLoading(false); } });
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, [fail]);
 
-    if (error) {
-      console.error('Supabase Google login error:', error);
-    }
-  };
-
-  const loginWithPhone = (_phone?: string, _otp?: string) => {
-    const assignedPresetId = getNextSequentialId();
-    setUser((prev) => ({
-      ...prev,
-      id: assignedPresetId,
-      username: `user_${assignedPresetId}`,
-      name: 'مستخدم جديد',
-      avatar: '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
-      level: 1,
-      wealthLevel: 1,
-      charmLevel: 1,
-      vipLevel: 0,
-      gold: 0,
-      diamonds: 0,
-      silverCoins: 0,
-      friendsCount: 0,
-      followersCount: 0,
-      followingCount: 0,
-      visitorsCount: 0,
-      sentGiftsCount: '0',
-      receivedTotal: '0',
-      receivedGiftsCount: 0,
-      isHost: false,
-      agencyName: undefined,
-      agencyOwner: undefined,
-      agencyId: undefined,
-      agencyMembersCount: undefined,
-      agencyAvatar: undefined,
-      coupleName: undefined,
-      coupleAvatar: undefined,
-      customTitle: undefined,
-      nameShimmerStyle: undefined,
-      nobleRank: undefined,
-      rankingTitle: undefined,
-    }));
-
-    setIsAuthenticated(true);
-    setActiveTabState('home');
-    setActiveSubScreen(null);
-
-    try {
-      localStorage.setItem('app_is_authenticated', 'true');
-    } catch {
-      // ignore
-    }
-  };
-
-  const setActiveTab = (tab: 'home' | 'rooms' | 'create' | 'messages' | 'profile') => {
-    setActiveTabState(tab);
-    setActiveSubScreen(null);
-  };
-
-  const joinRoom = (room: Room) => {
-    // If user is owner, they might be in seat 0
-    setActiveRoom(room);
-  };
-
-  const leaveRoom = () => {
-    setActiveRoom(null);
-    setIsHandRaised(false);
-  };
-
-  const toggleMyMic = () => {
-    setIsMyMicMuted((prev) => !prev);
-    if (activeRoom) {
-      setRooms((prevRooms) =>
-        prevRooms.map((r) => {
-          if (r.id === activeRoom.id) {
-            const updatedSeats = r.seats.map((seat) => {
-              if (seat.user?.id === user.id) {
-                return { ...seat, isMuted: !seat.isMuted };
-              }
-              return seat;
-            });
-            return { ...r, seats: updatedSeats };
-          }
-          return r;
-        })
-      );
-      setActiveRoom((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          seats: prev.seats.map((seat) =>
-            seat.user?.id === user.id ? { ...seat, isMuted: !seat.isMuted } : seat
-          ),
-        };
+  const refreshRooms = useCallback(async (): Promise<Room[]> => {
+    const id = authRef.current;
+    if (!id) return [];
+    const [rs, ms, ls] = await Promise.all([
+      supabase.from('rooms').select('*').eq('is_active', true).order('created_at', {ascending: false}),
+      supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
+    ]);
+    for (const result of [rs, ms, ls]) if (result.error) throw result.error;
+    if (id !== authRef.current) return [];
+    const mapped: Room[] = (rs.data || []).map(row => {
+      const members = (ms.data || []).filter(m => m.room_id === row.id);
+      const memberUser = (m: Record<string, unknown>): User => m.user_id === id ? userRef.current : roomMemberToUser(m);
+      const owner = row.owner_id === id ? userRef.current : profileToUser({
+        id: row.owner_id, public_id: row.owner_public_id, display_name: row.owner_display_name,
+        avatar_url: row.owner_avatar_url,
       });
-    }
-  };
-
-  const toggleRaiseHand = () => {
-    setIsHandRaised((prev) => !prev);
-  };
-
-  const toggleSpeaker = () => {
-    setIsSpeakerOn((prev) => !prev);
-  };
-
-  const takeSeat = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const seat = activeRoom.seats[seatIndex];
-    if (seat && !seat.isLocked && !seat.user) {
-      const updatedSeats = activeRoom.seats.map((s, idx) => {
-        if (idx === seatIndex) {
-          return { ...s, user: user, isMuted: isMyMicMuted, isSpeaking: false };
-        }
-        // Remove user from any other seat if they already had one
-        if (s.user?.id === user.id) {
-          return { ...s, user: undefined, isSpeaking: false };
-        }
-        return s;
-      });
-
-      const updatedRoom = { ...activeRoom, seats: updatedSeats };
-      setActiveRoom(updatedRoom);
-      setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updatedRoom : r)));
-    }
-  };
-
-  const leaveSeat = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const updatedSeats = activeRoom.seats.map((s, idx) => {
-      if (idx === seatIndex && s.user?.id === user.id) {
-        return { ...s, user: undefined, isSpeaking: false };
-      }
-      return s;
-    });
-    const updatedRoom = { ...activeRoom, seats: updatedSeats };
-    setActiveRoom(updatedRoom);
-    setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updatedRoom : r)));
-  };
-
-  const sendGiftInRoom = (gift: Gift, recipient: User, seatIndex?: number): boolean => {
-    if (user.gold < gift.price) {
-      return false;
-    }
-
-    // Deduct gold from sender, increase wealth points & sent gifts
-    setUser((prev) => {
-      const prevSpent = parseInt(prev.sentGiftsCount || '0', 10) || 0;
-      const newSpent = prevSpent + gift.price;
-      // Realistic level progression: every 1,000 gold spent = +1 wealth level
-      const calculatedWealth = Math.max(1, Math.min(150, Math.floor(newSpent / 1000) + 1));
-      const calculatedLevel = Math.max(1, Math.min(150, Math.floor(newSpent / 1000) + 1));
-
       return {
-        ...prev,
-        gold: Math.max(0, prev.gold - gift.price),
-        wealthLevel: calculatedWealth,
-        level: calculatedLevel,
-        sentGiftsCount: newSpent.toLocaleString(),
+        id: row.id, owner, ownerAuthId: row.owner_id, title: row.name,
+        description: row.description || '', coverImage: row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
+        category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
+        isVIP: row.is_vip, status: 'live', tags: row.tags || [], usersCount: members.length,
+        canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
+        members: members.map(memberUser),
+        seats: Array.from({length: row.max_seats}, (_, index) => {
+          const member = members.find(m => m.seat_number === index + 1);
+          return {seatIndex: index, isLocked: (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
+            isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? memberUser(member) : undefined};
+        }),
       };
     });
-
-    // If recipient is in the active room seats, update their charm level and received gifts
-    if (activeRoom) {
-      setRooms((prevRooms) =>
-        prevRooms.map((room) => {
-          if (room.id !== activeRoom.id) return room;
-          const updatedSeats = room.seats.map((seat) => {
-            if (seat.user && seat.user.id === recipient.id) {
-              const currentGifts = seat.user.receivedGiftsCount || 0;
-              const currentReceivedVal = parseInt(seat.user.receivedTotal || '0', 10) || 0;
-              const newReceivedVal = currentReceivedVal + gift.price;
-              const calculatedCharm = Math.max(1, Math.min(150, Math.floor(newReceivedVal / 1000) + 1));
-
-              return {
-                ...seat,
-                user: {
-                  ...seat.user,
-                  receivedGiftsCount: currentGifts + 1,
-                  receivedTotal: newReceivedVal.toLocaleString(),
-                  charmLevel: calculatedCharm,
-                },
-              };
-            }
-            return seat;
-          });
-          return { ...room, seats: updatedSeats };
-        })
-      );
-    }
-
-    // Add transaction
-    const newTx: Transaction = {
-      id: `TX-${Date.now().toString().slice(-4)}`,
-      type: 'gift_sent',
-      title: `إرسال هدية: ${gift.name} إلى ${recipient.name}`,
-      amount: -gift.price,
-      currency: 'gold',
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      status: 'completed',
-      iconType: 'gift',
-    };
-    setTransactions((prev) => [newTx, ...prev]);
-
-    // Trigger overlay animation
-    setActiveGiftOverlay({
-      id: `${Date.now()}`,
-      gift,
-      sender: user,
-      recipient,
-      targetSeatIndex: seatIndex,
-    });
-
-    // Auto dismiss overlay after 3.8s
-    setTimeout(() => {
-      setActiveGiftOverlay(null);
-    }, 3800);
-
-    // Record support into rankings system
-    try {
-      window.dispatchEvent(
-        new CustomEvent('toti_gift_support_sent', {
-          detail: {
-            sender: user,
-            recipient,
-            room: activeRoom,
-            amount: gift.price,
-          },
-        })
-      );
-    } catch {
-      // ignore
-    }
-
-    return true;
-  };
-
-  const rechargeGold = (amount: number, transactionTitle?: string) => {
-    setUser((prev) => ({
-      ...prev,
-      gold: prev.gold + amount,
-    }));
-
-    const newTx: Transaction = {
-      id: `TX-${Date.now().toString().slice(-4)}`,
-      type: 'recharge',
-      title: transactionTitle || `شحن رصيد ذهب (+${amount.toLocaleString('ar-SA')})`,
-      amount: amount,
-      currency: 'gold',
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      status: 'completed',
-      iconType: 'plus',
-    };
-    setTransactions((prev) => [newTx, ...prev]);
-  };
-
-  const createNewRoom = (newRoomData: Partial<Room>): Room => {
-    const seatsCount = newRoomData.seatsCount || 8;
-    const initialSeats = Array.from({ length: seatsCount }).map((_, idx) => ({
-      seatIndex: idx,
-      isLocked: false,
-      isMuted: false,
-      isSpeaking: idx === 0,
-      user: idx === 0 ? user : undefined,
-    }));
-
-    const createdRoom: Room = {
-      id: `${Math.floor(1000 + Math.random() * 9000)}`,
-      title: newRoomData.title || 'مجلس الأصدقاء 🎙️',
-      description: newRoomData.description || 'أهلاً بكم في غرفتنا الصوتية',
-      coverImage: newRoomData.coverImage || '/src/assets/images/room_cover_majlis_1790226059300.jpg',
-      category: (newRoomData.category as any) || 'سوالف وألعاب',
-      owner: user,
-      usersCount: 1,
-      seatsCount,
-      isVIP: newRoomData.isVIP ?? true,
-      isPrivate: newRoomData.isPrivate ?? false,
-      status: 'live',
-      tags: newRoomData.tags || ['جديد', 'دردشة'],
-      seats: initialSeats,
-    };
-
-    setRooms((prev) => [createdRoom, ...prev]);
-    setActiveRoom(createdRoom);
-    return createdRoom;
-  };
-
-  const lockSeat = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const updatedSeats = activeRoom.seats.map((s, idx) =>
-      idx === seatIndex ? { ...s, isLocked: !s.isLocked, user: s.isLocked ? s.user : undefined } : s
-    );
-    const updated = { ...activeRoom, seats: updatedSeats };
-    setActiveRoom(updated);
-    setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updated : r)));
-  };
-
-  const unlockSeat = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const updatedSeats = activeRoom.seats.map((s, idx) =>
-      idx === seatIndex ? { ...s, isLocked: false } : s
-    );
-    const updated = { ...activeRoom, seats: updatedSeats };
-    setActiveRoom(updated);
-    setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updated : r)));
-  };
-
-  const muteSeatUser = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const updatedSeats = activeRoom.seats.map((s, idx) =>
-      idx === seatIndex ? { ...s, isMuted: !s.isMuted } : s
-    );
-    const updated = { ...activeRoom, seats: updatedSeats };
-    setActiveRoom(updated);
-    setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updated : r)));
-  };
-
-  const kickSeatUser = (seatIndex: number) => {
-    if (!activeRoom) return;
-    const updatedSeats = activeRoom.seats.map((s, idx) =>
-      idx === seatIndex ? { ...s, user: undefined, isSpeaking: false } : s
-    );
-    const updated = { ...activeRoom, seats: updatedSeats };
-    setActiveRoom(updated);
-    setRooms((prev) => prev.map((r) => (r.id === activeRoom.id ? updated : r)));
-  };
-
-  const sendMessageToConversation = (conversationId: string, content: string, type: 'text' | 'voice' | 'gift' = 'text') => {
-    const newMsg = {
-      id: `m-${Date.now()}`,
-      senderId: user.id,
-      senderName: user.name,
-      senderAvatar: user.avatar,
-      content,
-      timestamp: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-      type,
-    };
-
-    setConversations((prev) =>
-      prev.map((c) => {
-        if (c.id === conversationId) {
-          return {
-            ...c,
-            lastMessage: type === 'voice' ? '🎙️ رسالة صوتية' : content,
-            timestamp: 'الآن',
-            messages: [...c.messages, newMsg],
-          };
-        }
-        return c;
-      })
-    );
-  };
-
-  const [unreadSystemMessagesCount, setUnreadSystemMessagesCount] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('toti_unread_system_count');
-      return saved !== null ? parseInt(saved, 10) : 1;
-    } catch {
-      return 1;
-    }
-  });
-
-  // Track profile visitor / follower badges (disappear after user views them)
-  const [hasUnseenVisitors, setHasUnseenVisitors] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('toti_seen_visitors') !== 'true';
-    } catch {
-      return true;
-    }
-  });
-
-  const [hasUnseenFollowers, setHasUnseenFollowers] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('toti_seen_followers') !== 'true';
-    } catch {
-      return true;
-    }
-  });
-
-  const markSystemMessagesAsRead = () => {
-    setUnreadSystemMessagesCount(0);
-    try {
-      localStorage.setItem('toti_unread_system_count', '0');
-    } catch {
-      // ignore
-    }
-  };
-
-  const markVisitorsAsSeen = () => {
-    setHasUnseenVisitors(false);
-    try {
-      localStorage.setItem('toti_seen_visitors', 'true');
-    } catch {
-      // ignore
-    }
-  };
-
-  const markFollowersAsSeen = () => {
-    setHasUnseenFollowers(false);
-    try {
-      localStorage.setItem('toti_seen_followers', 'true');
-    } catch {
-      // ignore
-    }
-  };
-
-  // Listen for new system messages to increment unread counter
-  useEffect(() => {
-    const handleNewSysMsg = () => {
-      setUnreadSystemMessagesCount((prev) => {
-        const next = prev + 1;
-        try {
-          localStorage.setItem('toti_unread_system_count', next.toString());
-        } catch {
-          // ignore
-        }
-        return next;
-      });
-    };
-    window.addEventListener('toti_system_message_received', handleNewSysMsg);
-    return () => {
-      window.removeEventListener('toti_system_message_received', handleNewSysMsg);
-    };
+    setRooms(mapped);
+    setActiveRoom(prev => prev ? mapped.find(r => r.id === prev.id) || null : null);
+    return mapped;
   }, []);
 
-  const markNotificationAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+  const refreshMessages = useCallback(async () => {
+    const id = authRef.current;
+    if (!id) return;
+    const {data, error} = await supabase.from('direct_messages').select('*')
+      .or(`sender_id.eq.${id},recipient_id.eq.${id}`).order('created_at', {ascending: false}).limit(1000);
+    if (error) throw error;
+    if (id !== authRef.current) return;
+    const grouped = new Map<string, Conversation>();
+    const latest = new Map<string, number>();
+    for (const row of [...(data || [])].reverse()) {
+      const mine = row.sender_id === id;
+      const publicId = String(mine ? row.recipient_public_id : row.sender_public_id);
+      latest.set(publicId, new Date(row.created_at).getTime());
+      let c = grouped.get(publicId);
+      if (!c) {
+        c = {id: publicId, user: profileToUser({id: mine ? row.recipient_id : row.sender_id,
+          public_id: publicId, display_name: mine ? row.recipient_display_name : row.sender_display_name,
+          avatar_url: mine ? row.recipient_avatar_url : row.sender_avatar_url}),
+          lastMessage: '', timestamp: '', unreadCount: 0, messages: []};
+        grouped.set(publicId, c);
+      }
+      const timestamp = new Date(row.created_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'});
+      c.messages.push({id: row.id, senderId: String(row.sender_public_id), senderName: row.sender_display_name || '',
+        senderAvatar: row.sender_avatar_url || '', content: row.content || row.media_url || '',
+        type: row.message_type, timestamp, isMe: mine});
+      c.lastMessage = row.content || 'رسالة صوتية'; c.timestamp = timestamp;
+      if (!mine && !row.read_at) c.unreadCount++;
+    }
+    setConversations([...grouped.values()].sort((a,b) => (latest.get(b.id) || 0) - (latest.get(a.id) || 0)));
+  }, []);
+
+  const refreshTransactions = useCallback(async () => {
+    const id = authRef.current;
+    if (!id) return;
+    const {data, error} = await supabase.from('wallet_transactions').select('*').eq('user_id', id)
+      .order('created_at', {ascending: false}).limit(100);
+    if (error) throw error;
+    if (id !== authRef.current) return;
+    setTransactions((data || []).flatMap(row => (['gold', 'diamonds', 'silver'] as const).flatMap(currency => {
+      const amount = Number(row[currency === 'diamonds' ? 'diamond_delta' : `${currency}_delta`] || 0);
+      if (!amount) return [];
+      return [{id: `${row.id}:${currency}`, type: row.transaction_type === 'diamond_conversion' ? 'diamonds_exchange' : row.transaction_type,
+        title: walletTitles[row.transaction_type] || 'حركة المحفظة', amount, currency,
+        date: new Date(row.created_at).toLocaleDateString('ar-SA'),
+        time: new Date(row.created_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'}),
+        status: 'completed' as const, iconType: row.transaction_type === 'recharge' ? 'plus' : 'gift'}];
+    })));
+
+  }, []);
+
+  const refreshNotifications = useCallback(async () => {
+    const id = authRef.current; if (!id) return;
+    const {data, error} = await supabase.from('user_notifications').select('*').eq('user_id', id)
+      .order('created_at', {ascending: false}).limit(100);
+    if (error) throw error;
+    if (id !== authRef.current) return;
+    setNotifications((data || []).map(row => ({id: row.id, type: row.type, title: row.title,
+      description: row.description || '', roomId: row.room_id, isRead: Boolean(row.read_at),
+      timestamp: new Date(row.created_at).toLocaleString('ar-SA')})));
+    setUnreadSystemMessagesCount((data || []).filter(row => !row.read_at).length);
+    setHasUnseenFollowers((data || []).some(row => row.type === 'follower' && !row.read_at));
+  }, []);
+  const refreshWallet = async () => { await Promise.all([refreshProfile(), refreshTransactions(), refreshNotifications()]); };
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      const {error} = await supabase.from('user_notifications').update({read_at: new Date().toISOString()})
+        .eq('id', id).eq('user_id', authRef.current);
+      if (error) throw error;
+      await refreshNotifications();
+    } catch (e) { fail(e); }
+  };
+  const markSystemMessagesAsRead = async () => {
+    try {
+      const {error} = await supabase.from('user_notifications').update({read_at: new Date().toISOString()})
+        .eq('user_id', authRef.current).is('read_at', null);
+      if (error) throw error;
+      await refreshNotifications();
+    } catch (e) { fail(e); }
   };
 
-  const unreadMessagesCount = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
-  const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
+  useEffect(() => {
+    if (!authId) return;
+    let disposed = false;
+    const heartbeat = async () => {
+      const roomId = activeRef.current?.id;
+      try {
+        // Refresh membership before presence pruning so an active room is retained.
+        if (roomId) { const {error} = await supabase.rpc('room_heartbeat', {p_room_id: roomId}); if (error) throw error; }
+        const {error} = await supabase.rpc('touch_presence'); if (error) throw error;
+      } catch (e) { if (!disposed) fail(e); }
+    };
+    void heartbeat();
+    const timer = setInterval(() => { void heartbeat(); }, 45000);
+    return () => { disposed = true; clearInterval(timer); };
+  }, [authId, activeRoom?.id, fail]);
 
-  return (
-    <AppContext.Provider
-      value={{
-        user,
-        rooms,
-        activeRoom,
-        activeTab,
-        activeSubScreen,
-        selectedChatUser,
-        activeGiftOverlay,
-        transactions,
-        conversations,
-        notifications,
-        isMyMicMuted,
-        isHandRaised,
-        isSpeakerOn,
-        unreadMessagesCount,
-        unreadNotificationsCount,
-        unreadSystemMessagesCount,
-        hasUnseenVisitors,
-        hasUnseenFollowers,
-        markSystemMessagesAsRead,
-        markVisitorsAsSeen,
-        markFollowersAsSeen,
-        setUser,
-        setActiveTab,
-        setActiveSubScreen,
-        setSelectedChatUser,
-        joinRoom,
-        leaveRoom,
-        toggleMyMic,
-        toggleRaiseHand,
-        toggleSpeaker,
-        takeSeat,
-        leaveSeat,
-        sendGiftInRoom,
-        rechargeGold,
-        createNewRoom,
-        lockSeat,
-        unlockSeat,
-        muteSeatUser,
-        kickSeatUser,
-        sendMessageToConversation,
-        markNotificationAsRead,
-        isAuthenticated,
-        loginWithGoogle,
-        loginWithPhone,
-        logout,
-        setIsAuthenticated,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
-  );
+  useEffect(() => {
+    if (!authId) return;
+    let disposed = false;
+    let pending = false;
+    const sync = async () => {
+      if (disposed || pending) return;
+      pending = true;
+      try { await refreshProfile(); await Promise.all([refreshRooms(), refreshMessages(), refreshTransactions(), refreshNotifications()]); }
+      catch (e) { if (!disposed) fail(e); }
+      finally { pending = false; }
+    };
+    void sync();
+    const channel = supabase.channel(`app:${authId}`);
+    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions', 'user_notifications']) {
+      channel.on('postgres_changes', {event: '*', schema: 'public', table}, () => { void sync(); });
+    }
+    channel.subscribe();
+    // Also recover missed events after reconnects, including membership deletions.
+    const timer = setInterval(() => { void sync(); }, 15000);
+    const onFocus = () => { void sync(); };
+    window.addEventListener('focus', onFocus);
+    return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', onFocus); void supabase.removeChannel(channel); };
+  }, [authId, refreshProfile, refreshRooms, refreshMessages, refreshTransactions, refreshNotifications, fail]);
+
+  useEffect(() => () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); }, []);
+
+  const updateProfile = async (updates: Partial<User>): Promise<boolean> => {
+    const id = authRef.current;
+    if (!id) { fail(new Error('authentication required')); return false; }
+    const candidate = {...userRef.current, ...updates};
+    try {
+      const {data, error} = await supabase.from('profiles').update(editableProfile(candidate)).eq('id', id).select('*').single();
+      if (error) throw error;
+      if (id === authRef.current) { const next = profileToUser(data); userRef.current = next; setUserState(next); }
+      return true;
+    } catch (e) { fail(e); return false; }
+  };
+  const setUser: AppContextType['setUser'] = (action) => {
+    // Legacy editors may request wallet changes. Only the editable fields reach the database.
+    const account = authRef.current;
+    profileQueue.current = profileQueue.current.then(async () => {
+      if (!account || account !== authRef.current) return;
+      const prev = userRef.current;
+      const candidate = typeof action === 'function' ? action(prev) : action;
+      if (candidate.gold !== prev.gold || candidate.diamonds !== prev.diamonds || candidate.vipLevel !== prev.vipLevel || candidate.id !== prev.id || candidate.silverCoins !== prev.silverCoins) {
+        setError('هذه العملية تحتاج اعتماداً من الخادم ولا يمكن تنفيذها محلياً.'); return;
+      }
+      await updateProfile(candidate);
+    }).catch(fail);
+  };
+
+  const setActiveSubScreen = (screen: string | null) => {
+    if (screen === 'customer_support') screen = 'help_center';
+    if (screen === 'create' || screen === 'messages') {
+      if (activeRef.current) setActiveSubScreenState(screen);
+      else { setActiveTabState(screen); setActiveSubScreenState(null); }
+    }
+    else setActiveSubScreenState(screen);
+  };
+  const setActiveTab = (tab: AppContextType['activeTab']) => { setActiveTabState(tab); setActiveSubScreenState(null); };
+  const runRoomRpc = async (name: string, extra: Record<string, unknown> = {}) => {
+    const room = activeRef.current; if (!room) return false;
+    try {
+      const {error} = await supabase.rpc(name, {p_room_id: room.id, ...extra});
+      if (error) throw error;
+      await refreshRooms(); return true;
+    } catch (e) { fail(e); return false; }
+  };
+  const joinRoom = async (room: Room) => {
+    try {
+      if (activeRef.current && activeRef.current.id !== room.id) {
+        const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
+      }
+      const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
+      const next = await refreshRooms();
+      setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
+    } catch (e) { fail(e); }
+  };
+  const leaveRoom = async () => {
+    const room = activeRef.current; if (!room) return;
+    try {
+      const {error} = await supabase.rpc('leave_room', {p_room_id: room.id}); if (error) throw error;
+      setActiveRoom(null); setActiveSubScreenState(null); setIsHandRaised(false); await refreshRooms();
+    } catch (e) { fail(e); }
+  };
+  const createNewRoom = async (input: Partial<Room>): Promise<Room | null> => {
+    try {
+      const {data, error} = await supabase.rpc('create_room', {p_name: input.title?.trim(),
+        p_description: input.description, p_image_url: input.coverImage, p_max_seats: input.seatsCount || 8,
+        p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
+        p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
+      if (error) throw error;
+      const next = await refreshRooms(); const room = next.find(r => r.id === data) || null;
+      setActiveRoom(room); setActiveSubScreenState(null); return room;
+    } catch (e) { fail(e); return null; }
+  };
+
+  const mySeat = activeRoom?.seats.find(s => s.user?.authId === authId);
+  const isMyMicMuted = mySeat?.isMuted ?? true;
+  const takeSeat = async (index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: index + 1}); };
+  const leaveSeat = async (_index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: null}); };
+  const toggleMyMic = async () => { await runRoomRpc('set_my_room_muted', {p_muted: !isMyMicMuted}); };
+  const [isHandRaised, setIsHandRaised] = useState(false);
+  const toggleRaiseHand = async () => {
+    const next = !isHandRaised;
+    const room = activeRef.current; if (!room) return;
+    try {
+      const {error} = await supabase.from('room_members').update({is_hand_raised: next}).eq('room_id', room.id).eq('user_id', authRef.current);
+      if (error) throw error; setIsHandRaised(next);
+    } catch (e) { fail(e); }
+  };
+  const lockSeat = (index: number) => runRoomRpc('set_room_seat_locked', {p_seat_number: index + 1, p_locked: !activeRef.current?.seats[index]?.isLocked});
+  const unlockSeat = (index: number) => runRoomRpc('set_room_seat_locked', {p_seat_number: index + 1, p_locked: false});
+  const muteSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: activeRef.current?.seats[index]?.isMuted ? 'unmute' : 'mute'});
+  const kickSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: 'remove'});
+
+  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string): Promise<boolean> => {
+    const room = activeRef.current; if (!room) return false;
+    try {
+      const {error} = await supabase.rpc('send_room_gift', {p_room_id: room.id, p_recipient_public_id: Number(recipient.id), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
+      if (error) throw error;
+      await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
+      if (overlayTimer.current) clearTimeout(overlayTimer.current);
+      setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat});
+      overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
+      return true;
+    } catch (e) { fail(e); return false; }
+  };
+  const sendMessageToConversation = async (recipient: string, content: string, type: 'text' | 'voice' | 'gift' = 'text') => {
+    if (!/^\d+$/.test(recipient) || type !== 'text' || !content.trim() || content.trim().length > 1000) {
+      setError('اختر حساباً فعلياً وأرسل رسالة نصية لا تتجاوز 1000 حرف.'); return false;
+    }
+    try {
+      const {error} = await supabase.from('direct_messages').insert({recipient_public_id: Number(recipient), content: content.trim(), message_type: 'text'});
+      if (error) throw error; await refreshMessages(); return true;
+    } catch (e) { fail(e); return false; }
+  };
+  const markConversationAsRead = async (recipient: string) => {
+    if (!/^\d+$/.test(recipient) || !authRef.current) return;
+    try {
+      const {error} = await supabase.from('direct_messages').update({read_at: new Date().toISOString()})
+        .eq('recipient_id', authRef.current).eq('sender_public_id', Number(recipient)).is('read_at', null);
+      if (error) throw error; await refreshMessages();
+    } catch (e) { fail(e); }
+  };
+  const loginWithGoogle = async () => { await signInWithGoogle(); };
+
+  const loginWithPhone = async (phone?: string, otp?: string) => {
+    if (!phone || !/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('أدخل رقم هاتف صحيحاً مع رمز الدولة.');
+    const result = otp ? await supabase.auth.verifyOtp({phone, token: otp, type: 'sms'}) : await supabase.auth.signInWithOtp({phone});
+    if (result.error) throw result.error;
+  };
+  const logout = async () => {
+    try {
+      if (activeRef.current) { const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error; }
+      const {error} = await supabase.auth.signOut(); if (error) throw error;
+      setActiveRoom(null); setActiveSubScreenState(null);
+    } catch (e) { fail(e); }
+  };
+
+  return <AppContext.Provider value={{
+    user, rooms, activeRoom, activeTab, activeSubScreen, selectedChatUser, activeGiftOverlay,
+    transactions, conversations, notifications, isMyMicMuted, isHandRaised, isSpeakerOn, noiseSuppression,
+    toggleNoiseSuppression: () => {setNoiseSuppression(!noiseSuppression); saveAudioPreference(isSpeakerOn, !noiseSuppression);},
+    unreadMessagesCount: conversations.reduce((sum, c) => sum + c.unreadCount, 0),
+    unreadNotificationsCount: notifications.filter(n => !n.isRead).length, unreadSystemMessagesCount,
+    hasUnseenVisitors, hasUnseenFollowers,
+    markSystemMessagesAsRead: () => { void markSystemMessagesAsRead(); },
+    markVisitorsAsSeen: () => setHasUnseenVisitors(false), markFollowersAsSeen: () => setHasUnseenFollowers(false),
+    setUser, setActiveTab, setActiveSubScreen, setSelectedChatUser, joinRoom, leaveRoom,
+    toggleMyMic, toggleRaiseHand, toggleSpeaker: () => {setIsSpeakerOn(!isSpeakerOn); saveAudioPreference(!isSpeakerOn, noiseSuppression);}, takeSeat, leaveSeat,
+    sendGiftInRoom, rechargeGold: () => setActiveSubScreenState('recharge'), createNewRoom,
+    lockSeat, unlockSeat, muteSeatUser, kickSeatUser, sendMessageToConversation,
+    markNotificationAsRead: id => { void markNotificationAsRead(id); },
+    isAuthenticated: Boolean(authId), authLoading: authLoading || Boolean(authId && !profileReady),
+    needsProfile: profileReady && !user.countryCode, error, dismissError: () => setError(null), reportError: setError,
+    loginWithGoogle, loginWithPhone, logout, refreshProfile, refreshWallet, updateProfile, markConversationAsRead,
+  }}>{children}</AppContext.Provider>;
 };
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
+  if (!context) throw new Error('useApp must be used within an AppProvider');
   return context;
 };

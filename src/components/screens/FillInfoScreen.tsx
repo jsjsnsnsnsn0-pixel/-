@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getNextSequentialId } from '../../utils/accountIds';
-import { supabase } from '../../services/supabase';
 import { ChevronLeft, Check } from 'lucide-react';
 
 interface FillInfoScreenProps {
@@ -10,8 +8,8 @@ interface FillInfoScreenProps {
 }
 
 const defaultAvatars = {
-  male: '/src/assets/images/avatar_male_ghutra_1790628422202.jpg',
-  female: '/src/assets/images/avatar_female_ghutra_1790628438051.jpg',
+  male: '/assets/images/avatar_male_ghutra_1790628422202.jpg',
+  female: '/assets/images/avatar_female_ghutra_1790628438051.jpg',
 };
 
 const countries = [
@@ -30,7 +28,7 @@ const countries = [
 ];
 
 export const FillInfoScreen: React.FC<FillInfoScreenProps> = ({ onComplete, onBack }) => {
-  const { user, setUser, setIsAuthenticated, setActiveTab, setActiveSubScreen } = useApp();
+  const { user, updateProfile, setActiveTab, setActiveSubScreen } = useApp();
 
   // State matching screenshot fields
   const [selectedGender, setSelectedGender] = useState<'female' | 'male'>('male');
@@ -45,79 +43,18 @@ export const FillInfoScreen: React.FC<FillInfoScreenProps> = ({ onComplete, onBa
   const [tempName, setTempName] = useState('');
 
   // Handle completing registration with the sequential ID
-const handleComplete = async () => {
-    try {  const { data: { user: authUser } } = await supabase.auth.getUser();
-
-  if (authUser) {
-    await supabase
-      .from('profiles')
-      .update({
-        country_code: selectedCountry.code,
-        country_name: selectedCountry.name,
-      })
-      .eq('id', authUser.id);
-  }
-      const savedCount = localStorage.getItem('toti_created_accounts_count');
-      const count = savedCount ? parseInt(savedCount, 10) : 0;
-      localStorage.setItem('toti_created_accounts_count', (count + 1).toString());
-    } catch {
-      // ignore
-    }
-
-    const finalName = name.trim() || (selectedGender === 'male' ? 'مستخدم جديد' : 'مستخدمة جديدة');
-    const assignedAvatar = defaultAvatars[selectedGender];
-
-    // Atomically get and increment the sequential ID
-    const newSequentialId = getNextSequentialId();
-
-    setUser((prev) => ({
-      ...prev,
-      id: newSequentialId,
-      username: `user_${newSequentialId}`,
-      name: finalName,
-      gender: selectedGender,
-      avatar: assignedAvatar,
-      birthday: birthday,
-      country: selectedCountry.name,
-      countryCode: selectedCountry.code,
-      countryFlag: selectedCountry.flag,
-      // Fresh new user levels & starting gifts
-      level: 1,
-      wealthLevel: 1,
-      charmLevel: 1,
-      vipLevel: 0,
-      gold: 5000,
-      diamonds: 1000,
-      silverCoins: 10000,
-      bio: 'مرحباً بي في توتي شات 🌹',
-      friendsCount: 0,
-      followersCount: 0,
-      followingCount: 0,
-      visitorsCount: 1,
-      sentGiftsCount: '0',
-      receivedTotal: '0',
-      receivedGiftsCount: 0,
-      isHost: false,
-      agencyName: undefined,
-      agencyOwner: undefined,
-      agencyId: undefined,
-      agencyMembersCount: undefined,
-      agencyAvatar: undefined,
-      coupleName: undefined,
-      coupleAvatar: undefined,
-      customTitle: undefined,
-      nameShimmerStyle: undefined,
-      nobleRank: undefined,
-      rankingTitle: undefined,
-    }));
-
-    setIsAuthenticated(true);
-    setActiveTab('home');
-    setActiveSubScreen(null);
-
-    if (onComplete) {
-      onComplete();
-    }
+const [saving, setSaving] = useState(false);
+  const handleComplete = async () => {
+    if (saving) return;
+    setSaving(true);
+    const ok = await updateProfile({
+      name: name.trim() || 'مستخدم جديد', gender: selectedGender,
+      avatar: user.avatar || defaultAvatars[selectedGender], birthday,
+      country: selectedCountry.name, countryCode: selectedCountry.code, countryFlag: selectedCountry.flag,
+    });
+    setSaving(false);
+    if (!ok) return;
+    setActiveTab('home'); setActiveSubScreen(null); onComplete?.();
   };
 
   return (
@@ -300,6 +237,7 @@ const handleComplete = async () => {
         <button
           type="button"
           onClick={handleComplete}
+          disabled={saving}
           className="w-full h-14 rounded-full bg-gradient-to-r from-[#98f2d5] via-[#a7f3d0] to-[#bbf7d0] hover:from-[#86efac] hover:to-[#6ee7b7] text-[#064e3b] font-black text-[18px] tracking-wide shadow-[0_6px_20px_rgba(110,231,183,0.5)] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center border border-emerald-200"
         >
           إتمام

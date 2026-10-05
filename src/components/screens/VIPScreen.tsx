@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { catalog, rpc, backendMessage } from '../../services/backend';
+import { useServerData } from '../../hooks/useServerData';
+import { useTimeouts } from '../../hooks/useTimeouts';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   ChevronRight,
@@ -36,8 +39,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 1,
     name: 'VIP 1',
-    crest: '/src/assets/images/vip1_deer_crest_1790429421188.jpg',
-    badgeImage: '/src/assets/images/vip1_badge_exact_1790431462534.jpg',
+    crest: '/assets/images/vip1_deer_crest_1790429421188.jpg',
+    badgeImage: '/assets/images/vip1_badge_exact_1790431462534.jpg',
     animalName: 'الوعل الملكي البرونزي',
     price: '63000/30 يومًا',
     priceNumber: 63000,
@@ -52,8 +55,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 2,
     name: 'VIP 2',
-    crest: '/src/assets/images/vip2_eagle_crest_1790429432365.jpg',
-    badgeImage: '/src/assets/images/vip2_badge_exact_1790431474894.jpg',
+    crest: '/assets/images/vip2_eagle_crest_1790429432365.jpg',
+    badgeImage: '/assets/images/vip2_badge_exact_1790431474894.jpg',
     animalName: 'الصقر البلاتيني الثلجي',
     price: '150000/30 يومًا',
     priceNumber: 150000,
@@ -68,8 +71,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 3,
     name: 'VIP 3',
-    crest: '/src/assets/images/vip3_wolf_crest_1790429444252.jpg',
-    badgeImage: '/src/assets/images/vip3_badge_exact_1790431487197.jpg',
+    crest: '/assets/images/vip3_wolf_crest_1790429444252.jpg',
+    badgeImage: '/assets/images/vip3_badge_exact_1790431487197.jpg',
     animalName: 'الذئب الذهبي الملكي',
     price: '490000/30 يومًا',
     priceNumber: 490000,
@@ -85,8 +88,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 4,
     name: 'VIP 4',
-    crest: '/src/assets/images/vip4_leopard_crest_1790429455499.jpg',
-    badgeImage: '/src/assets/images/vip4_badge_exact_1790431500433.jpg',
+    crest: '/assets/images/vip4_leopard_crest_1790429455499.jpg',
+    badgeImage: '/assets/images/vip4_badge_exact_1790431500433.jpg',
     animalName: 'الفهد الزمردي الأسطوري',
     price: '1960000/30 يومًا',
     priceNumber: 1960000,
@@ -101,8 +104,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 5,
     name: 'VIP 5',
-    crest: '/src/assets/images/vip5_bear_crest_1790429475162.jpg',
-    badgeImage: '/src/assets/images/vip5_badge_exact_1790431518416.jpg',
+    crest: '/assets/images/vip5_bear_crest_1790429475162.jpg',
+    badgeImage: '/assets/images/vip5_badge_exact_1790431518416.jpg',
     animalName: 'الدب الأرجواني المتوج',
     price: '3900000/30 يومًا',
     priceNumber: 3900000,
@@ -118,8 +121,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 6,
     name: 'VIP 6',
-    crest: '/src/assets/images/vip6_tiger_crest_1790429485886.jpg',
-    badgeImage: '/src/assets/images/vip6_badge_exact_1790431528932.jpg',
+    crest: '/assets/images/vip6_tiger_crest_1790429485886.jpg',
+    badgeImage: '/assets/images/vip6_badge_exact_1790431528932.jpg',
     animalName: 'النمر الأزرق الملكي المجنح',
     price: '5800000/30 يومًا',
     priceNumber: 5800000,
@@ -134,8 +137,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 7,
     name: 'VIP 7',
-    crest: '/src/assets/images/vip7_phoenix_crest_1790429497956.jpg',
-    badgeImage: '/src/assets/images/vip7_badge_exact_1790431539570.jpg',
+    crest: '/assets/images/vip7_phoenix_crest_1790429497956.jpg',
+    badgeImage: '/assets/images/vip7_badge_exact_1790431539570.jpg',
     animalName: 'طائر الفينيق الوردي الناري',
     price: '8300000/30 يومًا',
     priceNumber: 8300000,
@@ -146,14 +149,14 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
     headwearTitle: 'غطاء رأس الفينيق الوردي الناري',
     entryTitle: 'تأثير دخول طائر الفينيق اللهبي VIP 7',
     hasVehicle: true,
-    vehicleImage: '/src/assets/images/vip7_phoenix_vehicle_1790429537754.jpg',
+    vehicleImage: '/assets/images/vip7_phoenix_vehicle_1790429537754.jpg',
     vehicleName: 'طائر الفينيق الناري VIP',
   },
   {
     id: 8,
     name: 'VIP 8',
-    crest: '/src/assets/images/vip8_lion_crest_1790429509482.jpg',
-    badgeImage: '/src/assets/images/vip8_badge_exact_1790431550754.jpg',
+    crest: '/assets/images/vip8_lion_crest_1790429509482.jpg',
+    badgeImage: '/assets/images/vip8_badge_exact_1790431550754.jpg',
     animalName: 'الأسد الإمبراطوري المتوج بالذهب',
     price: '12000000/30 يومًا',
     priceNumber: 12000000,
@@ -165,7 +168,7 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
     headwearTitle: 'تاج الأسد الملكي بالبرق والذهب',
     entryTitle: 'تأثير دخول الأسد الإمبراطوري VIP 8',
     hasVehicle: true,
-    vehicleImage: '/src/assets/images/vip8_lion_vehicle_1790429549220.jpg',
+    vehicleImage: '/assets/images/vip8_lion_vehicle_1790429549220.jpg',
     vehicleName: 'الأسد المجنح الخارق VIP',
   },
 ];
@@ -178,9 +181,10 @@ interface PreviewModalState {
 }
 
 export const VIPScreen: React.FC = () => {
-  const { user, setUser, setActiveSubScreen } = useApp();
+  const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
 
   // Selected tier (Default to user's active tier or VIP 1)
+  const scheduleTimeout = useTimeouts();
   const [selectedTierId, setSelectedTierId] = useState<number>(() => user.vipLevel || 8);
   const [previewModal, setPreviewModal] = useState<PreviewModalState | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -204,20 +208,32 @@ export const VIPScreen: React.FC = () => {
   );
 
   const isUserActiveLevel = user.vipLevel === currentTier.id;
-  const isRenewable = currentTier.daysRemaining !== undefined && isUserActiveLevel;
+  const isRenewable = Boolean(user.vipExpiresAt) && isUserActiveLevel;
+  const daysRemaining = user.vipExpiresAt ? Math.max(0, Math.ceil((new Date(user.vipExpiresAt).getTime() - Date.now()) / 86400000)) : null;
+  const load = useCallback(catalog, []);
+  const {data: products, loading, error, reload} = useServerData(load, []);
+  const product = products.find(item => item.category === 'vip' && item.vip_level === currentTier.id);
+  const [busy, setBusy] = useState(false);
+  const requests = useRef(new Map<string, string>());
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    scheduleTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleAction = () => {
-    setUser((prev) => ({
-      ...prev,
-      vipLevel: currentTier.id,
-      nobleRank: `VIP${currentTier.id}`,
-    }));
-    showToast(`تم تفعيل واشتراك ${currentTier.name} الملكي بنجاح! 👑`);
+  const handleAction = async () => {
+    if (!product || busy) return;
+    setBusy(true);
+    try {
+      const request = requests.current.get(product.id) || crypto.randomUUID();
+      requests.current.set(product.id, request);
+      const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: product.id, p_request_id: request});
+      if (!result?.id) throw new Error('purchase not confirmed');
+      requests.current.delete(product.id);
+      showToast('تم اعتماد اشتراك VIP من الخادم.');
+      await refreshWallet();
+    } catch (e) { reportError(backendMessage(e)); }
+    finally { setBusy(false); }
   };
 
   // Quick helper to open modal locked to this tier
@@ -239,6 +255,7 @@ export const VIPScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#07080f] text-slate-100 pb-28 select-none font-sans relative overflow-x-hidden">
+      {error && <button onClick={() => void reload()} className="p-3">{error} — إعادة المحاولة</button>}
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 inset-x-4 z-50 flex items-center justify-center pointer-events-none">
@@ -338,8 +355,8 @@ export const VIPScreen: React.FC = () => {
                 }`}
               >
                 {isUserActiveLevel
-                  ? currentTier.daysRemaining
-                    ? `المتبقي ${currentTier.daysRemaining} يوم`
+                  ? daysRemaining
+                    ? `المتبقي ${daysRemaining} يوم`
                     : 'نشط حالياً'
                   : 'مقفل'}
               </span>
@@ -569,11 +586,12 @@ export const VIPScreen: React.FC = () => {
       </div>
 
       {/* 6. BOTTOM ACTION BAR */}
-      <div className="fixed bottom-0 inset-x-0 bg-[#0a0b14]/95 backdrop-blur-md border-t border-white/10 px-5 py-3.5 z-40">
+      <div className="fixed bottom-0 inset-x-0 pb-safe bg-[#0a0b14]/95 backdrop-blur-md border-t border-white/10 px-5 py-3.5 z-40">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           {/* Action Button: شراء or تجديد */}
           <button
-            onClick={handleAction}
+            disabled={busy || loading || !product || (user.vipLevel > currentTier.id)}
+            onClick={() => void handleAction()}
             className="flex-1 py-3 px-6 rounded-full bg-gradient-to-r from-[#ffe59e] via-[#ffd25d] to-[#d49924] hover:brightness-105 active:scale-95 text-slate-950 font-black text-sm shadow-[0_4px_18px_rgba(234,179,8,0.35)] cursor-pointer transition-all border border-amber-200"
           >
             {isRenewable ? 'تجديد' : 'شراء'}
@@ -582,7 +600,7 @@ export const VIPScreen: React.FC = () => {
           {/* Price & Gold Coin indicator */}
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm font-bold text-white tracking-tight" dir="ltr">
-              {currentTier.price}
+              {product ? `${product.price.toLocaleString('ar-SA')} / ${product.duration_days ?? 'دائم'} يوم` : 'غير متاح حالياً'}
             </span>
             <div className="w-5 h-5 rounded-full bg-amber-400 text-amber-950 flex items-center justify-center font-bold text-[10px] shadow-xs">
               🟡

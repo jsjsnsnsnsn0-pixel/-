@@ -1,10 +1,13 @@
 export interface User {
+  authId?: string;
   id: string;
   username: string;
   name: string;
   avatar: string;
   level: number;
+  hasPublicLevel?: boolean;
   vipLevel: number;
+  vipExpiresAt?: string | null;
   gender?: 'male' | 'female';
   bio?: string;
   birthday?: string;
@@ -13,6 +16,7 @@ export interface User {
   countryCode?: string;
   countryFlag?: string;
   avatarFrame?: string;
+  equipment?: Partial<Record<'frames' | 'cars' | 'bubbles' | 'badges', {id: string; name: string; icon: string}>>;
   isOnline: boolean;
   gold: number;
   diamonds: number;
@@ -49,6 +53,9 @@ export interface MicrophoneSeatState {
 }
 
 export interface Room {
+  ownerAuthId?: string;
+  canModerate?: boolean;
+  members?: User[];
   id: string;
   title: string;
   description: string;
@@ -76,15 +83,16 @@ export interface Gift {
   price: number;
   icon: string;
   animationType: 'pulse' | 'rocket' | 'lion' | 'car' | 'crown' | 'sparkle';
+  diamondSourceType?: 'FIXED_GIFT' | 'LUCKY_GIFT';
   badge?: string;
 }
 
 export interface Transaction {
   id: string;
-  type: 'recharge' | 'gift_sent' | 'gift_received' | 'vip_upgrade' | 'diamonds_exchange';
+  type: 'recharge' | 'gift_sent' | 'gift_received' | 'vip_upgrade' | 'diamonds_exchange' | 'fixed_gift_diamonds_received' | 'lucky_gift_diamonds_received' | 'fixed_diamonds_redeemed' | 'lucky_diamonds_redeemed' | 'coins_from_diamond_redemption';
   title: string;
   amount: number;
-  currency: 'gold' | 'diamonds';
+  currency: 'gold' | 'diamonds' | 'silver';
   date: string;
   time: string;
   status: 'completed' | 'pending' | 'failed';

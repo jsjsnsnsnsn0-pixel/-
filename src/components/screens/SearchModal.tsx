@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SearchBar } from '../common/SearchBar';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
-import { sampleUsers } from '../../data/mockData';
+import { supabase } from '../../services/supabase';
+import { profileToUser } from '../../services/profile';
+import { User } from '../../types';
 import { ChevronRight, Radio, Users, Flame, Volume2 } from 'lucide-react';
 
 export const SearchModal: React.FC = () => {
-  const { setActiveSubScreen, rooms, joinRoom, setSelectedChatUser } = useApp();
+  const { setActiveSubScreen, rooms, joinRoom, setSelectedChatUser, reportError } = useApp();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'rooms' | 'users' | 'ids'>('all');
 
@@ -22,13 +24,24 @@ export const SearchModal: React.FC = () => {
       r.category.toLowerCase().includes(normalizedQuery)
   );
 
-  // Search users
-  const matchedUsers = sampleUsers.filter(
-    (u) =>
-      u.name.toLowerCase().includes(normalizedQuery) ||
-      u.username.toLowerCase().includes(normalizedQuery) ||
-      u.id.includes(normalizedQuery)
-  );
+  const [matchedUsers, setMatchedUsers] = useState<User[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setMatchedUsers([]);
+    if (normalizedQuery.length < 2) { setSearching(false); return; }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const {data, error} = await supabase.rpc('search_public_profiles', {p_query: normalizedQuery, p_limit: 20});
+        if (cancelled) return;
+        if (error) throw error;
+        setMatchedUsers((data || []).map(profileToUser));
+      } catch { if (!cancelled) reportError('تعذر البحث عن المستخدمين. حاول مجدداً.'); }
+      finally { if (!cancelled) setSearching(false); }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [normalizedQuery]);
 
   return (
     <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-24">
@@ -74,6 +87,7 @@ export const SearchModal: React.FC = () => {
         ))}
       </div>
 
+      {searching && <p role="status" className="text-center p-2">جارٍ البحث…</p>}
       {/* Results Feed */}
       <div className="p-4 space-y-4">
         {/* ROOMS RESULTS */}

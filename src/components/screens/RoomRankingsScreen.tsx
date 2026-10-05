@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -5,8 +6,8 @@ import { ChevronRight, Trophy, CheckCircle2 } from 'lucide-react';
 
 export const RoomRankingsScreen: React.FC = () => {
   const { setActiveSubScreen, rooms } = useApp();
-  const { roomRankings, recordGiftSupport } = useRealtimeRankings();
-  const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const { roomRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
+  const scheduleTimeout = useTimeouts();
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Top 1, Top 2, Top 3 Rooms
@@ -16,18 +17,9 @@ export const RoomRankingsScreen: React.FC = () => {
   const otherRanks = roomRankings.slice(3, 10);
 
   // Test boost a room
-  const handleBoostRoom = (amount: number) => {
-    const targetRoom = rooms[0] || null;
-    if (targetRoom) {
-      recordGiftSupport(
-        targetRoom.owner,
-        targetRoom.owner,
-        targetRoom,
-        amount
-      );
-      setFeedbackMsg(`تم دعم الغرفة بـ +${amount.toLocaleString()} 💎 وصعودها في تصنيف الغرف!`);
-      setTimeout(() => setFeedbackMsg(null), 3500);
-    }
+  const handleBoostRoom = (_amount: number) => {
+    setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
+    scheduleTimeout(() => setFeedbackMsg(null), 3500);
   };
 
   return (
@@ -38,7 +30,7 @@ export const RoomRankingsScreen: React.FC = () => {
       {/* 0. Full Exact Background Wallpaper (Crown & Crowned Lions with Ruby Highlights) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
         <img
-          src="/src/assets/images/room_screen_bg_1790556227206.jpg"
+          src="/assets/images/room_screen_bg_1790556227206.jpg"
           alt="خلفية تصنيف الغرفة"
           className="w-full h-full object-cover max-w-[480px]"
         />

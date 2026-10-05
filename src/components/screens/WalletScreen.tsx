@@ -1,3 +1,6 @@
+import { DiamondRedeemModal } from '../modals/DiamondRedeemModal';
+import { diamondState } from '../../services/diamonds';
+import { useServerData } from '../../hooks/useServerData';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Transaction } from '../../types';
@@ -14,6 +17,8 @@ import {
 
 export const WalletScreen: React.FC = () => {
   const { user, transactions, setActiveSubScreen } = useApp();
+  const [redeeming,setRedeeming] = useState(false);
+  const breakdown = useServerData(diamondState, null);
   const [filterTab, setFilterTab] = useState<'all' | 'recharge' | 'sent' | 'received'>('all');
 
   const getFilteredTransactions = () => {
@@ -23,7 +28,7 @@ export const WalletScreen: React.FC = () => {
       case 'sent':
         return transactions.filter((t) => t.type === 'gift_sent');
       case 'received':
-        return transactions.filter((t) => t.type === 'gift_received');
+        return transactions.filter((t) => ['gift_received','fixed_gift_diamonds_received','lucky_gift_diamonds_received'].includes(t.type));
       default:
         return transactions;
     }
@@ -63,7 +68,7 @@ export const WalletScreen: React.FC = () => {
                 🪙
               </div>
               <div>
-                <span className="text-xs text-amber-300 font-semibold block">رصيد الذهب المتوفر</span>
+                <span className="text-xs text-amber-300 font-semibold block">Coins 🪙 — عملة الشحن والإنفاق</span>
                 <span className="text-2xl font-black text-amber-400 font-mono tracking-tight">
                   {user.gold.toLocaleString('ar-SA')}
                 </span>
@@ -75,7 +80,7 @@ export const WalletScreen: React.FC = () => {
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 text-xs font-extrabold shadow-md hover:brightness-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
             >
               <Plus size={14} />
-              <span>شحن ذهب</span>
+              <span>شحن Coins</span>
             </button>
           </div>
         </div>
@@ -88,7 +93,7 @@ export const WalletScreen: React.FC = () => {
                 💎
               </div>
               <div>
-                <span className="text-xs text-cyan-300 font-semibold block">رصيد الماس المستلم</span>
+                <span className="text-xs text-cyan-300 font-semibold block">Diamonds 💎 — أرباح الهدايا</span>
                 <span className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
                   {user.diamonds.toLocaleString('ar-SA')}
                 </span>
@@ -96,15 +101,21 @@ export const WalletScreen: React.FC = () => {
             </div>
 
             <button
-              onClick={() => alert('يمكنك تحويل الماس إلى ذهب أو سحب المكافآت عند بلوغ الحد الأدنى 5,000 ماسة')}
+              onClick={() => setRedeeming(true)}
               className="px-3.5 py-2 rounded-xl bg-cyan-600/30 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-600 hover:text-white text-xs font-bold transition-all cursor-pointer"
             >
-              استبدال الماس
+              فك الماس
             </button>
           </div>
         </div>
       </div>
 
+      <div className="px-4 text-xs text-slate-300 space-y-1">
+        {breakdown.loading && <p role="status">جارٍ تحميل مصادر الماس…</p>}
+        {breakdown.error && <p role="alert">{breakdown.error}</p>}
+        {breakdown.data && <><p>Fixed Diamonds: {Number(breakdown.data.fixed_diamonds).toLocaleString()} 💎 — 30%</p><p>Lucky Diamonds: {Number(breakdown.data.lucky_diamonds).toLocaleString()} 💎 — 10%</p><p>ماس قديم غير محدد المصدر: {Number(breakdown.data.legacy_diamonds).toLocaleString()} 💎 — يحتاج مراجعة</p></>}
+      </div>
+      {redeeming && <DiamondRedeemModal onClose={() => setRedeeming(false)} onRedeemed={() => void breakdown.reload()} />}
       {/* Transaction History Section */}
       <div className="px-4 mt-2">
         <h3 className="text-xs font-bold text-slate-300 mb-2">سجل العمليات والتحويلات:</h3>
@@ -200,7 +211,7 @@ export const WalletScreen: React.FC = () => {
                     }`}
                   >
                     {isPositive ? `+${tx.amount.toLocaleString('ar-SA')}` : tx.amount.toLocaleString('ar-SA')}{' '}
-                    {tx.currency === 'gold' ? '🪙' : '💎'}
+                    {tx.currency === 'gold' ? '🪙' : tx.currency === 'silver' ? '🥈' : '💎'}
                   </span>
                   <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 justify-end">
                     <CheckCircle2 size={10} />

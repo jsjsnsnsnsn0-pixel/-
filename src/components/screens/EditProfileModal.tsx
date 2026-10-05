@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { supabase } from '../../services/supabase';
+import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import {
   ChevronLeft,
@@ -19,7 +21,7 @@ import {
 } from '../common/ShimmeringAccountName';
 
 export const EditProfileModal: React.FC = () => {
-  const { user, setUser, setActiveSubScreen } = useApp();
+  const { user, setUser, updateProfile, reportError, setActiveSubScreen } = useApp();
 
   // Field states
   const [name, setName] = useState(user.name);
@@ -40,24 +42,27 @@ export const EditProfileModal: React.FC = () => {
   // Hidden native file input for gallery upload
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
   // Handle local image file picker from gallery
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploading, setUploading] = useState(false);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newAvatar = event.target.result as string;
-          setAvatar(newAvatar);
-          setUser((prev) => ({
-            ...prev,
-            avatar: newAvatar,
-          }));
-          setEditingField('none');
-        }
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file || !user.authId || uploading) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      reportError('اختر صورة JPEG أو PNG أو WebP لا يتجاوز حجمها 5 ميغابايت.'); return;
     }
+    setUploading(true);
+    const extension = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
+    const path = `${user.authId}/${crypto.randomUUID()}.${extension}`;
+    try {
+      const {error} = await supabase.storage.from('avatars').upload(path, file, {contentType: file.type, upsert: false});
+      if (error) throw error;
+      const {data} = supabase.storage.from('avatars').getPublicUrl(path);
+      if (await updateProfile({avatar: data.publicUrl})) { setAvatar(data.publicUrl); setEditingField('none'); }
+      else await supabase.storage.from('avatars').remove([path]);
+    } catch { reportError('تعذر رفع الصورة. حاول مجدداً.'); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
   const triggerGalleryPicker = () => {
@@ -66,11 +71,11 @@ export const EditProfileModal: React.FC = () => {
 
   // Preset avatars for convenience
   const avatarPresets = [
-    '/src/assets/images/mr_balmain_avatar_1790227488334.jpg',
-    '/src/assets/images/avatar_prince_arab_1790226081300.jpg',
-    '/src/assets/images/avatar_sarah_1790226105436.jpg',
-    '/src/assets/images/avatar_tariq_1790226127110.jpg',
-    '/src/assets/images/avatar_nour_1790226149141.jpg',
+    '/assets/images/mr_balmain_avatar_1790227488334.jpg',
+    '/assets/images/avatar_prince_arab_1790226081300.jpg',
+    '/assets/images/avatar_layla_arab_1790226090704.jpg',
+    '/assets/images/avatar_male_ghutra_1790628422202.jpg',
+    '/assets/images/avatar_female_ghutra_1790628438051.jpg',
   ];
 
   const countriesList = [
@@ -140,6 +145,7 @@ export const EditProfileModal: React.FC = () => {
           <ChevronRight size={26} className="stroke-[2.5]" />
         </button>
       </header>
+
 
       {/* List items matching the exact order and look in the screenshot */}
       <div className="divide-y divide-slate-100 px-4">
@@ -303,7 +309,7 @@ export const EditProfileModal: React.FC = () => {
                         : 'border-slate-200 hover:opacity-80'
                     }`}
                   >
-                    <img src={preset} alt={`preset-${idx}`} className="w-full h-full object-cover" />
+                    <img src={preset} alt={`preset-${idx}`} onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

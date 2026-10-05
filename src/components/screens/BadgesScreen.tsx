@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, Plus, X, Check, Award, Sparkles } from 'lucide-react';
@@ -31,6 +32,7 @@ export interface MedalDetail {
 
 export const BadgesScreen: React.FC = () => {
   const { setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [topTab, setTopTab] = useState<'medals' | 'titles'>('medals');
   const [subTab, setSubTab] = useState<'achievements' | 'activity'>('achievements');
   const [selectedMedal, setSelectedMedal] = useState<MedalDetail | null>(null);
@@ -47,7 +49,7 @@ export const BadgesScreen: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    scheduleTimeout(() => setToast(null), 2500);
   };
 
   // All Achievement Medals (الإنجازات)
@@ -203,14 +205,14 @@ export const BadgesScreen: React.FC = () => {
   const toggleEquipMedal = (medalId: string) => {
     if (equippedMedals.includes(medalId)) {
       setEquippedMedals((prev) => prev.filter((id) => id !== medalId));
-      showToast('تمت إزالة الميدالية من الرف العلوي');
+      showToast('تم إغلاق معاينة الميدالية.');
     } else {
       if (equippedMedals.length >= 10) {
         showToast('تم بلوغ الحد الأقصى للميداليات المعروضة (10)');
         return;
       }
       setEquippedMedals((prev) => [...prev, medalId]);
-      showToast('تم ارتداء وعرض الميدالية في المنصة بنجاح 🏅');
+      showToast('هذه معاينة للميدالية في هذه الشاشة فقط.');
     }
   };
 
@@ -292,7 +294,7 @@ export const BadgesScreen: React.FC = () => {
               <div className="w-28 sm:w-32 flex flex-col items-center justify-center shrink-0">
                 <div className="relative w-28 h-28 rounded-full overflow-hidden shadow-2xl border-2 border-amber-400/60 bg-black/40 group">
                   <img
-                    src="/src/assets/images/medals_dana_trophy_1790429560560.jpg"
+                    src="/assets/images/medals_dana_trophy_1790429560560.jpg"
                     alt="Dana Trophy"
                     className="w-full h-full object-cover select-none transform hover:scale-105 transition-transform duration-500"
                   />

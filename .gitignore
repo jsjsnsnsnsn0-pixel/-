@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+android/
+playwright-report/
+test-results/
+supabase/.temp/
