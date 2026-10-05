@@ -1,5 +1,5 @@
 import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../services/supabase';
 import { Gift, User, Room } from '../../types';
@@ -42,12 +42,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     potentialRecipients.length > 0 ? potentialRecipients[0] : null
   );
 
+  const giftRetry = useRef<{key:string;id:string}|null>(null);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
+      giftRetry.current=null;
       setSendSuccess(false);
       setErrorMsg(null);
     }
@@ -67,11 +69,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false; setLoading(true); setErrorMsg(null); setSendSuccess(false);
-    supabase.from('gift_catalog').select('id,name,price').eq('is_active',true).then(({data,error}) => {
+    supabase.from('gift_catalog').select('id,name,price,diamond_source_type').eq('is_active',true).then(({data,error}) => {
       if (cancelled) return;
       if (error) {setGifts([]); setSelectedGift(null); setErrorMsg('تعذر تحميل الهدايا.');}
       else {
-        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || {id:row.id,name:row.name,category:'all' as const,price:Number(row.price),icon:'🎁',animationType:'sparkle' as const}), id: row.id, name: row.name, price: Number(row.price)}));
+        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || {id:row.id,name:row.name,category:'all' as const,price:Number(row.price),icon:'🎁',animationType:'sparkle' as const}), id: row.id, name: row.name, price: Number(row.price), diamondSourceType: row.diamond_source_type}));
         setGifts(next); setSelectedGift(next[0] || null);
       }
       setLoading(false);
@@ -95,12 +97,15 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     }
 
     if (user.gold < selectedGift.price) {
-      setErrorMsg('رصيدك من الذهب غير كافٍ. اضغط لشحن الرصيد');
+      setErrorMsg('رصيدك من Coins غير كافٍ. اضغط لشحن الرصيد');
       return;
     }
 
     setSending(true);
-    const ok = await sendGiftInRoom(selectedGift, selectedRecipient);
+    const key = `${room?.id}:${selectedGift.id}:${selectedRecipient.id}`;
+    if(giftRetry.current?.key!==key)giftRetry.current={key,id:crypto.randomUUID()};
+    const ok = await sendGiftInRoom(selectedGift, selectedRecipient, undefined, giftRetry.current.id);
+    if(ok)giftRetry.current=null;
     setSending(false);
     if (ok) {
       setSendSuccess(true);
@@ -250,13 +255,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           )}
 
           {/* Footer: User Balance + Send CTA */}
+            {selectedGift && <p className="text-center text-xs text-cyan-300 mb-2">{selectedGift.diamondSourceType === 'LUCKY_GIFT' ? 'ماس هدية الحظ يُفك بنسبة 10%' : 'ماس الهدية الثابتة يُفك بنسبة 30%'}</p>}
           <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-3">
             {/* Balance + Recharge button */}
             <div className="flex items-center gap-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400">رصيدك الحالي</span>
                 <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1">
-                  🪙 {user.gold.toLocaleString('ar-SA')} ذهب
+                  🪙 {user.gold.toLocaleString('ar-SA')} Coins
                 </span>
               </div>
               <button

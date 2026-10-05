@@ -1,3 +1,4 @@
+import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
 import { signInWithGoogle, listenForNativeAuth } from '../services/nativeAuth';
@@ -20,7 +21,7 @@ interface AppContextType {
   joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
   toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
-  sendGiftInRoom: (gift: Gift, recipient: User, seat?: number) => Promise<boolean>;
+  sendGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
   rechargeGold: (amount: number, title?: string) => void;
   createNewRoom: (room: Partial<Room>) => Promise<Room | null>;
   lockSeat: (seat: number) => Promise<boolean>; unlockSeat: (seat: number) => Promise<boolean>;
@@ -33,7 +34,6 @@ interface AppContextType {
   loginWithPhone: (phone?: string, otp?: string) => Promise<void>;
   logout: () => Promise<void>; refreshProfile: () => Promise<void>; refreshWallet: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
-  convertDiamonds: (amount: number) => Promise<boolean>;
   markConversationAsRead: (id: string) => Promise<void>;
 }
 
@@ -216,7 +216,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       const amount = Number(row[currency === 'diamonds' ? 'diamond_delta' : `${currency}_delta`] || 0);
       if (!amount) return [];
       return [{id: `${row.id}:${currency}`, type: row.transaction_type === 'diamond_conversion' ? 'diamonds_exchange' : row.transaction_type,
-        title: row.transaction_type === 'recharge' ? 'شحن الرصيد' : 'حركة المحفظة', amount, currency,
+        title: walletTitles[row.transaction_type] || 'حركة المحفظة', amount, currency,
         date: new Date(row.created_at).toLocaleDateString('ar-SA'),
         time: new Date(row.created_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute: '2-digit'}),
         status: 'completed' as const, iconType: row.transaction_type === 'recharge' ? 'plus' : 'gift'}];
@@ -386,23 +386,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const muteSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: activeRef.current?.seats[index]?.isMuted ? 'unmute' : 'mute'});
   const kickSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: 'remove'});
 
-  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number): Promise<boolean> => {
+  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
     try {
-      const {error} = await supabase.rpc('send_room_gift', {p_room_id: room.id, p_recipient_public_id: Number(recipient.id), p_gift_id: gift.id, p_request_id: crypto.randomUUID()});
+      const {error} = await supabase.rpc('send_room_gift', {p_room_id: room.id, p_recipient_public_id: Number(recipient.id), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
       if (error) throw error;
       await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
       return true;
-    } catch (e) { fail(e); return false; }
-  };
-  const convertDiamonds = async (amount: number) => {
-    if (!Number.isSafeInteger(amount) || amount < 4) { setError('أدخل عدداً صحيحاً من الألماس لا يقل عن 4.'); return false; }
-    try {
-      const {error} = await supabase.rpc('convert_diamonds_to_gold', {p_diamonds: amount}); if (error) throw error;
-      await Promise.all([refreshProfile(), refreshTransactions()]); return true;
     } catch (e) { fail(e); return false; }
   };
   const sendMessageToConversation = async (recipient: string, content: string, type: 'text' | 'voice' | 'gift' = 'text') => {
@@ -453,7 +446,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     markNotificationAsRead: id => { void markNotificationAsRead(id); },
     isAuthenticated: Boolean(authId), authLoading: authLoading || Boolean(authId && !profileReady),
     needsProfile: profileReady && !user.countryCode, error, dismissError: () => setError(null), reportError: setError,
-    loginWithGoogle, loginWithPhone, logout, refreshProfile, refreshWallet, updateProfile, convertDiamonds, markConversationAsRead,
+    loginWithGoogle, loginWithPhone, logout, refreshProfile, refreshWallet, updateProfile, markConversationAsRead,
   }}>{children}</AppContext.Provider>;
 };
 

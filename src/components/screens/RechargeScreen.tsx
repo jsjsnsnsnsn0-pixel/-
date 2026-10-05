@@ -1,3 +1,4 @@
+import { DiamondRedeemModal } from '../modals/DiamondRedeemModal';
 import { usePublicChat } from '../../hooks/usePublicChat';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
@@ -10,12 +11,12 @@ import {
 } from 'lucide-react';
 
 export const RechargeScreen: React.FC = () => {
-  const { user, convertDiamonds, setActiveSubScreen } = useApp();
+  const { user, setActiveSubScreen } = useApp();
 
   const { opening, openChat } = usePublicChat();
   const scheduleTimeout = useTimeouts();
 
-  // Active tab: 'coins' (عملات معدنية) | 'diamonds' (ألماسي)
+  // Active tab: 'coins' (عملات معدنية) | 'diamonds' (أرباح الهدايا)
   const [activeTab, setActiveTab] = useState<'coins' | 'diamonds'>('coins');
 
   // Selected coin package (defaults to 1 -> 4900 @ 0.99 $)
@@ -24,7 +25,6 @@ export const RechargeScreen: React.FC = () => {
 
   // Conversion Modal State
   const [showConvertModal, setShowConvertModal] = useState<boolean>(false);
-  const [diamondInput, setDiamondInput] = useState<string>('100000');
   const [showOrderCheckModal, setShowOrderCheckModal] = useState<boolean>(false);
   const [rechargeLoading, setRechargeLoading] = useState(false);
   const [packagesLoading, setPackagesLoading] = useState(true);
@@ -105,9 +105,6 @@ export const RechargeScreen: React.FC = () => {
     });
   }, []);
 
-  // User Rule: كل 100,000 ماس = 30,000 كونز (Ratio = 30,000 / 100,000 = 0.3)
-  const CONVERSION_RATE = 30000 / 100000;
-
   // Handle buying coins
   const handleConfirmRecharge = async () => {
     if (rechargeLoading || !selectedPkgId) return;
@@ -126,22 +123,6 @@ export const RechargeScreen: React.FC = () => {
       setRechargeError(message.includes('no official recharge agent') ? 'لا يوجد وكيل شحن رسمي لبلدك حالياً.' : 'تعذر إنشاء طلب الشحن. تحقق من بلد الحساب وحاول مجدداً.');
     } finally { setRechargeLoading(false); }
   };
-
-  // Handle converting diamonds to coins (فك الماس)
-  const [converting, setConverting] = useState(false);
-  const handleConvertDiamonds = async (amountToConvert: number) => {
-    if (converting) return;
-    setConverting(true);
-    try {
-      if (!await convertDiamonds(amountToConvert)) return;
-      setShowConvertModal(false);
-      setSuccessToast('تم تحويل الألماس إلى ذهب بنجاح.');
-      scheduleTimeout(() => setSuccessToast(null), 3500);
-    } finally { setConverting(false); }
-  };
-
-  // Arabesque damask pattern
-  const damaskPattern = `url("data:image/svg+xml,%3Csvg width='56' height='56' viewBox='0 0 56 56' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.16' fill-rule='evenodd'%3E%3Cpath d='M28 28c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9zm-18 0c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9zm9-18c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9zm0 36c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9z'/%3E%3C/g%3E%3C/svg%3E")`;
 
   return (
     <div className="min-h-screen bg-[#fafbfc] text-slate-800 pb-20 select-none relative font-sans">
@@ -188,12 +169,13 @@ export const RechargeScreen: React.FC = () => {
         </button>
       </header>
 
+      <p className="text-center text-xs text-slate-600 mt-3">الشحن للـCoins 🪙 فقط — عملة الشحن والإنفاق. Diamonds 💎 أرباح الهدايا.</p>
       {/* ============================================================== */}
-      {/* 2. CAPSULE SWITCHER: [ ألماسي  |  عملات معدنية ]               */}
+      {/* 2. CAPSULE SWITCHER: [ أرباح الهدايا  |  عملات معدنية ]               */}
       {/* ============================================================== */}
       <div className="flex justify-center mt-3.5 px-4">
         <div className="bg-[#eef1f4] p-1 rounded-full flex items-center w-[240px] shadow-2xs">
-          {/* ألماسي (Diamonds Tab - Left) */}
+          {/* أرباح الهدايا (Diamonds Tab - Left) */}
           <button
             type="button"
             onClick={() => setActiveTab('diamonds')}
@@ -203,7 +185,7 @@ export const RechargeScreen: React.FC = () => {
                 : 'text-[#8e9aaf] hover:text-slate-600'
             }`}
           >
-            ألماسي
+            أرباح الهدايا
           </button>
 
           {/* عملات معدنية (Coins Tab - Right) */}
@@ -356,7 +338,7 @@ export const RechargeScreen: React.FC = () => {
       </div>
 
       {/* ============================================================== */}
-      {/* TAB 2: DIAMONDS (ألماسي) - Fast Persistent Rendering            */}
+      {/* TAB 2: DIAMONDS (أرباح الهدايا) - Fast Persistent Rendering            */}
       {/* ============================================================== */}
       <div className={`px-4 mt-3.5 space-y-4 ${activeTab === 'diamonds' ? 'block' : 'hidden'}`}>
         {/* Panoramic Luxury Royal Blue & Gold Diamond Card - Active & Instant */}
@@ -375,7 +357,7 @@ export const RechargeScreen: React.FC = () => {
           <div className="relative w-full aspect-[3.15/1] overflow-hidden">
             <img
               src="/assets/images/diamond_banner_template_1790373461489.jpg"
-              alt="ألماسي"
+              alt="أرباح الهدايا"
               loading="eager"
               decoding="async"
               className="w-full h-full object-cover object-center select-none"
@@ -384,9 +366,9 @@ export const RechargeScreen: React.FC = () => {
 
             {/* Exact Centered Typography & Diamonds Balance Display */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none px-14 sm:px-20 z-10">
-              {/* Glowing Title: ألماسي */}
+              {/* Glowing Title: أرباح الهدايا */}
               <h3 className="text-[14px] sm:text-[16px] font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#e0f2fe] to-[#7dd3fc] drop-shadow-[0_2px_6px_rgba(0,30,90,0.95)]">
-                ألماسي
+                أرباح الهدايا
               </h3>
 
               {/* Crisp Glowing Pure White Numbers & Diamond Icon */}
@@ -402,10 +384,10 @@ export const RechargeScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Subtitle: استلم الهدايا للحصول على الألما */}
+        {/* Subtitle: Diamonds 💎 أرباح استلام الهدايا فقط */}
         <div className="text-center pt-2">
           <p className="text-[13px] text-[#8e9aaf] font-semibold">
-            استلم الهدايا للحصول على الألما
+            Diamonds 💎 أرباح استلام الهدايا فقط
           </p>
         </div>
 
@@ -422,118 +404,9 @@ export const RechargeScreen: React.FC = () => {
       </div>
 
       {/* ============================================================== */}
-      {/* 3. DIAMOND CONVERSION SHEET (فك الماس: 100,000 ماس = 30,000 كونز)*/}
+      {/* 3. SOURCE-AWARE DIAMOND REDEMPTION*/}
       {/* ============================================================== */}
-      {showConvertModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl animate-scaleIn text-right">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowConvertModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800"
-              >
-                <X size={18} />
-              </button>
-              <h3 className="text-base font-bold text-slate-800">
-                فك الماس إلى كونز 💎 ➔ 🪙
-              </h3>
-            </div>
-
-            {/* Exact Rule Banner */}
-            <div className="mt-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
-              <span className="text-xs font-black text-emerald-800 block">
-                معدل الفك المعتمد:
-              </span>
-              <span className="text-sm font-black text-emerald-600 font-mono mt-0.5 block">
-                كل 100,000 ماس = 30,000 كونز
-              </span>
-            </div>
-
-            {/* Current Balance */}
-            <div className="flex items-center justify-between text-xs text-slate-600 my-3 px-1">
-              <span className="font-bold font-mono text-cyan-600 text-sm">
-                💎 {user.diamonds.toLocaleString()} ماس
-              </span>
-              <span className="font-bold">رصيدك المتاح:</span>
-            </div>
-
-            {/* Quick Conversion Options */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {[
-                { d: 100000, c: 30000 },
-                { d: 200000, c: 60000 },
-                { d: 500000, c: 150000 },
-                { d: 1000000, c: 300000 },
-              ].map((item) => (
-                <button
-                  key={item.d}
-                  type="button"
-                  onClick={() => setDiamondInput(item.d.toString())}
-                  className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    diamondInput === item.d.toString()
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-700 text-xs'
-                  }`}
-                >
-                  <div className="font-mono font-bold text-xs">{item.d.toLocaleString()} 💎</div>
-                  <div className="text-[10px] text-amber-600 font-bold">➔ {item.c.toLocaleString()} 🪙</div>
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Amount Input */}
-            <div className="space-y-1 mb-4">
-              <label className="text-xs font-bold text-slate-700 block">
-                أدخل كمية الماس المراد فكها:
-              </label>
-              <input
-                type="number"
-                dir="ltr"
-                value={diamondInput}
-                onChange={(e) => setDiamondInput(e.target.value)}
-                placeholder="100000"
-                className="w-full py-2.5 px-3 rounded-xl border border-slate-300 font-mono text-base font-bold text-slate-800 focus:outline-none focus:border-emerald-500 text-center"
-              />
-
-              {/* Real-time Calculation */}
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-xs mt-2">
-                <span className="font-black font-mono text-amber-700 text-sm">
-                  {Math.floor(
-                    (Number(diamondInput || '0')) * CONVERSION_RATE
-                  ).toLocaleString()}{' '}
-                  🪙 كونز
-                </span>
-                <span className="font-bold text-amber-900">ستحصل على:</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() =>
-                  handleConvertDiamonds(Number(diamondInput || '0'))
-                }
-                className="w-full py-3 rounded-full bg-[#1ed760] hover:bg-[#1bc456] text-white font-bold text-sm shadow-md transition-all cursor-pointer"
-              >
-                تأكيد فك الماس والتحويل 🪙
-              </button>
-
-              {user.diamonds > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleConvertDiamonds(user.diamonds)}
-                  className="w-full py-2 rounded-full border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  تحويل كامل رصيد الماس المتاح
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {showConvertModal && <DiamondRedeemModal onClose={() => setShowConvertModal(false)} />}
 {showAgentModal && agentInfo && (
   <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
     <div className="w-full max-w-sm bg-white rounded-3xl p-5 text-right" dir="rtl">

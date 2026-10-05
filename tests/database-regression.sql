@@ -24,7 +24,12 @@ begin
    insert into public.room_members(room_id,user_id,role) values(r,a,'moderator');
    raise exception 'direct membership insertion was permitted';
   exception when insufficient_privilege then null; end;
-  perform public.convert_diamonds_to_gold(10);
+  begin
+   perform public.convert_diamonds_to_gold(10);
+   raise exception 'unknown historical diamonds were converted';
+  exception when raise_exception then
+   if sqlerrm<>'insufficient redeemable diamonds' then raise; end if;
+  end;
   begin
    perform public.convert_diamonds_to_gold(1000);
    raise exception 'insufficient diamonds were accepted';
@@ -59,7 +64,7 @@ begin
   perform public.send_room_gift(r,pb,'g1',request);
   perform public.send_room_gift(r,pb,'g1',request);
   select gold into g from public.profiles where id=a;
-  if g<>93 then raise exception 'gift duplication or wrong conversion: %',g; end if;
+  if g<>90 then raise exception 'gift duplication or wrong conversion: %',g; end if;
   perform public.set_room_seat_locked(r,2,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
   begin
@@ -71,7 +76,7 @@ begin
   perform set_config('role','postgres',true);
   if (select count(*) from public.gift_events where request_id=request)<>1 then raise exception 'gift request is not idempotent'; end if;
   if (select diamonds from public.profiles where id=b)<>10 then raise exception 'recipient reward incorrect'; end if;
-  if (select count(*) from public.wallet_transactions where user_id in (a,b))<>3 then raise exception 'ledger mismatch'; end if;
+  if (select count(*) from public.wallet_transactions where user_id in (a,b))<>2 then raise exception 'ledger mismatch'; end if;
   raise exception using errcode='P0002',message='rollback successful test fixtures';
  exception when no_data_found then null;
  end;

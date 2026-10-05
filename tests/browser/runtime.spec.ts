@@ -7,11 +7,17 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
+  let fixed=overrides.currency?100000:60; let lucky=overrides.currency?100000:20; let legacy=overrides.currency?777:10; const redemptions = new Map<string,any>();
+  if(overrides.currency)current={...current,diamonds:fixed+lucky+legacy};
+  const walletHistory:any[] = overrides.currency ? [
+    {id:'fixed-received',transaction_type:'fixed_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
+    {id:'lucky-received',transaction_type:'lucky_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
+  ] : [];
   let followed=false; let friendStatus='none'; const purchased:string[]=[]; let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
@@ -36,6 +42,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [room] : []);
     if (path.endsWith('/room_members')) return respond(overrides.rooms ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
+    if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
     if (path.endsWith('/create_recharge_request')) {
       if (overrides.noAgent) return respond({message:'no official recharge agent is configured for this country'},400);
@@ -61,10 +68,22 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/submit_support_ticket')) return respond('55555555-5555-4555-8555-555555555555');
     if (path.endsWith('/get_gift_rankings')) return respond({wealth:[],charm:[],rooms:[]});
     if (path.endsWith('/search_public_profiles')) return respond([{public_id:451305,display_name:overrides.agent ? 'TR72' : 'مستخدم البحث',username:'other',level:1,vip_level:0}]);
-    if (path.endsWith('/convert_diamonds_to_gold')) {
+    if (path.endsWith('/wallet_diamond_state')) return respond({fixed_diamonds:fixed,lucky_diamonds:lucky,legacy_diamonds:legacy,diamonds_balance:current.diamonds});
+    if (path.endsWith('/preview_diamond_redemption')) {
+      if(overrides.quoteError)return respond({message:'insufficient redeemable diamonds'},400);
+      const f=Math.min(body.p_diamonds,fixed);const l=body.p_diamonds-f;
+      if(l>lucky)return respond({message:'insufficient redeemable diamonds'},400);
+      return respond({diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l/10)});
+    }
+    if (path.endsWith('/redeem_diamonds')) {
+      if(overrides.conversionDelay)await new Promise(resolve=>setTimeout(resolve,650));
       if (overrides.conversionError) return respond({message:'insufficient diamonds'},400);
-      current={...current,diamonds:current.diamonds-body.p_diamonds,gold:current.gold+Math.floor(body.p_diamonds*0.3)};
-      return respond([{diamonds_remaining:current.diamonds,gold_balance:current.gold,gold_added:3}]);
+      let quote=redemptions.get(body.p_request_id);
+      if(!quote){const f=Math.min(body.p_diamonds,fixed);const l=body.p_diamonds-f;quote={diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l/10)};
+      fixed-=f;lucky-=l;current={...current,diamonds:current.diamonds-body.p_diamonds,gold:current.gold+quote.coins_amount};redemptions.set(body.p_request_id,quote);
+      for(const [type,diamonds,coins] of [['fixed_diamonds_redeemed',-f,0],['lucky_diamonds_redeemed',-l,0],['coins_from_diamond_redemption',0,quote.coins_amount]]){if(diamonds||coins)walletHistory.push({id:type,transaction_type:type,diamond_delta:diamonds,gold_delta:coins,created_at:new Date().toISOString()});}
+      }
+      return respond(quote);
     }
     if (path.endsWith('/create_room')) return respond(roomId);
     if (path.includes('/rpc/')) return respond(null);
@@ -151,12 +170,13 @@ test('direct messages are received, marked read and sent exactly once', async ({
 test('failed conversion preserves balances and exposes a clear error', async ({page})=>{
   const {requests,errors}=await setup(page,true,{conversionError:true}); await page.goto('/');
   await page.getByTitle('أنا').click(); await page.getByText('شحن / محفظة',{exact:true}).click();
-  await page.getByRole('button',{name:'ألماسي',exact:true}).click();
+  await page.getByRole('button',{name:'أرباح الهدايا',exact:true}).click();
   await page.getByRole('button',{name:'تحويل',exact:true}).click();
-  await page.locator('input[type="number"]').fill('1000');
+  await page.getByRole('spinbutton',{name:'كمية الماس'}).fill('10');
+  await page.getByRole('button',{name:'معاينة الفك',exact:true}).click();
   await page.getByRole('button',{name:/تأكيد فك الماس والتحويل/}).click();
   await expect(page.getByRole('alert')).toContainText('رصيد الألماس غير كاف');
-  expect(requests.find(r=>r.path.endsWith('/convert_diamonds_to_gold'))?.body.p_diamonds).toBe(1000);
+  expect(requests.find(r=>r.path.endsWith('/redeem_diamonds'))?.body.p_diamonds).toBe(10);
   expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
   expect(errors).toEqual([]);
 });
@@ -388,4 +408,67 @@ test('expired VIP in a room snapshot is never displayed as an active seat entitl
   await expect(card.getByRole('button',{name:'المزيد',exact:true})).toBeEnabled();
   await expect(page.getByTestId('occupied-seat').nth(1)).not.toContainText('VIP8');await expect(card.getByTestId('profile-vip')).toHaveCount(0);
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306)).toBe(true);expect(errors).toEqual([]);
+});
+
+
+test('wallet shows Coins, source breakdown and mixed server preview then refreshes on confirmation',async({page})=>{
+ const {requests,errors}=await setup(page,true,{currency:true,conversionDelay:true});await page.goto('/');
+ await page.getByTitle('أنا').click();await page.getByText('شحن / محفظة',{exact:true}).click();
+ await expect(page.getByText('الشحن للـCoins',{exact:false})).toBeVisible();
+ await page.getByTitle('سجل العمليات',{exact:true}).click();
+ await expect(page.getByText('Coins 🪙 — عملة الشحن والإنفاق',{exact:true})).toBeVisible();
+ await expect(page.getByText('Diamonds 💎 — أرباح الهدايا',{exact:true})).toBeVisible();
+ await expect(page.getByText('Fixed Diamonds: 100,000 💎 — 30%',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky Diamonds: 100,000 💎 — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
+ await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'فك الماس',exact:true}).click();
+ const dialog=page.getByRole('dialog');await expect(dialog.getByText(/777/)).toBeVisible();
+ await dialog.getByRole('button',{name:'اختيار كل الماس القابل للفك'}).click();
+ await dialog.getByRole('button',{name:'معاينة الفك',exact:true}).click();
+ await expect(dialog.getByTestId('diamond-quote')).toContainText('200,000');
+ await expect(dialog.getByTestId('diamond-quote')).toContainText('40,000 Coins');
+ expect(requests.filter(r=>r.path.endsWith('/redeem_diamonds'))).toHaveLength(0);
+ await dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/}).click();
+ await expect(dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/})).toBeDisabled();
+ await expect(dialog.getByText('جارٍ تأكيد الفك في الخادم…')).toBeVisible();
+ await expect(dialog.getByText(/تم فك 200,000/)).toBeVisible();
+ const request=requests.find(r=>r.path.endsWith('/redeem_diamonds'))!;
+ expect(Object.keys(request.body).sort()).toEqual(['p_diamonds','p_request_id']);
+ expect(request.body.p_diamonds).toBe(200000);
+ await dialog.getByRole('button',{name:'إغلاق فك الماس'}).click();
+ await expect(page.getByText('Fixed Diamonds: 0 💎 — 30%',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky Diamonds: 0 💎 — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('فك ماس ثابت — 30%',{exact:true})).toBeVisible();
+ await expect(page.getByText('فك ماس الحظ — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('Coins من فك الماس',{exact:true})).toBeVisible();
+ await expect(page.getByText((40100).toLocaleString('ar-SA'),{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'مستلمة',exact:true}).click();
+ await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
+ await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
+ await expect(page.getByText('Coins من فك الماس',{exact:true})).toHaveCount(0);
+ expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);expect(errors).toEqual([]);
+});
+
+test('failed redemption retries with the same ID and never shows fake success',async({page})=>{
+ const {requests,errors}=await setup(page,true,{currency:true,conversionError:true});await page.goto('/');
+ await page.getByTitle('أنا').click();await page.getByText('شحن / محفظة',{exact:true}).click();
+ await page.getByRole('button',{name:'أرباح الهدايا',exact:true}).click();await page.getByRole('button',{name:'تحويل',exact:true}).click();
+ const dialog=page.getByRole('dialog');await dialog.getByRole('spinbutton').fill('200000');
+ await dialog.getByRole('button',{name:'معاينة الفك'}).click();
+ await dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/}).click();await expect(dialog.getByRole('alert')).toContainText('غير كاف');
+ await expect(dialog.getByText(/تم فك /)).toHaveCount(0);
+ await dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/}).click();await expect.poll(()=>requests.filter(r=>r.path.endsWith('/redeem_diamonds')).length).toBe(2);
+ const calls=requests.filter(r=>r.path.endsWith('/redeem_diamonds'));expect(calls[0].body.p_request_id).toBe(calls[1].body.p_request_id);expect(errors).toEqual([]);
+});
+
+test('redemption rejects legacy-only preview and invalid amounts before confirmation',async({page})=>{
+ const {requests,errors}=await setup(page,true,{currency:true});await page.goto('/');
+ await page.getByTitle('أنا').click();await page.getByText('شحن / محفظة',{exact:true}).click();
+ await page.getByRole('button',{name:'أرباح الهدايا',exact:true}).click();await page.getByRole('button',{name:'تحويل',exact:true}).click();
+ const dialog=page.getByRole('dialog');
+ for(const amount of ['0','-10','1.5','9007199254740992']){await dialog.getByRole('spinbutton').fill(amount);await dialog.getByRole('button',{name:'معاينة الفك'}).click();await expect(dialog.getByRole('alert')).toContainText('صحيحة');}
+ expect(requests.filter(r=>r.path.endsWith('/preview_diamond_redemption'))).toHaveLength(0);
+ await dialog.getByRole('spinbutton').fill('200777');await dialog.getByRole('button',{name:'معاينة الفك'}).click();await expect(dialog.getByRole('alert')).toContainText('الماس القديم');
+ await expect(dialog.getByRole('button',{name:/تأكيد فك الماس/})).toHaveCount(0);expect(requests.filter(r=>r.path.endsWith('/redeem_diamonds'))).toHaveLength(0);expect(errors).toEqual([]);
 });

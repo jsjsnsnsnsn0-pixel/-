@@ -26,6 +26,11 @@ export function backendMessage(error: unknown): string {
   const messages: Record<string, string> = {
     'previous week top three required': 'هذه المكافأة تخص أصحاب المراكز الثلاثة الأولى في الأسبوع السابق.',
     'not authorized': 'لا يملك حسابك الصلاحية المطلوبة.',
+    'insufficient diamonds': 'رصيد الألماس غير كافٍ.',
+    'insufficient redeemable diamonds': 'الماس القابل للفك غير كافٍ. الماس القديم يحتاج مراجعة المصدر.',
+    'diamond amount is too small': 'كمية الماس لا تنتج Coin كاملة بعد التقريب.',
+    'invalid diamond amount': 'أدخل كمية ماس صحيحة ضمن الحد المسموح.',
+    'request id already used': 'معرّف العملية مستخدم لكمية أخرى.',
     'insufficient gold': 'رصيد الذهب غير كافٍ.',
     'insufficient silver': 'رصيد الفضة غير كافٍ.',
     'item unavailable': 'هذا المنتج غير متاح حالياً.',

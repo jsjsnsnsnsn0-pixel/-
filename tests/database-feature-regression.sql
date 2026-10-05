@@ -3,7 +3,7 @@
 begin;
 do $$
 declare a uuid:=gen_random_uuid(); b uuid:=gen_random_uuid(); pa bigint; pb bigint;
- request uuid:=gen_random_uuid(); purchase jsonb; again jsonb; before_gold bigint; after_gold bigint;
+ request uuid:=gen_random_uuid(); purchase jsonb; again jsonb; before_gold bigint; before_diamonds bigint; after_gold bigint;
  recharge record; pkg uuid; agency bigint; ticket uuid;
 begin
  insert into auth.users(id,aud,role,email) values(a,'authenticated','authenticated',a::text||'@test.invalid'),(b,'authenticated','authenticated',b::text||'@test.invalid');
@@ -18,7 +18,7 @@ begin
  begin perform public.create_agency(pa,'Unauthorized agency');raise exception 'unauthorized agency creation allowed';exception when raise_exception then if sqlerrm<>'not authorized' then raise;end if;end;
  purchase:=public.purchase_store_item('f1',request);again:=public.purchase_store_item('f1',request);
  if purchase->>'id'<>again->>'id' then raise exception 'store idempotency failed';end if;
- select gold into before_gold from public.profiles where id=a;
+ select gold,diamonds into before_gold,before_diamonds from public.profiles where id=a;
  if before_gold<>197500 then raise exception 'store price was not authoritative';end if;
  perform public.equip_store_item('f1','frames');
  begin perform public.equip_store_item('c1','cars');raise exception 'unowned equipment allowed';exception when raise_exception then if sqlerrm<>'valid ownership required' then raise;end if;end;
@@ -50,7 +50,7 @@ begin
  select id into pkg from public.recharge_packages where is_active order by price_usd,id limit 1;
  select * into recharge from public.create_recharge_request(pkg);
  begin perform public.approve_recharge_request(recharge.request_id);raise exception 'self recharge approval allowed';exception when raise_exception then if sqlerrm<>'not authorized' then raise;end if;end;
- select gold into before_gold from public.profiles where id=a;
+ select gold,diamonds into before_gold,before_diamonds from public.profiles where id=a;
  perform set_config('role','postgres',true);
  insert into public.admin_roles(user_id,role) values(b,'admin');
  perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
@@ -60,6 +60,7 @@ begin
  agency:=public.create_agency(pb,'Rollback integration agency');
  perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);
  select gold into after_gold from public.profiles where id=a;
+ if (select diamonds from public.profiles where id=a)<>before_diamonds then raise exception 'Recharge added Diamonds';end if;
  if after_gold<>before_gold+recharge.gold_amount then raise exception 'recharge approval ledger mismatch';end if;
  perform public.agency_action(agency,'request',null);
  begin perform public.agency_action(agency,'accept',pa);raise exception 'agency self admission allowed';exception when raise_exception then if sqlerrm<>'not authorized' then raise;end if;end;
