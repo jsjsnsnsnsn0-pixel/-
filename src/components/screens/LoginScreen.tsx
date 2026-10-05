@@ -53,7 +53,7 @@ export const LoginScreen: React.FC = () => {
   };
 
   return <div dir="rtl" className="relative min-h-[100dvh] max-w-md mx-auto overflow-hidden bg-black text-white flex flex-col justify-end">
-    <img src="/assets/images/toti_clean_bg_1790424891818.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover"/>
+    <img src="/assets/images/toti_clean_bg_1790424891818.jpg" alt="Toti Chat Background Template" className="absolute inset-0 w-full h-full object-cover"/>
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5"/>
     {error && <p role="alert" aria-live="assertive" className="fixed top-4 inset-x-4 z-[100] max-w-md mx-auto bg-rose-950/95 border border-rose-400 rounded-xl p-3 text-center text-sm shadow-xl">{error}</p>}
     <main className="relative z-10 p-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-4 pt-[50dvh]">
