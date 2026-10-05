@@ -9,7 +9,7 @@ export const systemMessagesUser: User = {
   username: 'system_messages',
   name: 'رسائل النظام',
   bio: 'إشعارات النظام الرسمية ومكافآت الحساب والفعاليات',
-  avatar: '/src/assets/images/system_bell_icon_1790421934665.jpg',
+  avatar: '/assets/images/system_bell_icon_1790421934665.jpg',
   level: 53,
   vipLevel: 8,
   charmLevel: 32,
@@ -29,7 +29,7 @@ export const officialSupportUser: User = {
   username: 'official_messages',
   name: 'رسائل رسمية',
   bio: 'الرسائل الرسمية وتواصل خدمة العملاء - السيد حـمـدان | هاتف: +964 772 645 0081',
-  avatar: '/src/assets/images/official_mascot_1790421946401.jpg',
+  avatar: '/assets/images/official_mascot_1790421946401.jpg',
   level: 53,
   vipLevel: 8,
   charmLevel: 32,
@@ -45,7 +45,7 @@ export const officialSupportUser: User = {
 };
 
 export const MessagesScreen: React.FC = () => {
-  const { setSelectedChatUser, setActiveSubScreen, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
+  const { setSelectedChatUser, setActiveSubScreen, conversations, unreadSystemMessagesCount, markSystemMessagesAsRead } = useApp();
   const [latestSysMsg, setLatestSysMsg] = useState(() => {
     const list = getSystemMessages();
     return list[0] || null;
@@ -94,6 +94,11 @@ export const MessagesScreen: React.FC = () => {
       {/* 2. MESSAGES LIST: Exact Screenshot Items                       */}
       {/* ============================================================== */}
       <div className="px-5 pt-1 space-y-6">
+        {conversations.map(conversation => <button key={conversation.id} className="w-full text-right flex items-center gap-3 p-3 border-b border-white/10" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
+          <img src={conversation.user.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
+          <div className="flex-1"><p className="font-bold">{conversation.user.name}</p><p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p></div>
+          {conversation.unreadCount > 0 && <span className="bg-emerald-500 rounded-full px-2">{conversation.unreadCount}</span>}
+        </button>)}
         {/* ROW 1: رسائل النظام (System Messages with Golden Bell Cloche) */}
         <div
           onClick={handleOpenSystemChat}
@@ -129,10 +134,10 @@ export const MessagesScreen: React.FC = () => {
             {/* Circular Bell Avatar */}
             <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.22)] border border-amber-200/70 bg-[#f6ba5d] flex items-center justify-center">
               <img
-                src="/src/assets/images/system_bell_icon_1790421934665.jpg"
+                src="/assets/images/system_bell_icon_1790421934665.jpg"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
-                    '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg';
+                    '/assets/images/msg_system_bell_avatar_1790349025148.jpg';
                 }}
                 alt="رسائل النظام"
                 className="w-full h-full object-cover"
@@ -164,10 +169,10 @@ export const MessagesScreen: React.FC = () => {
             {/* Circular Mascot Avatar */}
             <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-emerald-200/70 bg-[#7ee0af] flex items-center justify-center">
               <img
-                src="/src/assets/images/official_mascot_1790421946401.jpg"
+                src="/assets/images/official_mascot_1790421946401.jpg"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
-                    '/src/assets/images/msg_official_mascot_1790349038045.jpg';
+                    '/assets/images/msg_official_mascot_1790349038045.jpg';
                 }}
                 alt="رسائل رسمية"
                 className="w-full h-full object-cover"

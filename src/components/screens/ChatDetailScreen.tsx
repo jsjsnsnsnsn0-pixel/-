@@ -20,7 +20,7 @@ export const ChatDetailScreen: React.FC = () => {
     setActiveSubScreen,
     conversations,
     sendMessageToConversation,
-    user,
+    user, markConversationAsRead, reportError,
   } = useApp();
 
   const [inputText, setInputText] = useState('');
@@ -38,21 +38,20 @@ export const ChatDetailScreen: React.FC = () => {
     };
   }, []);
 
-  if (!selectedChatUser) return null;
 
-  const isOfficial = selectedChatUser.id === 'official_support_hamdan';
-  const isSystem = selectedChatUser.id === 'system_official_bot';
+  const isOfficial = selectedChatUser?.id === 'official_support_hamdan';
+  const isSystem = selectedChatUser?.id === 'system_official_bot';
   const officialPhone = '9647726450081';
 
   // Find existing conversation or fallback
-  const conversation = conversations.find((c) => c.user.id === selectedChatUser.id);
+  const conversation = conversations.find((c) => c.user.id === selectedChatUser?.id);
   
   const defaultOfficialMessages = [
     {
       id: 'official-msg-1',
-      senderId: selectedChatUser.id,
+      senderId: selectedChatUser?.id,
       senderName: 'السيد حـمـدان',
-      senderAvatar: selectedChatUser.avatar,
+      senderAvatar: selectedChatUser?.avatar,
       content: 'مرحباً بكم في توتي شات يمكنكم التواصل مع خدمة العملاء الرسمية +964 772 645 0081 السيد حـمـدان',
       timestamp: 'الآن',
       isMe: false,
@@ -60,10 +59,10 @@ export const ChatDetailScreen: React.FC = () => {
     },
     {
       id: 'official-msg-2',
-      senderId: selectedChatUser.id,
+      senderId: selectedChatUser?.id,
       senderName: 'خدمة العملاء الرسمية',
-      senderAvatar: selectedChatUser.avatar,
-      content: 'يسعدنا خدمتك على مدار الساعة، لأي استفسار أو شكوى أو شحن رصيد يرجى ترك رسالتك هنا أو الاتصال مباشرة.',
+      senderAvatar: selectedChatUser?.avatar,
+      content: 'للتواصل مع خدمة العملاء أو الاستفسار عن الشحن، افتح رابط واتساب الرسمي أو اتصل مباشرة.',
       timestamp: 'الآن',
       isMe: false,
       type: 'text' as const,
@@ -81,9 +80,9 @@ export const ChatDetailScreen: React.FC = () => {
     : [
         {
           id: 'default-1',
-          senderId: selectedChatUser.id,
-          senderName: selectedChatUser.name,
-          senderAvatar: selectedChatUser.avatar,
+          senderId: selectedChatUser?.id,
+          senderName: selectedChatUser?.name,
+          senderAvatar: selectedChatUser?.avatar,
           content: 'مرحباً بك! يسعدني التواصل معك في توتي شات.',
           timestamp: '12:00',
           isMe: false,
@@ -91,69 +90,22 @@ export const ChatDetailScreen: React.FC = () => {
         },
       ];
 
-  const allMessages = [...baseMessages, ...extraMessages];
+  const allMessages = conversation ? conversation.messages : isSystem ? [...systemMsgs].reverse() : isOfficial ? defaultOfficialMessages : [];
 
-  const handleSend = (e: React.FormEvent) => {
+  const [sending, setSending] = useState(false);
+  useEffect(() => {
+    if (selectedChatUser) void markConversationAsRead(selectedChatUser.id);
+  }, [selectedChatUser?.id]);
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
-
-    const newMsg = {
-      id: `msg-${Date.now()}`,
-      senderId: user.id,
-      senderName: user.name,
-      senderAvatar: user.avatar,
-      content: inputText.trim(),
-      timestamp: 'الآن',
-      isMe: true,
-      type: 'text' as const,
-    };
-
-    setExtraMessages((prev) => [...prev, newMsg]);
-
-    if (conversation) {
-      sendMessageToConversation(conversation.id, inputText.trim(), 'text');
-    }
-
-    // Auto-reply for official support
-    if (isOfficial) {
-      setTimeout(() => {
-        setExtraMessages((prev) => [
-          ...prev,
-          {
-            id: `reply-${Date.now()}`,
-            senderId: selectedChatUser.id,
-            senderName: 'السيد حـمـدان',
-            senderAvatar: selectedChatUser.avatar,
-            content: 'شكراً لتواصلك، تم استلام رسالتك وسيتم الرد عليك في أقرب وقت. يمكنك الاتصال المباشر على +964 772 645 0081.',
-            timestamp: 'الآن',
-            isMe: false,
-            type: 'text' as const,
-          },
-        ]);
-      }, 1000);
-    }
-
-    setInputText('');
+    if (!inputText.trim() || !selectedChatUser || sending || isOfficial || isSystem) return;
+    setSending(true);
+    try {
+      if (await sendMessageToConversation(selectedChatUser.id, inputText, 'text')) setInputText('');
+    } finally { setSending(false); }
   };
-
   const handleVoiceRecord = () => {
-    setIsRecording(true);
-    setTimeout(() => {
-      setIsRecording(false);
-      setExtraMessages((prev) => [
-        ...prev,
-        {
-          id: `voice-${Date.now()}`,
-          senderId: user.id,
-          senderName: user.name,
-          senderAvatar: user.avatar,
-          content: 'تسجيل صوتي (0:08)',
-          timestamp: 'الآن',
-          isMe: true,
-          type: 'voice' as const,
-        },
-      ]);
-    }, 1500);
+    reportError('الرسائل الصوتية لم تُفعّل بعد. يمكنك إرسال رسالة نصية.');
   };
 
   const handleCopyNumber = () => {
@@ -162,6 +114,7 @@ export const ChatDetailScreen: React.FC = () => {
     setTimeout(() => setCopiedPhone(false), 2000);
   };
 
+  if (!selectedChatUser) return null;
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col justify-between select-none">
       {/* Top Chat App Bar */}
@@ -193,7 +146,7 @@ export const ChatDetailScreen: React.FC = () => {
 
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-slate-900">{selectedChatUser.name}</h2>
+              <h2 className="text-sm font-black text-slate-900">{selectedChatUser?.name}</h2>
               {isOfficial ? (
                 <span className="flex items-center gap-0.5 px-2 py-0.2 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300">
                   <ShieldCheck size={11} className="text-amber-600" />
@@ -323,12 +276,14 @@ export const ChatDetailScreen: React.FC = () => {
           {/* Text Input */}
           <input
             type="text"
+            maxLength={1000}
+            disabled={sending || isOfficial || isSystem}
             dir="rtl"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={
               isOfficial
-                ? 'اكتب استفسارك لخدمة العملاء (السيد حـمـدان)...'
+                ? 'تواصل عبر رابط واتساب الرسمي' : isSystem ? 'رسائل النظام للقراءة فقط'
                 : 'اكتب رسالتك هنا...'
             }
             className="flex-1 bg-slate-100 border border-slate-200 focus:border-cyan-500 focus:bg-white rounded-2xl px-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
@@ -337,7 +292,7 @@ export const ChatDetailScreen: React.FC = () => {
           {/* Send Button */}
           <button
             type="submit"
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || sending || isOfficial || isSystem}
             className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-40 shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer"
             title="إرسال"
           >

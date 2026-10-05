@@ -68,7 +68,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           {/* Symmetrical Ruby Wings Banner Asset */}
           <div className="relative w-72 h-20 flex items-center justify-center">
             <img
-              src="/src/assets/images/ruby_wings_frame_1790377749780.jpg"
+              src="/assets/images/ruby_wings_frame_1790377749780.jpg"
               alt="Ruby Wings"
               className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(239,68,68,0.4)] mix-blend-screen scale-110"
             />
@@ -76,7 +76,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
             {/* Circular Avatar in the Center */}
             <div className="absolute w-16 h-16 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,215,0,0.6)] overflow-hidden bg-black flex items-center justify-center z-10">
               <img
-                src={displayUser.avatar || '/src/assets/images/avatar_prince_arab_1790226081300.jpg'}
+                src={displayUser.avatar || '/assets/images/avatar_prince_arab_1790226081300.jpg'}
                 alt={displayUser.name}
                 className="w-full h-full object-cover object-center"
               />
@@ -251,7 +251,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
                 {/* Heart-Shaped Golden Rose Frame */}
                 <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-400 via-rose-300 to-amber-200 shadow-[0_0_12px_rgba(244,63,94,0.5)] flex items-center justify-center">
                   <img
-                    src="/src/assets/images/female_luxury_avatar_1790230899789.jpg"
+                    src="/assets/images/female_luxury_avatar_1790230899789.jpg"
                     alt="xنَفِسهـ"
                     className="w-full h-full rounded-full object-cover"
                   />
@@ -319,7 +319,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
                 {/* Heart-Shaped Golden Rose Frame */}
                 <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 shadow-[0_0_12px_rgba(234,179,8,0.5)] flex items-center justify-center">
                   <img
-                    src={displayUser.avatar || currentUser.avatar || '/src/assets/images/avatar_prince_arab_1790226081300.jpg'}
+                    src={displayUser.avatar || currentUser.avatar || '/assets/images/avatar_prince_arab_1790226081300.jpg'}
                     alt="xدولة العراق"
                     className="w-full h-full rounded-full object-cover"
                   />

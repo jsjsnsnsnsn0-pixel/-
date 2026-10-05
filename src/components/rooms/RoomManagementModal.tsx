@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../../services/supabase';
 import { Room } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
@@ -27,7 +28,7 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
   onClose,
   room,
 }) => {
-  const { lockSeat, unlockSeat, muteSeatUser, kickSeatUser } = useApp();
+  const { lockSeat, unlockSeat, muteSeatUser, kickSeatUser, user, reportError } = useApp();
   const [activeTab, setActiveTab] = useState<'seats' | 'members' | 'settings'>('seats');
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
     setTimeout(() => setSuccessToast(null), 2000);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !room.canModerate) return null;
 
   return (
     <AnimatePresence>
@@ -146,25 +147,25 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
                       {seat.user && (
                         <>
                           <button
-                            onClick={() => {
-                              muteSeatUser(seat.seatIndex);
-                              showToast(seat.isMuted ? 'تم إلغاء كتم المستخدم' : 'تم كتم المستخدم');
+                            onClick={async () => {
+                              if (await muteSeatUser(seat.seatIndex)) showToast(seat.isMuted ? 'تم إلغاء كتم المستخدم' : 'تم كتم المستخدم');
                             }}
                             className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
                               seat.isMuted
                                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
                                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
                             }`}
+                            disabled={seat.seatIndex === 0}
                             title={seat.isMuted ? 'إلغاء الكتم' : 'كتم المايك'}
                           >
                             {seat.isMuted ? <Volume2 size={14} /> : <MicOff size={14} />}
                           </button>
                           <button
-                            onClick={() => {
-                              kickSeatUser(seat.seatIndex);
-                              showToast('تم إنزال المستخدم من المايك');
+                            onClick={async () => {
+                              if (await kickSeatUser(seat.seatIndex)) showToast('تم إنزال المستخدم من المايك');
                             }}
                             className="p-1.5 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30 text-xs cursor-pointer"
+                            disabled={seat.seatIndex === 0}
                             title="إنزال من المقعد"
                           >
                             <UserX size={14} />
@@ -173,13 +174,11 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
                       )}
 
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (seat.isLocked) {
-                            unlockSeat(seat.seatIndex);
-                            showToast('تم فتح المقعد');
+                            if (await unlockSeat(seat.seatIndex)) showToast('تم فتح المقعد');
                           } else {
-                            lockSeat(seat.seatIndex);
-                            showToast('تم قفل المقعد');
+                            if (await lockSeat(seat.seatIndex)) showToast('تم قفل المقعد');
                           }
                         }}
                         className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
@@ -187,6 +186,7 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
                             ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                             : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
                         }`}
+                        disabled={seat.seatIndex === 0 || room.ownerAuthId !== user.authId}
                         title={seat.isLocked ? 'فتح المقعد' : 'قفل المقعد'}
                       >
                         {seat.isLocked ? <Unlock size={14} /> : <Lock size={14} />}
@@ -218,14 +218,14 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
                   <span className="text-xs text-slate-400 block mb-2">إجراءات سريعة:</span>
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => showToast('تم إرسال رابط دعوة الغرفة')}
+                      onClick={async () => { const id = window.prompt('أدخل معرف المستخدم'); if (!id || !/^\d{1,18}$/.test(id)) return; const {error} = await supabase.rpc('invite_room_user', {p_room_id: room.id, p_target_public_id: Number(id)}); if (error) reportError('تعذر إرسال الدعوة. تحقق من المعرف والصلاحيات.'); else showToast('تم إرسال دعوة الغرفة'); }}
                       className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-semibold hover:bg-purple-600/30"
                     >
                       <UserPlus size={14} />
                       <span>دعوة مستخدم</span>
                     </button>
                     <button
-                      onClick={() => showToast('قائمة المحظورين فارغة حالياً')}
+                      onClick={() => reportError('إدارة قائمة الحظر غير متاحة من هذه الشاشة حالياً.')}
                       className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-600/20 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-600/30"
                     >
                       <Ban size={14} />

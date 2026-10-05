@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 
 export const UserDetailProfileScreen: React.FC = () => {
-  const { user, setActiveSubScreen } = useApp();
+  const { user: currentUser, selectedChatUser, setActiveSubScreen } = useApp();
+  const user = selectedChatUser || currentUser;
   const [copied, setCopied] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState<'details' | 'relation'>('details');
 
@@ -52,7 +53,7 @@ export const UserDetailProfileScreen: React.FC = () => {
       <div className="relative w-full h-[375px] overflow-hidden">
         {/* Background Image: Golden Throne with spread wings & rubies */}
         <img
-          src="/src/assets/images/gold_throne_avatar_bg_1790230849820.jpg"
+          src="/assets/images/gold_throne_avatar_bg_1790230849820.jpg"
           alt="Luxury Golden Throne"
           className="w-full h-full object-cover object-center"
         />
@@ -120,7 +121,7 @@ export const UserDetailProfileScreen: React.FC = () => {
             <div className="relative w-[78px] h-[78px] rounded-full p-[2px] bg-gradient-to-b from-[#ffd700] via-[#ffaa00] to-[#b8860b] shadow-[0_0_15px_rgba(255,215,0,0.5)] z-10">
               <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#121c1a]">
                 <img
-                  src={user.coupleAvatar || user.agencyAvatar || '/src/assets/images/male_partner_avatar_1790230886065.jpg'}
+                  src={user.coupleAvatar || user.agencyAvatar || '/assets/images/male_partner_avatar_1790230886065.jpg'}
                   alt="Partner"
                   className="w-full h-full object-cover"
                 />
@@ -137,7 +138,7 @@ export const UserDetailProfileScreen: React.FC = () => {
           <div className="shrink-0 flex flex-col items-center">
             <div className="w-20 h-20 relative flex items-center justify-center drop-shadow-[0_4px_12px_rgba(234,179,8,0.4)]">
               <img
-                src="/src/assets/images/imperial_lion_crest_1790230829162.jpg"
+                src="/assets/images/imperial_lion_crest_1790230829162.jpg"
                 alt="Imperial Lion Crest"
                 className="w-full h-full object-contain rounded-2xl filter brightness-110"
               />
@@ -247,7 +248,7 @@ export const UserDetailProfileScreen: React.FC = () => {
             {/* 1. تلقى (Received Gifts / Wealth) */}
             <div>
               <span className="block text-base font-black text-white font-mono tracking-tight">
-                {user.receivedTotal || '19.4M'}
+                {user.receivedTotal || '0'}
               </span>
               <span className="text-[11px] text-teal-200/70 font-bold">تلقى</span>
             </div>
@@ -255,7 +256,7 @@ export const UserDetailProfileScreen: React.FC = () => {
             {/* 2. أرسلت (Sent Gifts) */}
             <div>
               <span className="block text-base font-black text-white font-mono tracking-tight">
-                {user.sentGiftsCount || '26.7M'}
+                {user.sentGiftsCount || '0'}
               </span>
               <span className="text-[11px] text-teal-200/70 font-bold">أرسلت</span>
             </div>
@@ -341,7 +342,7 @@ export const UserDetailProfileScreen: React.FC = () => {
               {/* Agency Owner Square Avatar */}
               <div className="w-13 h-13 rounded-xl overflow-hidden border border-emerald-500/40 shadow-md shrink-0 bg-slate-900">
                 <img
-                  src={user.agencyAvatar || '/src/assets/images/male_partner_avatar_1790230886065.jpg'}
+                  src={user.agencyAvatar || '/assets/images/male_partner_avatar_1790230886065.jpg'}
                   alt="Agency Owner"
                   className="w-full h-full object-cover"
                 />

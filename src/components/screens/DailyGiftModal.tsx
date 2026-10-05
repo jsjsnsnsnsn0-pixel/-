@@ -7,19 +7,13 @@ interface DailyGiftModalProps {
 }
 
 export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
-  const { setUser } = useApp();
+  const { reportError } = useApp();
   const [opened, setOpened] = useState(false);
   const [rewardGold] = useState(300);
   const [rewardSilver] = useState(150);
 
   const handleOpenChest = () => {
-    if (opened) return;
-    setOpened(true);
-    setUser((prev) => ({
-      ...prev,
-      gold: prev.gold + rewardGold,
-      silverCoins: (prev.silverCoins || 0) + rewardSilver,
-    }));
+    reportError('المكافأة اليومية غير متاحة حتى تفعيل منحها من الخادم.');
   };
 
   return (

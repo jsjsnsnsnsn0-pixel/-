@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { ChevronRight, Headphones, Crown, X, Lock, Check } from 'lucide-react';
 
 export const AgencyScreen: React.FC = () => {
-  const { setActiveSubScreen, setSelectedChatUser } = useApp();
+  const { setActiveSubScreen, setSelectedChatUser, reportError } = useApp();
   const [modalType, setModalType] = useState<'agent' | 'host' | 'support' | null>(null);
   const [agentId, setAgentId] = useState('');
   const [password, setPassword] = useState('');
@@ -11,20 +11,16 @@ export const AgencyScreen: React.FC = () => {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agentId.trim()) return;
-    setLoginSuccess(true);
-    setTimeout(() => {
-      setLoginSuccess(false);
-      setModalType(null);
-    }, 1200);
+    reportError('الدخول إلى الوكالة يحتاج حساباً وصلاحيات معتمدة من الإدارة. تواصل مع الدعم.');
   };
 
   const handleContactOfficialSupport = () => {
     // Open chat or redirect to official customer service ID 1000
     setSelectedChatUser({
-      id: '1000',
+      id: 'official_support_hamdan',
+      isOnline: false,
       name: 'خدمة العملاء الرسمية 👑',
-      avatar: '/src/assets/images/imperial_lion_crest_1790230829162.jpg',
+      avatar: '/assets/images/imperial_lion_crest_1790230829162.jpg',
       username: 'support_1000',
       level: 100,
       wealthLevel: 100,
@@ -42,7 +38,7 @@ export const AgencyScreen: React.FC = () => {
       receivedGiftsCount: 9999,
       isHost: false,
     });
-    setActiveSubScreen(null);
+    setActiveSubScreen('chat_detail');
   };
 
   return (
@@ -53,7 +49,7 @@ export const AgencyScreen: React.FC = () => {
       {/* Background Graphic: Majestic Lion & Falcon Artwork with glowing crowns */}
       <div className="absolute inset-0 pointer-events-none">
         <img
-          src="/src/assets/images/agency_login_portal_1790714750581.jpg"
+          src="/assets/images/agency_login_portal_1790714750581.jpg"
           alt="بوابة الوكالة الملكية"
           className="w-full h-full object-cover object-top filter brightness-[1.02]"
         />

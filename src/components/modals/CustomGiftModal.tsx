@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, MessageCircle, Sparkles, Lock, Unlock, CheckCircle } from 'lucide-react';
+import { useMonthlyRecharge } from '../../hooks/useMonthlyRecharge';
 import { useApp } from '../../context/AppContext';
 
 interface CustomGiftModalProps {
@@ -10,14 +11,7 @@ interface CustomGiftModalProps {
 export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClose }) => {
   const { user, setActiveSubScreen } = useApp();
 
-  const currentMonthlyRecharge = (() => {
-    try {
-      const saved = localStorage.getItem(`toti_monthly_recharge_${user.id}`);
-      return saved ? parseFloat(saved) : 0;
-    } catch {
-      return 0;
-    }
-  })();
+  const currentMonthlyRecharge = useMonthlyRecharge(user.authId, isOpen);
 
   const targetAmount = 1500;
   const progressPct = Math.min(100, (currentMonthlyRecharge / targetAmount) * 100);
@@ -61,7 +55,7 @@ export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClos
             {/* The exact image matching the user upload with Lock / Unlock Badge */}
             <div className="relative w-full">
               <img
-                src="/src/assets/images/custom_gift_user_exact_1790801288056.jpg"
+                src="/assets/images/custom_gift_user_exact_1790801288056.jpg"
                 alt="قيمة الشحن التراكمي الشهري - الهدية المخصصة $1500"
                 className="w-full h-auto object-contain rounded-2xl border border-[#d4af37]/60 shadow-2xl block"
               />

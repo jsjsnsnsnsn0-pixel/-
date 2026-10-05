@@ -13,6 +13,7 @@ import {
   Car,
   Award,
 } from 'lucide-react';
+import { useMonthlyRecharge } from '../../hooks/useMonthlyRecharge';
 import { useApp } from '../../context/AppContext';
 import {
   triggerRechargeTierNotification,
@@ -86,9 +87,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'وجدان', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'E AJANS', avatar: '/src/assets/images/male_partner_avatar_1790230886065.jpg' },
-      { rank: 3, name: 'لار', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 1, name: 'وجدان', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'E AJANS', avatar: '/assets/images/male_partner_avatar_1790230886065.jpg' },
+      { rank: 3, name: 'لار', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
     ],
   },
   {
@@ -127,9 +128,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'وجدان', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'E AJANS', avatar: '/src/assets/images/male_partner_avatar_1790230886065.jpg' },
-      { rank: 3, name: 'لار', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 1, name: 'وجدان', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'E AJANS', avatar: '/assets/images/male_partner_avatar_1790230886065.jpg' },
+      { rank: 3, name: 'لار', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
     ],
   },
   {
@@ -169,9 +170,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'كنان', avatar: '/src/assets/images/male_partner_avatar_1790230886065.jpg' },
-      { rank: 3, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'كنان', avatar: '/assets/images/male_partner_avatar_1790230886065.jpg' },
+      { rank: 3, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
     ],
   },
   {
@@ -211,9 +212,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 3, name: 'దేవత...', avatar: '/src/assets/images/male_partner_avatar_1790230886065.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 3, name: 'దేవత...', avatar: '/assets/images/male_partner_avatar_1790230886065.jpg' },
     ],
   },
   {
@@ -253,9 +254,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 3, name: 'దేవత...', avatar: '/src/assets/images/male_partner_avatar_1790230886065.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 3, name: 'దేవత...', avatar: '/assets/images/male_partner_avatar_1790230886065.jpg' },
     ],
   },
   {
@@ -314,9 +315,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 2, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 3, name: 'Naro', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 1, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 2, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 3, name: 'Naro', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
     ],
   },
   {
@@ -375,9 +376,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 3, name: 'Naro', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 3, name: 'Naro', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
     ],
   },
   {
@@ -444,9 +445,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'Naro', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 3, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'Naro', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 3, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
     ],
   },
   {
@@ -529,9 +530,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 3, name: 'Naro', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 3, name: 'Naro', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
     ],
   },
   {
@@ -614,9 +615,9 @@ export const OFFICIAL_ACTIVITY_TIERS: ActivityTierData[] = [
       },
     ],
     winners: [
-      { rank: 1, name: 'Naro👑', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
-      { rank: 2, name: 'దేవత...', avatar: '/src/assets/images/syrian_host_avatar_1790345251849.jpg' },
-      { rank: 3, name: 'Naro', avatar: '/src/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 1, name: 'Naro👑', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
+      { rank: 2, name: 'దేవత...', avatar: '/assets/images/syrian_host_avatar_1790345251849.jpg' },
+      { rank: 3, name: 'Naro', avatar: '/assets/images/female_luxury_avatar_1790230899789.jpg' },
     ],
   },
 ];
@@ -627,25 +628,8 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [rewardToast, setRewardToast] = useState<{ title: string; desc: string } | null>(null);
 
-  // Cumulative monthly recharge amount stored in localStorage per user
-  const [monthlyRechargeAmount, setMonthlyRechargeAmount] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(`toti_monthly_recharge_${user.id}`);
-      return saved ? parseFloat(saved) : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  // Track claimed tiers
-  const [claimedTiers, setClaimedTiers] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`toti_claimed_tiers_${user.id}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const monthlyRechargeAmount = useMonthlyRecharge(user.authId, isOpen);
+  const claimedTiers: string[] = [];
 
   const currentTier = OFFICIAL_ACTIVITY_TIERS[selectedTierIndex] || OFFICIAL_ACTIVITY_TIERS[0];
   const isTierClaimed = claimedTiers.includes(currentTier.id);
@@ -671,61 +655,11 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
     return () => clearInterval(timer);
   }, []);
 
-  // Save cumulative recharge amount & claimed tiers
-  const updateMonthlyRecharge = (newTotal: number, newClaimed: string[]) => {
-    setMonthlyRechargeAmount(newTotal);
-    setClaimedTiers(newClaimed);
-    try {
-      localStorage.setItem(`toti_monthly_recharge_${user.id}`, newTotal.toString());
-      localStorage.setItem(`toti_claimed_tiers_${user.id}`, JSON.stringify(newClaimed));
-    } catch {
-      // ignore
-    }
-  };
 
   // Real Execute Recharge Function: Recharges the user, unlocks all features, VIP, ID, coins, frames!
-  const handleExecuteRechargeAndUnlock = (tier: ActivityTierData) => {
-    const newTotal = monthlyRechargeAmount + tier.amount;
-    const newClaimed = Array.from(new Set([...claimedTiers, tier.id]));
-
-    // Apply real benefits to user account
-    setUser((prev) => {
-      const updatedVip = Math.max(prev.vipLevel || 0, tier.vipLevelReward);
-      const updatedCoins = prev.gold + tier.coinsReward;
-      const updatedCustomTitle = tier.titleReward || prev.customTitle;
-      const updatedSpecialId = tier.specialIdReward || prev.id;
-
-      return {
-        ...prev,
-        vipLevel: updatedVip,
-        nobleRank: `VIP${updatedVip}`,
-        gold: updatedCoins,
-        id: updatedSpecialId,
-        customTitle: updatedCustomTitle,
-        avatarFrame: tier.frameReward || prev.avatarFrame,
-      };
-    });
-
-    updateMonthlyRecharge(newTotal, newClaimed);
-
-    // Send official system message to رسائل النظام with explanation of all rewards gained
-    const itemsSummary = tier.items.map((i) => `[${i.name} - ${i.duration}]`).join(' + ');
-    triggerRechargeTierNotification(tier.amount, tier.label, itemsSummary);
-
-    // Also update custom gift notification progress towards $1500
-    triggerCustomGiftNotification(newTotal, 1500);
-
-    // Show celebration notification with exact features received
-    setRewardToast({
-      title: `🎉 مبروك! تم شحن ${tier.label} بنجاح!`,
-      desc: `تم منحك ${tier.coinsReward.toLocaleString()} عملة + ترقية VIP${tier.vipLevelReward}${
-        tier.specialIdReward ? ` + المعرف المميز ${tier.specialIdReward}` : ''
-      }${tier.vehicleReward ? ` + مركبة ${tier.vehicleReward}` : ''} تلقائياً!`,
-    });
-
-    setTimeout(() => {
-      setRewardToast(null);
-    }, 5000);
+  const handleExecuteRechargeAndUnlock = (_tier: ActivityTierData) => {
+    setRewardToast({title: 'لم يتم الشحن', desc: 'مكافآت النشاط تُمنح بعد تأكيد الدفع من الوكيل الرسمي. تواصل مع الدعم.'});
+    setTimeout(() => setRewardToast(null), 5000);
   };
 
   if (!isOpen) return null;
@@ -780,7 +714,7 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
         <div
           className="overflow-y-auto flex-1 flex flex-col items-center scrollbar-thin scrollbar-thumb-amber-600/40 pb-6 relative bg-[#120208]"
           style={{
-            backgroundImage: `url('/src/assets/images/recharge_bg_clean_exact_1790804762621.jpg')`,
+            backgroundImage: `url('/assets/images/recharge_bg_clean_exact_1790804762621.jpg')`,
             backgroundSize: '100% auto',
             backgroundPosition: 'top center',
             backgroundRepeat: 'no-repeat',
@@ -962,7 +896,7 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
                   <div className="flex flex-col items-center">
                     <div className="relative w-12 h-12 rounded-full p-[2px] bg-gradient-to-b from-slate-200 to-slate-400 shadow-md">
                       <img
-                        src={currentTier.winners[1]?.avatar || '/src/assets/images/male_partner_avatar_1790230886065.jpg'}
+                        src={currentTier.winners[1]?.avatar || '/assets/images/male_partner_avatar_1790230886065.jpg'}
                         alt="Rank 2"
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -979,7 +913,7 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
                   <div className="flex flex-col items-center -mt-2">
                     <div className="relative w-15 h-15 rounded-full p-[2px] bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-600 shadow-[0_0_15px_rgba(245,158,11,0.6)]">
                       <img
-                        src={currentTier.winners[0]?.avatar || '/src/assets/images/female_luxury_avatar_1790230899789.jpg'}
+                        src={currentTier.winners[0]?.avatar || '/assets/images/female_luxury_avatar_1790230899789.jpg'}
                         alt="Rank 1"
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -996,7 +930,7 @@ export const RechargeActivityModal: React.FC<RechargeActivityModalProps> = ({ is
                   <div className="flex flex-col items-center">
                     <div className="relative w-12 h-12 rounded-full p-[2px] bg-gradient-to-b from-amber-700 to-amber-900 shadow-md">
                       <img
-                        src={currentTier.winners[2]?.avatar || '/src/assets/images/syrian_host_avatar_1790345251849.jpg'}
+                        src={currentTier.winners[2]?.avatar || '/assets/images/syrian_host_avatar_1790345251849.jpg'}
                         alt="Rank 3"
                         className="w-full h-full rounded-full object-cover"
                       />

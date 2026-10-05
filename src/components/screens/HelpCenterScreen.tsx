@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { ChevronRight, Headphones, HelpCircle, MessageSquare, ShieldAlert, Send, Check } from 'lucide-react';
 
 export const HelpCenterScreen: React.FC = () => {
-  const { setActiveSubScreen } = useApp();
+  const { setActiveSubScreen, reportError } = useApp();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -11,7 +11,7 @@ export const HelpCenterScreen: React.FC = () => {
   const faqs = [
     {
       q: 'كيف يمكنني شحن رصيد الذهب؟',
-      a: 'يمكنك شحن الذهب بالانتقال إلى صفحة المحفظة واختيار الباقة المناسبة، والدفع عبر Apple Pay أو مدى أو بطاقات الدفع البنكية.',
+      a: 'يمكنك شحن الذهب بالانتقال إلى صفحة المحفظة واختيار الباقة المناسبة، والدفع للوكيل الرسمي المعتمد في بلد حسابك.',
     },
     {
       q: 'كيف أحصل على رتبة VIP وشاراتها؟',
@@ -34,8 +34,7 @@ export const HelpCenterScreen: React.FC = () => {
   const handleSendFeedback = (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedback.trim()) return;
-    setFeedbackSent(true);
-    setFeedback('');
+    reportError('إرسال الملاحظات داخل التطبيق لم يُفعّل بعد. تواصل مع خدمة العملاء الرسمية.');
     setTimeout(() => setFeedbackSent(false), 3500);
   };
 

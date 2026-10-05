@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export const RechargeScreen: React.FC = () => {
-  const { user, setUser, setActiveSubScreen } = useApp();
+  const { user, convertDiamonds, setActiveSubScreen } = useApp();
 
   // Active tab: 'coins' (عملات معدنية) | 'diamonds' (ألماسي)
   const [activeTab, setActiveTab] = useState<'coins' | 'diamonds'>('coins');
@@ -30,12 +30,12 @@ export const RechargeScreen: React.FC = () => {
   // Exact 6 packages from the user's screenshots with bright realistic 3D assets on white background:
   const [coinPackages, setCoinPackages] = useState<any[]>([]);
   const packageImages = [
-    '/src/assets/images/coin_stack_4900_white_1790370914704.jpg',
-    '/src/assets/images/coin_stack_24500_white_1790370928783.jpg',
-    '/src/assets/images/coin_stack_49000_white_1790370942810.jpg',
-    '/src/assets/images/coin_stack_122500_white_1790370953557.jpg',
-    '/src/assets/images/coin_stack_245000_white_1790370964601.jpg',
-    '/src/assets/images/coin_stack_490000_white_1790370977790.jpg',
+    '/assets/images/coin_stack_4900_white_1790370914704.jpg',
+    '/assets/images/coin_stack_24500_white_1790370928783.jpg',
+    '/assets/images/coin_stack_49000_white_1790370942810.jpg',
+    '/assets/images/coin_stack_122500_white_1790370953557.jpg',
+    '/assets/images/coin_stack_245000_white_1790370964601.jpg',
+    '/assets/images/coin_stack_490000_white_1790370977790.jpg',
   ];
   React.useEffect(() => {
     let cancelled = false;
@@ -83,14 +83,14 @@ export const RechargeScreen: React.FC = () => {
   // Preload heavy images once on mount to eliminate any loading delays
   React.useEffect(() => {
     const imagesToPreload = [
-      '/src/assets/images/gold_balance_banner_1790372661010.jpg',
-      '/src/assets/images/diamond_banner_template_1790373461489.jpg',
-      '/src/assets/images/coin_stack_4900_white_1790370914704.jpg',
-      '/src/assets/images/coin_stack_24500_white_1790370928783.jpg',
-      '/src/assets/images/coin_stack_49000_white_1790370942810.jpg',
-      '/src/assets/images/coin_stack_122500_white_1790370953557.jpg',
-      '/src/assets/images/coin_stack_245000_white_1790370964601.jpg',
-      '/src/assets/images/coin_stack_490000_white_1790370977790.jpg',
+      '/assets/images/gold_balance_banner_1790372661010.jpg',
+      '/assets/images/diamond_banner_template_1790373461489.jpg',
+      '/assets/images/coin_stack_4900_white_1790370914704.jpg',
+      '/assets/images/coin_stack_24500_white_1790370928783.jpg',
+      '/assets/images/coin_stack_49000_white_1790370942810.jpg',
+      '/assets/images/coin_stack_122500_white_1790370953557.jpg',
+      '/assets/images/coin_stack_245000_white_1790370964601.jpg',
+      '/assets/images/coin_stack_490000_white_1790370977790.jpg',
     ];
     imagesToPreload.forEach((src) => {
       const img = new Image();
@@ -103,57 +103,34 @@ export const RechargeScreen: React.FC = () => {
 
   // Handle buying coins
   const handleConfirmRecharge = async () => {
-    setRechargeLoading(true);
-    setRechargeError(null);
-
-    const { data, error } = await supabase.rpc('create_recharge_request', {
-      p_package_id: selectedPkgId,
-    });
-
-    if (error) {
-      console.error('create_recharge_request error:', error);
-      setRechargeError('تعذر إنشاء طلب الشحن حالياً. حاول مرة أخرى.');
-      setRechargeLoading(false);
-      return;
-    }
-
-    const result = Array.isArray(data) ? data[0] : data;
-
-    if (Boolean(result) === false) {
-      setRechargeError('لم يتم استلام معلومات الوكيل.');
-      setRechargeLoading(false);
-      return;
-    }
-
-    setAgentInfo(result);
-    setShowAgentModal(true);
-    setSuccessToast('تم إنشاء طلب الشحن. يرجى الدفع للوكيل الرسمي.');
-    setTimeout(() => setSuccessToast(null), 3500);
-    setRechargeLoading(false);
+    if (rechargeLoading || !selectedPkgId) return;
+    setRechargeLoading(true); setRechargeError(null);
+    try {
+      const {data, error} = await supabase.rpc('create_recharge_request', {p_package_id: selectedPkgId});
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result) throw new Error('missing agent');
+      setAgentInfo(result); setShowAgentModal(true);
+      setSuccessToast('تم إنشاء طلب الشحن. يرجى الدفع للوكيل الرسمي.');
+      setTimeout(() => setSuccessToast(null), 3500);
+    } catch (e) {
+      console.error('Recharge request failed', e);
+      const message = e && typeof e === 'object' && 'message' in e ? String(e.message) : '';
+      setRechargeError(message.includes('no official recharge agent') ? 'لا يوجد وكيل شحن رسمي لبلدك حالياً.' : 'تعذر إنشاء طلب الشحن. تحقق من بلد الحساب وحاول مجدداً.');
+    } finally { setRechargeLoading(false); }
   };
 
   // Handle converting diamonds to coins (فك الماس)
-  const handleConvertDiamonds = (amountToConvert: number) => {
-    if (amountToConvert <= 0) return;
-
-    if (user.diamonds < amountToConvert) {
-      setUser((prev) => ({
-        ...prev,
-        diamonds: prev.diamonds + amountToConvert,
-      }));
-    }
-
-    const coinsToAdd = Math.floor(amountToConvert * CONVERSION_RATE);
-
-    setUser((prev) => ({
-      ...prev,
-      diamonds: Math.max(0, prev.diamonds - amountToConvert),
-      gold: prev.gold + coinsToAdd,
-    }));
-
-    setShowConvertModal(false);
-    setSuccessToast(`💎 تم فك ${amountToConvert.toLocaleString()} ماس بنجاح والحصول على ${coinsToAdd.toLocaleString()} كونز!`);
-    setTimeout(() => setSuccessToast(null), 3500);
+  const [converting, setConverting] = useState(false);
+  const handleConvertDiamonds = async (amountToConvert: number) => {
+    if (converting) return;
+    setConverting(true);
+    try {
+      if (!await convertDiamonds(amountToConvert)) return;
+      setShowConvertModal(false);
+      setSuccessToast('تم تحويل الألماس إلى ذهب بنجاح.');
+      setTimeout(() => setSuccessToast(null), 3500);
+    } finally { setConverting(false); }
   };
 
   // Arabesque damask pattern
@@ -256,7 +233,7 @@ export const RechargeScreen: React.FC = () => {
           {/* Base Panoramic Luxury Banner Template */}
           <div className="relative w-full aspect-[3.15/1] overflow-hidden">
             <img
-              src="/src/assets/images/gold_balance_banner_1790372661010.jpg"
+              src="/assets/images/gold_balance_banner_1790372661010.jpg"
               alt="رصيد العملات الحالي"
               loading="eager"
               decoding="async"
@@ -341,6 +318,7 @@ export const RechargeScreen: React.FC = () => {
             <button
               type="button"
               onClick={handleConfirmRecharge}
+              disabled={rechargeLoading || packagesLoading || !selectedPkgId}
               className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#2cdb7f] to-[#1ec76f] hover:from-[#25c672] hover:to-[#19b563] active:scale-[0.99] text-white font-bold text-[16px] shadow-[0_6px_18px_rgba(44,219,127,0.35)] transition-all cursor-pointer"
             >
               تأكيد الشحن
@@ -387,7 +365,7 @@ export const RechargeScreen: React.FC = () => {
           {/* Base Panoramic Luxury Diamond Banner Template */}
           <div className="relative w-full aspect-[3.15/1] overflow-hidden">
             <img
-              src="/src/assets/images/diamond_banner_template_1790373461489.jpg"
+              src="/assets/images/diamond_banner_template_1790373461489.jpg"
               alt="ألماسي"
               loading="eager"
               decoding="async"
@@ -514,7 +492,7 @@ export const RechargeScreen: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-xs mt-2">
                 <span className="font-black font-mono text-amber-700 text-sm">
                   {Math.floor(
-                    (parseInt(diamondInput || '0', 10) || 0) * CONVERSION_RATE
+                    (Number(diamondInput || '0')) * CONVERSION_RATE
                   ).toLocaleString()}{' '}
                   🪙 كونز
                 </span>
@@ -527,7 +505,7 @@ export const RechargeScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  handleConvertDiamonds(parseInt(diamondInput || '0', 10) || 0)
+                  handleConvertDiamonds(Number(diamondInput || '0'))
                 }
                 className="w-full py-3 rounded-full bg-[#1ed760] hover:bg-[#1bc456] text-white font-bold text-sm shadow-md transition-all cursor-pointer"
               >

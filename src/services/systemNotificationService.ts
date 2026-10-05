@@ -36,7 +36,7 @@ export const addSystemMessage = (content: string, category: 'recharge' | 'soulma
     id: `sys-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     senderId: 'system_official_bot',
     senderName: 'رسائل النظام',
-    senderAvatar: '/src/assets/images/system_bell_icon_1790421934665.jpg',
+    senderAvatar: '/assets/images/system_bell_icon_1790421934665.jpg',
     content,
     timestamp: timeNow,
     isMe: false,

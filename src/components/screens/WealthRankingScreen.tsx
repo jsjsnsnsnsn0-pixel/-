@@ -5,8 +5,7 @@ import { ChevronRight, Gift, CheckCircle2 } from 'lucide-react';
 
 export const WealthRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user, rechargeGold } = useApp();
-  const { wealthRankings, recordGiftSupport } = useRealtimeRankings();
-  const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const { wealthRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
   const [showQuickSupport, setShowQuickSupport] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(50000);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -21,33 +20,8 @@ export const WealthRankingScreen: React.FC = () => {
   const myEntry = wealthRankings.find((r) => r.id === user.id);
 
   // Quick Support Action for Testing
-  const handleSupport = (amount: number) => {
-    if (user.gold < amount) {
-      rechargeGold(amount + 50000);
-    }
-    // Record real support from current user
-    recordGiftSupport(
-      user,
-      {
-        id: 'host-royal-star',
-        username: 'queen_laila',
-        name: '👑 ملكة السهرة',
-        avatar: '/src/assets/images/beauty_girl_red_lipstick_1790230886064.jpg',
-        level: 45,
-        vipLevel: 8,
-        gold: 300000,
-        diamonds: 120000,
-        friendsCount: 230,
-        followersCount: 1540,
-        followingCount: 40,
-        isOnline: true,
-        receivedGiftsCount: 1200,
-      },
-      null,
-      amount
-    );
-    setFeedbackMsg(`تم إرسال دعم بقيمة +${amount.toLocaleString()} 🪙 وارتفاع حسابك في الثروة!`);
-    setShowQuickSupport(false);
+  const handleSupport = (_amount: number) => {
+    setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
     setTimeout(() => setFeedbackMsg(null), 3500);
   };
 
@@ -59,7 +33,7 @@ export const WealthRankingScreen: React.FC = () => {
       {/* 0. Full Exact Background Wallpaper (Golden Eagles & Glowing Light Trails) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
         <img
-          src="/src/assets/images/wealth_screen_bg_1790554652978.jpg"
+          src="/assets/images/wealth_screen_bg_1790554652978.jpg"
           alt="خلفية الثروة"
           className="w-full h-full object-cover max-w-[480px]"
         />

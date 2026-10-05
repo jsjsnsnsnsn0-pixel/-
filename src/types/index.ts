@@ -1,4 +1,5 @@
 export interface User {
+  authId?: string;
   id: string;
   username: string;
   name: string;
@@ -49,6 +50,9 @@ export interface MicrophoneSeatState {
 }
 
 export interface Room {
+  ownerAuthId?: string;
+  canModerate?: boolean;
+  members?: User[];
   id: string;
   title: string;
   description: string;

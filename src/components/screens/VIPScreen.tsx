@@ -36,8 +36,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 1,
     name: 'VIP 1',
-    crest: '/src/assets/images/vip1_deer_crest_1790429421188.jpg',
-    badgeImage: '/src/assets/images/vip1_badge_exact_1790431462534.jpg',
+    crest: '/assets/images/vip1_deer_crest_1790429421188.jpg',
+    badgeImage: '/assets/images/vip1_badge_exact_1790431462534.jpg',
     animalName: 'الوعل الملكي البرونزي',
     price: '63000/30 يومًا',
     priceNumber: 63000,
@@ -52,8 +52,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 2,
     name: 'VIP 2',
-    crest: '/src/assets/images/vip2_eagle_crest_1790429432365.jpg',
-    badgeImage: '/src/assets/images/vip2_badge_exact_1790431474894.jpg',
+    crest: '/assets/images/vip2_eagle_crest_1790429432365.jpg',
+    badgeImage: '/assets/images/vip2_badge_exact_1790431474894.jpg',
     animalName: 'الصقر البلاتيني الثلجي',
     price: '150000/30 يومًا',
     priceNumber: 150000,
@@ -68,8 +68,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 3,
     name: 'VIP 3',
-    crest: '/src/assets/images/vip3_wolf_crest_1790429444252.jpg',
-    badgeImage: '/src/assets/images/vip3_badge_exact_1790431487197.jpg',
+    crest: '/assets/images/vip3_wolf_crest_1790429444252.jpg',
+    badgeImage: '/assets/images/vip3_badge_exact_1790431487197.jpg',
     animalName: 'الذئب الذهبي الملكي',
     price: '490000/30 يومًا',
     priceNumber: 490000,
@@ -85,8 +85,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 4,
     name: 'VIP 4',
-    crest: '/src/assets/images/vip4_leopard_crest_1790429455499.jpg',
-    badgeImage: '/src/assets/images/vip4_badge_exact_1790431500433.jpg',
+    crest: '/assets/images/vip4_leopard_crest_1790429455499.jpg',
+    badgeImage: '/assets/images/vip4_badge_exact_1790431500433.jpg',
     animalName: 'الفهد الزمردي الأسطوري',
     price: '1960000/30 يومًا',
     priceNumber: 1960000,
@@ -101,8 +101,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 5,
     name: 'VIP 5',
-    crest: '/src/assets/images/vip5_bear_crest_1790429475162.jpg',
-    badgeImage: '/src/assets/images/vip5_badge_exact_1790431518416.jpg',
+    crest: '/assets/images/vip5_bear_crest_1790429475162.jpg',
+    badgeImage: '/assets/images/vip5_badge_exact_1790431518416.jpg',
     animalName: 'الدب الأرجواني المتوج',
     price: '3900000/30 يومًا',
     priceNumber: 3900000,
@@ -118,8 +118,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 6,
     name: 'VIP 6',
-    crest: '/src/assets/images/vip6_tiger_crest_1790429485886.jpg',
-    badgeImage: '/src/assets/images/vip6_badge_exact_1790431528932.jpg',
+    crest: '/assets/images/vip6_tiger_crest_1790429485886.jpg',
+    badgeImage: '/assets/images/vip6_badge_exact_1790431528932.jpg',
     animalName: 'النمر الأزرق الملكي المجنح',
     price: '5800000/30 يومًا',
     priceNumber: 5800000,
@@ -134,8 +134,8 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
   {
     id: 7,
     name: 'VIP 7',
-    crest: '/src/assets/images/vip7_phoenix_crest_1790429497956.jpg',
-    badgeImage: '/src/assets/images/vip7_badge_exact_1790431539570.jpg',
+    crest: '/assets/images/vip7_phoenix_crest_1790429497956.jpg',
+    badgeImage: '/assets/images/vip7_badge_exact_1790431539570.jpg',
     animalName: 'طائر الفينيق الوردي الناري',
     price: '8300000/30 يومًا',
     priceNumber: 8300000,
@@ -146,14 +146,14 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
     headwearTitle: 'غطاء رأس الفينيق الوردي الناري',
     entryTitle: 'تأثير دخول طائر الفينيق اللهبي VIP 7',
     hasVehicle: true,
-    vehicleImage: '/src/assets/images/vip7_phoenix_vehicle_1790429537754.jpg',
+    vehicleImage: '/assets/images/vip7_phoenix_vehicle_1790429537754.jpg',
     vehicleName: 'طائر الفينيق الناري VIP',
   },
   {
     id: 8,
     name: 'VIP 8',
-    crest: '/src/assets/images/vip8_lion_crest_1790429509482.jpg',
-    badgeImage: '/src/assets/images/vip8_badge_exact_1790431550754.jpg',
+    crest: '/assets/images/vip8_lion_crest_1790429509482.jpg',
+    badgeImage: '/assets/images/vip8_badge_exact_1790431550754.jpg',
     animalName: 'الأسد الإمبراطوري المتوج بالذهب',
     price: '12000000/30 يومًا',
     priceNumber: 12000000,
@@ -165,7 +165,7 @@ export const VIP_TIERS_CONFIG: VIPTierData[] = [
     headwearTitle: 'تاج الأسد الملكي بالبرق والذهب',
     entryTitle: 'تأثير دخول الأسد الإمبراطوري VIP 8',
     hasVehicle: true,
-    vehicleImage: '/src/assets/images/vip8_lion_vehicle_1790429549220.jpg',
+    vehicleImage: '/assets/images/vip8_lion_vehicle_1790429549220.jpg',
     vehicleName: 'الأسد المجنح الخارق VIP',
   },
 ];
@@ -212,12 +212,7 @@ export const VIPScreen: React.FC = () => {
   };
 
   const handleAction = () => {
-    setUser((prev) => ({
-      ...prev,
-      vipLevel: currentTier.id,
-      nobleRank: `VIP${currentTier.id}`,
-    }));
-    showToast(`تم تفعيل واشتراك ${currentTier.name} الملكي بنجاح! 👑`);
+    showToast('تفعيل VIP يحتاج اشتراكاً معتمداً. تواصل مع الدعم الرسمي.');
   };
 
   // Quick helper to open modal locked to this tier

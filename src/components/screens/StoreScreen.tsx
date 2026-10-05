@@ -148,23 +148,8 @@ export const StoreScreen: React.FC = () => {
 
   const filteredItems = items.filter((item) => item.category === activeTab);
 
-  const handleBuy = (item: StoreItem) => {
-    if (item.currency === 'gold') {
-      if (user.gold < item.price) {
-        alert('رصيد الذهب لديك غير كافٍ! يرجى إعادة الشحن من المحفظة.');
-        return;
-      }
-      setUser((prev) => ({ ...prev, gold: prev.gold - item.price }));
-    } else {
-      const currentSilver = user.silverCoins || 0;
-      if (currentSilver < item.price) {
-        alert('رصيد العملات الفضية غير كافٍ! أكمل المهام اليومية لكسب المزيد.');
-        return;
-      }
-      setUser((prev) => ({ ...prev, silverCoins: currentSilver - item.price }));
-    }
-
-    setPurchaseSuccess(`تم شراء "${item.name}" بنجاح وتفعيلها في حسابك!`);
+  const handleBuy = (_item: StoreItem) => {
+    setPurchaseSuccess('الشراء غير متاح حالياً. لم يتم خصم أي رصيد.');
     setTimeout(() => setPurchaseSuccess(null), 3000);
   };
 

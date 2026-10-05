@@ -36,7 +36,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     '2xl': 'w-24 h-24 text-xl',
   };
 
-  const defaultAvatar = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
+  const defaultAvatar = '/assets/images/default_arab_user_avatar_1790806239365.jpg';
   const effectiveAvatar = user?.avatar || defaultAvatar;
 
   const avatarContent = (

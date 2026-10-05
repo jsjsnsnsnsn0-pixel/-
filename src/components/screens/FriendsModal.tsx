@@ -10,18 +10,7 @@ export const FriendsModal: React.FC = () => {
   const { setActiveSubScreen, setSelectedChatUser } = useApp();
   const [tab, setTab] = useState<'friends' | 'followers' | 'following' | 'requests'>('friends');
 
-  const [requests, setRequests] = useState([
-    {
-      id: 'req1',
-      user: sampleUsers[3],
-      time: 'منذ 15 د',
-    },
-    {
-      id: 'req2',
-      user: sampleUsers[5],
-      time: 'منذ ساعتين',
-    },
-  ]);
+  const [requests, setRequests] = useState<{id: string; user: typeof sampleUsers[number]; time: string}[]>([]);
 
   const handleAcceptRequest = (reqId: string) => {
     setRequests((prev) => prev.filter((r) => r.id !== reqId));
@@ -72,6 +61,7 @@ export const FriendsModal: React.FC = () => {
         ))}
       </div>
 
+      <p className="text-center text-xs text-slate-400 p-4">شبكة الأصدقاء والمتابعين لم تُفعّل بعد.</p>
       {/* List content */}
       <div className="p-4 space-y-2.5">
         {tab === 'requests' ? (
@@ -119,7 +109,7 @@ export const FriendsModal: React.FC = () => {
             </div>
           )
         ) : (
-          sampleUsers.slice(1).map((usr) => (
+          ([] as typeof sampleUsers).map((usr) => (
             <div
               key={usr.id}
               className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15"

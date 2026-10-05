@@ -5,8 +5,7 @@ import { ChevronRight, Heart, CheckCircle2 } from 'lucide-react';
 
 export const CharmRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user } = useApp();
-  const { charmRankings, recordGiftSupport } = useRealtimeRankings();
-  const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const { charmRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Top 1, Top 2, Top 3
@@ -19,28 +18,8 @@ export const CharmRankingScreen: React.FC = () => {
   const myEntry = charmRankings.find((r) => r.id === user.id);
 
   // Simulate receiving charm support on mic
-  const handleReceiveCharm = (amount: number) => {
-    recordGiftSupport(
-      {
-        id: 'supporter-prince',
-        username: 'royal_supporter',
-        name: '👑 الداعم الملكي',
-        avatar: '/src/assets/images/avatar_prince_arab_1790226081300.jpg',
-        level: 50,
-        vipLevel: 9,
-        gold: 1000000,
-        diamonds: 500000,
-        friendsCount: 500,
-        followersCount: 3000,
-        followingCount: 100,
-        isOnline: true,
-        receivedGiftsCount: 200,
-      },
-      user,
-      null,
-      amount
-    );
-    setFeedbackMsg(`تم استلام دعم بقيمة +${amount.toLocaleString()} ✨ وارتفاع جاذبيتك في الترتيب!`);
+  const handleReceiveCharm = (_amount: number) => {
+    setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
     setTimeout(() => setFeedbackMsg(null), 3500);
   };
 
@@ -52,7 +31,7 @@ export const CharmRankingScreen: React.FC = () => {
       {/* 0. Full Exact Background Wallpaper (Ruby Eagles & Crimson Aura Artwork) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex justify-center">
         <img
-          src="/src/assets/images/charm_screen_bg_1790555660904.jpg"
+          src="/assets/images/charm_screen_bg_1790555660904.jpg"
           alt="خلفية الجاذبية"
           className="w-full h-full object-cover max-w-[480px]"
         />

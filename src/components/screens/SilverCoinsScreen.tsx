@@ -18,17 +18,17 @@ export const SilverCoinsScreen: React.FC = () => {
       id: 't1',
       title: 'تسجيل الدخول اليومي للتطبيق',
       reward: 50,
-      completed: true,
+      completed: false,
       claimed: false,
-      progress: '1/1',
+      progress: '0/1',
     },
     {
       id: 't2',
       title: 'الاستماع لغرفة صوتية لمدة 5 دقائق',
       reward: 70,
-      completed: true,
+      completed: false,
       claimed: false,
-      progress: '5/5 دقيقة',
+      progress: '0/5 دقيقة',
     },
     {
       id: 't3',
@@ -42,9 +42,9 @@ export const SilverCoinsScreen: React.FC = () => {
       id: 't4',
       title: 'متابعة صديقين جديدين',
       reward: 40,
-      completed: true,
+      completed: false,
       claimed: false,
-      progress: '2/2',
+      progress: '0/2',
     },
     {
       id: 't5',
@@ -59,20 +59,8 @@ export const SilverCoinsScreen: React.FC = () => {
   const [claimedDays, setClaimedDays] = useState<number[]>([1]);
   const [justClaimedNotice, setJustClaimedNotice] = useState<string | null>(null);
 
-  const handleClaimTask = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task || !task.completed || task.claimed) return;
-
-    setUser((prev) => ({
-      ...prev,
-      silverCoins: (prev.silverCoins || 0) + task.reward,
-    }));
-
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, claimed: true } : t))
-    );
-
-    setJustClaimedNotice(`تم استلام ${task.reward} عملة فضية بنجاح!`);
+  const handleClaimTask = (_taskId: string) => {
+    setJustClaimedNotice('مكافآت المهام غير متاحة حتى اعتماد تقدمك من الخادم.');
     setTimeout(() => setJustClaimedNotice(null), 3000);
   };
 

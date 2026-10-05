@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../../services/supabase';
 import { Gift, User, Room } from '../../types';
 import { sampleGifts } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
@@ -20,6 +21,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   onRechargeClick,
 }) => {
   const { user, sendGiftInRoom } = useApp();
+  const [gifts, setGifts] = useState<Gift[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGift, setSelectedGift] = useState<Gift | null>(sampleGifts[0]);
   
@@ -37,6 +40,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     potentialRecipients.length > 0 ? potentialRecipients[0] : null
   );
 
+  const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -51,12 +55,31 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     { id: 'special', label: 'مميز' },
   ];
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false; setLoading(true); setErrorMsg(null); setSendSuccess(false);
+    supabase.from('gift_catalog').select('id,name,price').then(({data,error}) => {
+      if (cancelled) return;
+      if (error) {setGifts([]); setSelectedGift(null); setErrorMsg('تعذر تحميل الهدايا.');}
+      else {
+        const next: Gift[] = (data || []).map(row => ({...(sampleGifts.find(g => g.id === row.id) || sampleGifts[0]), id: row.id, name: row.name, price: Number(row.price)}));
+        setGifts(next); setSelectedGift(next[0] || null);
+      }
+      setLoading(false);
+    });
+    return () => {cancelled = true;};
+  }, [isOpen]);
+  const recipientIds = potentialRecipients.map(u => u.id).join(',');
+  useEffect(() => {
+    if (!potentialRecipients.some(u => u.id === selectedRecipient?.id)) setSelectedRecipient(potentialRecipients[0] || null);
+  }, [recipientIds]);
   const filteredGifts =
     selectedCategory === 'all'
-      ? sampleGifts
-      : sampleGifts.filter((g) => g.category === selectedCategory);
+      ? gifts
+      : gifts.filter((g) => g.category === selectedCategory);
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    if (sending || loading) return;
     if (!selectedGift || !selectedRecipient) {
       setErrorMsg('يرجى اختيار المستلم والهدية');
       return;
@@ -67,7 +90,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       return;
     }
 
-    const ok = sendGiftInRoom(selectedGift, selectedRecipient);
+    setSending(true);
+    const ok = await sendGiftInRoom(selectedGift, selectedRecipient);
+    setSending(false);
     if (ok) {
       setSendSuccess(true);
       setErrorMsg(null);
@@ -144,7 +169,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
               </div>
             ) : (
               <div className="text-xs text-purple-300/80 bg-purple-950/40 p-2 rounded-xl border border-purple-500/20">
-                لا يوجد مستخدمون آخرون على المايك حالياً، سيتم إرسال الهدية لمضيف الغرفة.
+                لا يوجد مستلم متاح في الغرفة حالياً.
               </div>
             )}
           </div>
@@ -239,7 +264,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             <button
               type="button"
               onClick={handleSend}
-              disabled={!selectedGift || !selectedRecipient}
+              disabled={sending || loading || !selectedGift || !selectedRecipient}
               className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 sendSuccess
                   ? 'bg-emerald-600 text-white'

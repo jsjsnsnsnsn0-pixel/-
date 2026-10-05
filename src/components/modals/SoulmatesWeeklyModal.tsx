@@ -70,17 +70,17 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
   const rankImages: Record<RankTier, { title: string; image: string; tag: string }> = {
     top1: {
       title: 'Top 1 - المركز الأول',
-      image: '/src/assets/images/soulmates_top1_rewards_1790784739419.jpg',
+      image: '/assets/images/soulmates_top1_rewards_1790784739419.jpg',
       tag: 'Top 1',
     },
     top2: {
       title: 'Top 2 - المركز الثاني',
-      image: '/src/assets/images/soulmates_top2_rewards_1790784803070.jpg',
+      image: '/assets/images/soulmates_top2_rewards_1790784803070.jpg',
       tag: 'Top 2',
     },
     top3: {
       title: 'Top 3 - المركز الثالث',
-      image: '/src/assets/images/soulmates_top3_rewards_1790784825470.jpg',
+      image: '/assets/images/soulmates_top3_rewards_1790784825470.jpg',
       tag: 'Top 3',
     },
   };
@@ -199,7 +199,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
             <div className="relative w-full flex flex-col items-center">
               <div className="relative w-full max-w-[440px]">
                 <img
-                  src="/src/assets/images/soulmates_weekly_user_image_1790784401660.jpg"
+                  src="/assets/images/soulmates_weekly_user_image_1790784401660.jpg"
                   alt="رفقاء الروح الاسبوعيه"
                   className="w-full h-auto object-contain rounded-2xl border border-[#d4af37]/50 shadow-2xl"
                 />
@@ -286,7 +286,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
             <div className="w-full flex flex-col items-center animate-fade-in">
               <div className="relative w-full max-w-[440px] select-none">
                 <img
-                  src="/src/assets/images/soulmates_ranks_1_to_10_poster_1790800855277.jpg"
+                  src="/assets/images/soulmates_ranks_1_to_10_poster_1790800855277.jpg"
                   alt="ترتيب رفقاء الروح الاسبوعيه من 1 إلى 10"
                   className="w-full h-auto object-contain rounded-2xl border border-[#d4af37]/60 shadow-2xl block"
                 />
@@ -298,8 +298,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
                 <button
                   type="button"
                   onClick={() => {
-                    triggerSoulmatesWeeklyWinNotification();
-                    alert('🎉 مبروك! تم إرسال رسالة التتويج بالمرتبة الأولى إلى رسائل النظام وتفعيل شارة الشرف الإمبراطورية!');
+                    alert('مكافآت الأسبوع تحتاج اعتماد النتائج الفعلية من الخادم. لم تُمنح مكافأة.');
                   }}
                   className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 text-xs font-black border-2 border-white hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shadow-xl flex items-center justify-center gap-2"
                 >

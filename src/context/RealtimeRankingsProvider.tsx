@@ -1,204 +1,39 @@
-import React, { useState, useEffect, ReactNode } from 'react';
-import { User, Room } from '../types';
-import {
-  LeaderboardEntry,
-  RoomLeaderboardEntry,
-  RealtimeRankingsContext,
-} from './RealtimeRankingsContext';
+import React, { useState, useEffect, ReactNode, useCallback } from 'react';
+import { RealtimeRankingsContext, LeaderboardEntry, RoomLeaderboardEntry } from './RealtimeRankingsContext';
+import { supabase } from '../services/supabase';
+import { useApp } from './AppContext';
+import { countryFlag, defaultAvatar } from '../services/profile';
 
-const WEALTH_STORAGE_KEY = 'toti_realtime_wealth_rankings_v4_zeroed';
-const CHARM_STORAGE_KEY = 'toti_realtime_charm_rankings_v4_zeroed';
-const ROOM_STORAGE_KEY = 'toti_realtime_room_rankings_v4_zeroed';
-
-// Dynamic real rankings: Starts clean/empty, updates only when users send real gifts or support
-const initialWealthRankings: LeaderboardEntry[] = [];
-
-// Dynamic real charm rankings: Starts clean/empty, updates only when users receive real gifts
-const initialCharmRankings: LeaderboardEntry[] = [];
-
-// Dynamic real room rankings: Starts clean/empty, updates only when rooms receive real support
-const initialRoomRankings: RoomLeaderboardEntry[] = [];
-
-export const RealtimeRankingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Clear any old legacy cache keys on initial run to ensure 100% zeroed data
+export const RealtimeRankingsProvider: React.FC<{children: ReactNode}> = ({children}) => {
+  const {isAuthenticated, user, reportError} = useApp();
+  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [wealthRankings, setWealthRankings] = useState<LeaderboardEntry[]>([]);
+  const [charmRankings, setCharmRankings] = useState<LeaderboardEntry[]>([]);
+  const [roomRankings, setRoomRankings] = useState<RoomLeaderboardEntry[]>([]);
   useEffect(() => {
-    try {
-      localStorage.removeItem('toti_realtime_wealth_rankings');
-      localStorage.removeItem('toti_realtime_charm_rankings');
-      localStorage.removeItem('toti_realtime_room_rankings');
-      localStorage.removeItem('toti_realtime_wealth_rankings_v2');
-      localStorage.removeItem('toti_realtime_charm_rankings_v2');
-      localStorage.removeItem('toti_realtime_room_rankings_v2');
-      localStorage.removeItem('toti_realtime_wealth_rankings_v3');
-      localStorage.removeItem('toti_realtime_charm_rankings_v3');
-      localStorage.removeItem('toti_realtime_room_rankings_v3');
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const [wealthRankings, setWealthRankings] = useState<LeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(WEALTH_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialWealthRankings;
-  });
-
-  const [charmRankings, setCharmRankings] = useState<LeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(CHARM_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialCharmRankings;
-  });
-
-  const [roomRankings, setRoomRankings] = useState<RoomLeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(ROOM_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialRoomRankings;
-  });
-
-  // Sync to storage
-  useEffect(() => {
-    try {
-      localStorage.setItem(WEALTH_STORAGE_KEY, JSON.stringify(wealthRankings));
-    } catch {
-      // ignore
-    }
-  }, [wealthRankings]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(CHARM_STORAGE_KEY, JSON.stringify(charmRankings));
-    } catch {
-      // ignore
-    }
-  }, [charmRankings]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(ROOM_STORAGE_KEY, JSON.stringify(roomRankings));
-    } catch {
-      // ignore
-    }
-  }, [roomRankings]);
-
-  const recordGiftSupport = (sender: User, recipient: User, room: Room | null, amount: number) => {
-    setWealthRankings((prev) => {
-      const list = [...prev];
-      const index = list.findIndex((e) => e.id === sender.id);
-      if (index >= 0) {
-        list[index] = { ...list[index], score: list[index].score + amount };
-      } else {
-        list.push({
-          id: sender.id,
-          rank: list.length + 1,
-          name: sender.name,
-          avatar: sender.avatar,
-          idNumber: sender.id,
-          countryFlag: sender.countryFlag || '🇮🇶',
-          gender: sender.gender,
-          vipLevel: sender.vipLevel,
-          wealthLevel: sender.wealthLevel,
-          charmLevel: sender.charmLevel,
-          score: amount,
-        });
-      }
-      list.sort((a, b) => b.score - a.score);
-      return list.map((entry, idx) => ({ ...entry, rank: idx + 1 }));
-    });
-
-    setCharmRankings((prev) => {
-      const list = [...prev];
-      const index = list.findIndex((e) => e.id === recipient.id);
-      if (index >= 0) {
-        list[index] = { ...list[index], score: list[index].score + amount };
-      } else {
-        list.push({
-          id: recipient.id,
-          rank: list.length + 1,
-          name: recipient.name,
-          avatar: recipient.avatar,
-          idNumber: recipient.id,
-          countryFlag: recipient.countryFlag || '🇮🇶',
-          gender: recipient.gender,
-          vipLevel: recipient.vipLevel,
-          wealthLevel: recipient.wealthLevel,
-          charmLevel: recipient.charmLevel,
-          score: amount,
-        });
-      }
-      list.sort((a, b) => b.score - a.score);
-      return list.map((entry, idx) => ({ ...entry, rank: idx + 1 }));
-    });
-
-    if (room) {
-      setRoomRankings((prev) => {
-        const list = [...prev];
-        const index = list.findIndex((r) => r.id === room.id);
-        if (index >= 0) {
-          list[index] = { ...list[index], supportScore: list[index].supportScore + amount };
-        } else {
-          list.push({
-            id: room.id,
-            rank: list.length + 1,
-            roomName: room.title,
-            roomCover: room.coverImage,
-            roomId: room.id,
-            hostName: room.owner.name,
-            hostAvatar: room.owner.avatar,
-            membersCount: room.usersCount,
-            supportScore: amount,
-          });
-        }
-        list.sort((a, b) => b.supportScore - a.supportScore);
-        return list.map((entry, idx) => ({ ...entry, rank: idx + 1 }));
-      });
-    }
-  };
-
-  const resetRankings = () => {
-    setWealthRankings(initialWealthRankings);
-    setCharmRankings(initialCharmRankings);
-    setRoomRankings(initialRoomRankings);
-    try {
-      localStorage.removeItem(WEALTH_STORAGE_KEY);
-      localStorage.removeItem(CHARM_STORAGE_KEY);
-      localStorage.removeItem(ROOM_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  };
-
-  return (
-    <RealtimeRankingsContext.Provider
-      value={{
-        wealthRankings,
-        charmRankings,
-        roomRankings,
-        recordGiftSupport,
-        resetRankings,
-      }}
-    >
-      {children}
-    </RealtimeRankingsContext.Provider>
-  );
+    if (!isAuthenticated) { setWealthRankings([]); setCharmRankings([]); setRoomRankings([]); return; }
+    let cancelled = false;
+    const refresh = async () => {
+      const {data, error} = await supabase.rpc('get_gift_rankings', {p_period: period});
+      if (cancelled) return;
+      if (error) { reportError('تعذر تحميل التصنيفات.'); return; }
+      const map = (rows: any[]): LeaderboardEntry[] => rows.map((r, i) => ({
+        id: String(r.public_id), idNumber: String(r.public_id), rank: i + 1,
+        name: r.display_name || 'مستخدم', avatar: r.avatar_url || defaultAvatar,
+        countryCode: r.country_code, countryFlag: countryFlag(r.country_code),
+        wealthLevel: Number(r.level), vipLevel: Number(r.vip_level), score: Number(r.score),
+      }));
+      setWealthRankings(map(data?.wealth || [])); setCharmRankings(map(data?.charm || []));
+      setRoomRankings((data?.rooms || []).map((r: any, i: number) => ({id: r.id, roomId: r.id,
+        rank: i + 1, roomName: r.name, roomCover: r.image_url || '', hostName: r.owner_display_name || '',
+        hostAvatar: r.owner_avatar_url || defaultAvatar, supportScore: Number(r.score), membersCount: 0})));
+    };
+    void refresh().catch(() => { if (!cancelled) reportError('تعذر تحميل التصنيفات.'); });
+    const interval = setInterval(() => { void refresh().catch(() => {}); }, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isAuthenticated, user.authId, period]);
+  return <RealtimeRankingsContext.Provider value={{wealthRankings, charmRankings, roomRankings,
+    period, setPeriod, recordGiftSupport: () => reportError('الدعم يُحتسب تلقائياً عند إرسال هدية فعلية.'),
+    resetRankings: () => reportError('لا يمكن حذف التصنيفات من المتصفح.'),
+  }}>{children}</RealtimeRankingsContext.Provider>;
 };
