@@ -1,14 +1,29 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { readdir, readFile } from 'node:fs/promises';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), {
+      // Existing UI and cached profiles use these stable URLs rather than imports.
+      name: 'emit-ui-images',
+      apply: 'build',
+      async generateBundle() {
+        const imageDirectory = path.resolve(import.meta.dirname, 'src/assets/images');
+        for (const file of await readdir(imageDirectory)) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `src/assets/images/${file}`,
+            source: await readFile(path.join(imageDirectory, file)),
+          });
+        }
+      },
+    }],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

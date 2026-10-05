@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, MessageCircle, Sparkles, Lock, Unlock, CheckCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { officialSupportUser } from '../screens/MessagesScreen';
 
 interface CustomGiftModalProps {
   isOpen: boolean;
@@ -8,12 +9,13 @@ interface CustomGiftModalProps {
 }
 
 export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClose }) => {
-  const { user, setActiveSubScreen } = useApp();
+  const { user, setActiveSubScreen, setSelectedChatUser } = useApp();
 
   const currentMonthlyRecharge = (() => {
     try {
       const saved = localStorage.getItem(`toti_monthly_recharge_${user.id}`);
-      return saved ? parseFloat(saved) : 0;
+      const amount = saved ? Number(saved) : 0;
+      return Number.isFinite(amount) && amount >= 0 ? amount : 0;
     } catch {
       return 0;
     }
@@ -113,7 +115,8 @@ export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClos
                 type="button"
                 onClick={() => {
                   onClose();
-                  setActiveSubScreen('customer_support');
+                  setSelectedChatUser(officialSupportUser);
+                  setActiveSubScreen('chat_detail');
                 }}
                 className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-[#9333ea] via-[#7e22ce] to-[#581c87] border-2 border-amber-300 text-white font-black text-sm shadow-[0_0_20px_rgba(147,51,234,0.6)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
               >

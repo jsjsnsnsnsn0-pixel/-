@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useTimeouts } from '../../hooks/useTimeouts';
+import React, { useState, useEffect, useRef } from 'react';
+import type { Message } from '../../types';
+import { copyText } from '../../utils/clipboard';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
@@ -23,10 +26,29 @@ export const ChatDetailScreen: React.FC = () => {
     user,
   } = useApp();
 
+  const scheduleTimeout = useTimeouts(selectedChatUser?.id);
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [systemMsgs, setSystemMsgs] = useState<SystemNotificationMessage[]>(() => getSystemMessages());
+  const [extraMessages, setExtraMessages] = useState<Message[]>([]);
+  const feedRef = useRef<HTMLDivElement>(null);
+  const nextMessageNumber = useRef(0);
+  const messageId = (prefix: string) => `${prefix}-${Date.now()}-${++nextMessageNumber.current}`;
+
+  useEffect(() => {
+    setExtraMessages([]);
+    setInputText('');
+    setIsRecording(false);
+    setCopiedPhone(false);
+  }, [selectedChatUser?.id]);
+
+  const conversation = conversations.find((c) => c.user.id === selectedChatUser?.id);
+  const messageCount = systemMsgs.length + extraMessages.length + (conversation?.messages.length || 0);
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (feed) feed.scrollTop = feed.scrollHeight;
+  }, [messageCount, isRecording, selectedChatUser?.id]);
 
   useEffect(() => {
     const handleSystemMsg = () => {
@@ -38,15 +60,19 @@ export const ChatDetailScreen: React.FC = () => {
     };
   }, []);
 
-  if (!selectedChatUser) return null;
+  if (!selectedChatUser) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-6 text-center" dir="rtl">
+        <p className="mb-4">اختر محادثة للمتابعة</p>
+        <button type="button" onClick={() => setActiveSubScreen(null)} className="px-6 py-2 rounded-full bg-emerald-600 text-white cursor-pointer">الرجوع</button>
+      </div>
+    );
+  }
 
   const isOfficial = selectedChatUser.id === 'official_support_hamdan';
   const isSystem = selectedChatUser.id === 'system_official_bot';
   const officialPhone = '9647726450081';
 
-  // Find existing conversation or fallback
-  const conversation = conversations.find((c) => c.user.id === selectedChatUser.id);
-  
   const defaultOfficialMessages = [
     {
       id: 'official-msg-1',
@@ -69,9 +95,6 @@ export const ChatDetailScreen: React.FC = () => {
       type: 'text' as const,
     },
   ];
-
-  const [extraMessages, setExtraMessages] = useState<any[]>([]);
-
   const baseMessages = isOfficial
     ? defaultOfficialMessages
     : isSystem
@@ -98,7 +121,7 @@ export const ChatDetailScreen: React.FC = () => {
     if (!inputText.trim()) return;
 
     const newMsg = {
-      id: `msg-${Date.now()}`,
+      id: messageId('msg'),
       senderId: user.id,
       senderName: user.name,
       senderAvatar: user.avatar,
@@ -108,19 +131,19 @@ export const ChatDetailScreen: React.FC = () => {
       type: 'text' as const,
     };
 
-    setExtraMessages((prev) => [...prev, newMsg]);
-
-    if (conversation) {
+    if (conversation && !isOfficial && !isSystem) {
       sendMessageToConversation(conversation.id, inputText.trim(), 'text');
+    } else {
+      setExtraMessages((prev) => [...prev, newMsg]);
     }
 
     // Auto-reply for official support
     if (isOfficial) {
-      setTimeout(() => {
+      scheduleTimeout(() => {
         setExtraMessages((prev) => [
           ...prev,
           {
-            id: `reply-${Date.now()}`,
+            id: messageId('reply'),
             senderId: selectedChatUser.id,
             senderName: 'السيد حـمـدان',
             senderAvatar: selectedChatUser.avatar,
@@ -130,42 +153,45 @@ export const ChatDetailScreen: React.FC = () => {
             type: 'text' as const,
           },
         ]);
-      }, 1000);
+      }, 1000, newMsg.id);
     }
 
     setInputText('');
   };
 
   const handleVoiceRecord = () => {
+    if (isRecording) return;
     setIsRecording(true);
-    setTimeout(() => {
+    scheduleTimeout(() => {
       setIsRecording(false);
-      setExtraMessages((prev) => [
-        ...prev,
-        {
-          id: `voice-${Date.now()}`,
-          senderId: user.id,
-          senderName: user.name,
-          senderAvatar: user.avatar,
-          content: 'تسجيل صوتي (0:08)',
-          timestamp: 'الآن',
-          isMe: true,
-          type: 'voice' as const,
-        },
-      ]);
-    }, 1500);
+      const voiceMessage: Message = {
+        id: messageId('voice'),
+        senderId: user.id,
+        senderName: user.name,
+        senderAvatar: user.avatar,
+        content: 'تسجيل صوتي (0:08)',
+        timestamp: 'الآن',
+        isMe: true,
+        type: 'voice',
+      };
+      if (conversation && !isOfficial && !isSystem) {
+        sendMessageToConversation(conversation.id, voiceMessage.content, 'voice');
+      } else {
+        setExtraMessages((prev) => [...prev, voiceMessage]);
+      }
+    }, 1500, 'recording');
   };
 
-  const handleCopyNumber = () => {
-    navigator.clipboard?.writeText(officialPhone);
+  const handleCopyNumber = async () => {
+    if (!await copyText(officialPhone)) return;
     setCopiedPhone(true);
-    setTimeout(() => setCopiedPhone(false), 2000);
+    scheduleTimeout(() => setCopiedPhone(false), 2000, 'copy');
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col justify-between select-none">
+    <div className="h-screen bg-[#f8fafc] text-slate-800 flex flex-col select-none overflow-hidden">
       {/* Top Chat App Bar */}
-      <header className="sticky top-0 z-30 bg-white/95 border-b border-slate-200/80 px-4 py-2.5 backdrop-blur-md flex items-center justify-between shadow-xs">
+      <header className="shrink-0 sticky top-0 z-30 bg-white/95 border-b border-slate-200/80 px-4 py-2.5 backdrop-blur-md flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -251,7 +277,7 @@ export const ChatDetailScreen: React.FC = () => {
       )}
 
       {/* Messages Feed */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3">
+      <div ref={feedRef} className="flex-1 min-h-0 p-4 overflow-y-auto space-y-3">
         {allMessages.map((msg) => (
           <div
             key={msg.id}
@@ -290,7 +316,7 @@ export const ChatDetailScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                <p className="leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.content}</p>
               )}
               <span className={`block text-[9px] mt-1 font-mono text-left ${msg.isMe ? 'text-white/80' : 'text-slate-400'}`}>
                 {msg.timestamp}
@@ -308,13 +334,14 @@ export const ChatDetailScreen: React.FC = () => {
       </div>
 
       {/* Input Bar */}
-      <div className="p-3 bg-white border-t border-slate-200/80 shadow-xs">
-        <form onSubmit={handleSend} className="flex items-center gap-2">
+      <div className="shrink-0 bg-white border-t border-slate-200/80 shadow-xs pb-safe">
+        <form onSubmit={handleSend} className="flex items-center gap-2 p-3">
           {/* Voice recorder button */}
           <button
             type="button"
             onClick={handleVoiceRecord}
-            className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 hover:text-cyan-700 hover:bg-slate-200 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+            disabled={isRecording}
+            className="w-10 h-10 shrink-0 rounded-full bg-slate-100 text-slate-600 hover:text-cyan-700 hover:bg-slate-200 flex items-center justify-center active:scale-95 transition-all cursor-pointer disabled:opacity-40"
             title="تسجيل صوتي"
           >
             <Mic size={18} />
@@ -331,14 +358,14 @@ export const ChatDetailScreen: React.FC = () => {
                 ? 'اكتب استفسارك لخدمة العملاء (السيد حـمـدان)...'
                 : 'اكتب رسالتك هنا...'
             }
-            className="flex-1 bg-slate-100 border border-slate-200 focus:border-cyan-500 focus:bg-white rounded-2xl px-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
+            className="flex-1 min-w-0 bg-slate-100 border border-slate-200 focus:border-cyan-500 focus:bg-white rounded-2xl px-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none transition-all"
           />
 
           {/* Send Button */}
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-40 shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+            className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-40 shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer"
             title="إرسال"
           >
             <Send size={16} className="-rotate-90 ml-0.5" />

@@ -41,8 +41,9 @@ export const AgencyScreen: React.FC = () => {
       receivedTotal: '999K',
       receivedGiftsCount: 9999,
       isHost: false,
+      isOnline: true,
     });
-    setActiveSubScreen(null);
+    setActiveSubScreen('chat_detail');
   };
 
   return (

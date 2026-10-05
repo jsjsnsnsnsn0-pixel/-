@@ -1,3 +1,5 @@
+import { copyText } from '../../utils/clipboard';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
@@ -21,19 +23,20 @@ import {
 
 export const UserDetailProfileScreen: React.FC = () => {
   const { user, setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState<'details' | 'relation'>('details');
 
-  const copyId = () => {
-    navigator.clipboard?.writeText(user.id);
+  const copyId = async () => {
+    if (!await copyText(user.id)) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
-  const copyAgencyId = () => {
-    navigator.clipboard?.writeText(user.agencyId || user.id);
+  const copyAgencyId = async () => {
+    if (!await copyText(user.agencyId || user.id)) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
   // Badges row below the rank

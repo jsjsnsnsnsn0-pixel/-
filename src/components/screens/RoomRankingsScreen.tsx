@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -6,6 +7,7 @@ import { ChevronRight, Trophy, CheckCircle2 } from 'lucide-react';
 export const RoomRankingsScreen: React.FC = () => {
   const { setActiveSubScreen, rooms } = useApp();
   const { roomRankings, recordGiftSupport } = useRealtimeRankings();
+  const scheduleTimeout = useTimeouts();
   const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -26,7 +28,7 @@ export const RoomRankingsScreen: React.FC = () => {
         amount
       );
       setFeedbackMsg(`تم دعم الغرفة بـ +${amount.toLocaleString()} 💎 وصعودها في تصنيف الغرف!`);
-      setTimeout(() => setFeedbackMsg(null), 3500);
+      scheduleTimeout(() => setFeedbackMsg(null), 3500);
     }
   };
 

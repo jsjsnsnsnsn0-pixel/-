@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check } from 'lucide-react';
@@ -16,6 +17,7 @@ interface StoreItem {
 
 export const StoreScreen: React.FC = () => {
   const { user, setUser, setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges'>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
@@ -165,7 +167,7 @@ export const StoreScreen: React.FC = () => {
     }
 
     setPurchaseSuccess(`تم شراء "${item.name}" بنجاح وتفعيلها في حسابك!`);
-    setTimeout(() => setPurchaseSuccess(null), 3000);
+    scheduleTimeout(() => setPurchaseSuccess(null), 3000);
   };
 
   return (

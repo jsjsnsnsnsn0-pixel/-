@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { VIPFrame } from './VIPFrame';
 import { LevelBadge } from './LevelBadge';
@@ -26,6 +26,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   className = '',
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [fallbackError, setFallbackError] = useState(false);
 
   const dimensionMap = {
     xs: 'w-7 h-7 text-[10px]',
@@ -38,6 +39,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const defaultAvatar = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
   const effectiveAvatar = user?.avatar || defaultAvatar;
+
+  useEffect(() => {
+    setImgError(false);
+    setFallbackError(false);
+  }, [effectiveAvatar]);
 
   const avatarContent = (
     <div
@@ -52,12 +58,15 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"
         />
-      ) : (
+      ) : !fallbackError ? (
         <img
           src={defaultAvatar}
           alt={user?.name || 'User'}
+          onError={() => setFallbackError(true)}
           className="w-full h-full object-cover rounded-full"
         />
+      ) : (
+        <span>{user?.name?.slice(0, 1) || '؟'}</span>
       )}
 
       {/* Online indicator */}

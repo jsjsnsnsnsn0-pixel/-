@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { User, Room } from '../types';
+import { isRecord, readStoredArray } from '../utils/storage';
 import {
   LeaderboardEntry,
   RoomLeaderboardEntry,
@@ -18,6 +19,20 @@ const initialCharmRankings: LeaderboardEntry[] = [];
 
 // Dynamic real room rankings: Starts clean/empty, updates only when rooms receive real support
 const initialRoomRankings: RoomLeaderboardEntry[] = [];
+
+const isLeaderboardEntry = (value: unknown): value is LeaderboardEntry =>
+  isRecord(value) &&
+  ['id', 'name', 'avatar', 'idNumber'].every((key) => typeof value[key] === 'string') &&
+  typeof value.rank === 'number' && Number.isFinite(value.rank) &&
+  typeof value.score === 'number' && Number.isFinite(value.score);
+
+const isRoomLeaderboardEntry = (value: unknown): value is RoomLeaderboardEntry =>
+  isRecord(value) &&
+  ['id', 'roomName', 'roomCover', 'roomId', 'hostName', 'hostAvatar'].every(
+    (key) => typeof value[key] === 'string'
+  ) && ['rank', 'membersCount', 'supportScore'].every(
+    (key) => typeof value[key] === 'number' && Number.isFinite(value[key])
+  );
 
 export const RealtimeRankingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Clear any old legacy cache keys on initial run to ensure 100% zeroed data
@@ -38,42 +53,15 @@ export const RealtimeRankingsProvider: React.FC<{ children: ReactNode }> = ({ ch
   }, []);
 
   const [wealthRankings, setWealthRankings] = useState<LeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(WEALTH_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialWealthRankings;
+    return readStoredArray(WEALTH_STORAGE_KEY, isLeaderboardEntry);
   });
 
   const [charmRankings, setCharmRankings] = useState<LeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(CHARM_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialCharmRankings;
+    return readStoredArray(CHARM_STORAGE_KEY, isLeaderboardEntry);
   });
 
   const [roomRankings, setRoomRankings] = useState<RoomLeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem(ROOM_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {
-      // fallback
-    }
-    return initialRoomRankings;
+    return readStoredArray(ROOM_STORAGE_KEY, isRoomLeaderboardEntry);
   });
 
   // Sync to storage

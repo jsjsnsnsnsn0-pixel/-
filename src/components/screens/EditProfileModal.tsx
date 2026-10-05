@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import {
   ChevronLeft,
@@ -39,15 +40,30 @@ export const EditProfileModal: React.FC = () => {
 
   // Hidden native file input for gallery upload
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readerRef = useRef<FileReader | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => () => {
+    if (readerRef.current?.readyState === FileReader.LOADING) readerRef.current.abort();
+  }, []);
 
   // Handle local image file picker from gallery
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
+    setUploadError(null);
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        setUploadError('يرجى اختيار ملف صورة');
+        return;
+      }
+      if (readerRef.current?.readyState === FileReader.LOADING) readerRef.current.abort();
       const reader = new FileReader();
+      readerRef.current = reader;
+      reader.onerror = () => setUploadError('تعذر تحميل الصورة. حاول مرة أخرى');
       reader.onload = (event) => {
-        if (event.target?.result) {
-          const newAvatar = event.target.result as string;
+        if (typeof event.target?.result === 'string') {
+          const newAvatar = event.target.result;
           setAvatar(newAvatar);
           setUser((prev) => ({
             ...prev,
@@ -68,9 +84,9 @@ export const EditProfileModal: React.FC = () => {
   const avatarPresets = [
     '/src/assets/images/mr_balmain_avatar_1790227488334.jpg',
     '/src/assets/images/avatar_prince_arab_1790226081300.jpg',
-    '/src/assets/images/avatar_sarah_1790226105436.jpg',
-    '/src/assets/images/avatar_tariq_1790226127110.jpg',
-    '/src/assets/images/avatar_nour_1790226149141.jpg',
+    '/src/assets/images/avatar_layla_arab_1790226090704.jpg',
+    '/src/assets/images/avatar_male_ghutra_1790628422202.jpg',
+    '/src/assets/images/avatar_female_ghutra_1790628438051.jpg',
   ];
 
   const countriesList = [
@@ -140,6 +156,8 @@ export const EditProfileModal: React.FC = () => {
           <ChevronRight size={26} className="stroke-[2.5]" />
         </button>
       </header>
+
+      {uploadError && <p role="alert" className="mx-4 mt-3 text-sm text-rose-600">{uploadError}</p>}
 
       {/* List items matching the exact order and look in the screenshot */}
       <div className="divide-y divide-slate-100 px-4">
@@ -303,7 +321,7 @@ export const EditProfileModal: React.FC = () => {
                         : 'border-slate-200 hover:opacity-80'
                     }`}
                   >
-                    <img src={preset} alt={`preset-${idx}`} className="w-full h-full object-cover" />
+                    <img src={preset} alt={`preset-${idx}`} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

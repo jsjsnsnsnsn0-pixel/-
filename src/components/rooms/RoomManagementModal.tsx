@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useTimeouts } from '../../hooks/useTimeouts';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Room } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -28,12 +29,16 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({
   room,
 }) => {
   const { lockSeat, unlockSeat, muteSeatUser, kickSeatUser } = useApp();
+  const scheduleTimeout = useTimeouts(isOpen);
   const [activeTab, setActiveTab] = useState<'seats' | 'members' | 'settings'>('seats');
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isOpen) setSuccessToast(null);
+  }, [isOpen]);
 
   const showToast = (msg: string) => {
     setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(null), 2000);
+    scheduleTimeout(() => setSuccessToast(null), 2000);
   };
 
   if (!isOpen) return null;

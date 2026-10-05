@@ -1,3 +1,6 @@
+import { copyText } from '../../utils/clipboard';
+import { setImageFallback } from '../../utils/imageFallback';
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
@@ -37,12 +40,13 @@ export const ProfileScreen: React.FC = () => {
     markVisitorsAsSeen,
     markFollowersAsSeen,
   } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
 
-  const copyUserId = () => {
-    navigator.clipboard?.writeText(user.id);
+  const copyUserId = async () => {
+    if (!await copyText(user.id)) return;
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    scheduleTimeout(() => setCopied(false), 2000);
   };
 
   // Open user's own room or join first room
@@ -152,9 +156,7 @@ export const ProfileScreen: React.FC = () => {
           <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-900 ring-2 ring-slate-200/60 relative">
             <img
               src={user.avatar || '/src/assets/images/default_arab_user_avatar_1790806239365.jpg'}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/src/assets/images/default_arab_user_avatar_1790806239365.jpg';
-              }}
+              onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')}
               alt={user.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />

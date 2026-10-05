@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, Plus, X, Check, Award, Sparkles } from 'lucide-react';
@@ -31,6 +32,7 @@ export interface MedalDetail {
 
 export const BadgesScreen: React.FC = () => {
   const { setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [topTab, setTopTab] = useState<'medals' | 'titles'>('medals');
   const [subTab, setSubTab] = useState<'achievements' | 'activity'>('achievements');
   const [selectedMedal, setSelectedMedal] = useState<MedalDetail | null>(null);
@@ -47,7 +49,7 @@ export const BadgesScreen: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    scheduleTimeout(() => setToast(null), 2500);
   };
 
   // All Achievement Medals (الإنجازات)

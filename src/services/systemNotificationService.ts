@@ -1,4 +1,5 @@
 // System messages and event notifications service for Toti Chat
+import { isRecord, readStoredArray } from '../utils/storage';
 
 export interface SystemNotificationMessage {
   id: string;
@@ -15,17 +16,12 @@ export interface SystemNotificationMessage {
 const STORAGE_KEY = 'toti_system_messages_history';
 
 export const getSystemMessages = (): SystemNotificationMessage[] => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch {
-    // fallback
-  }
-
-  // Clean empty initial system messages list
-  return [];
+  return readStoredArray(STORAGE_KEY, (value): value is SystemNotificationMessage =>
+    isRecord(value) &&
+    ['id', 'senderId', 'senderName', 'senderAvatar', 'content', 'timestamp'].every(
+      (key) => typeof value[key] === 'string'
+    ) && typeof value.isMe === 'boolean' && value.type === 'text'
+  );
 };
 
 export const addSystemMessage = (content: string, category: 'recharge' | 'soulmates_weekly' | 'custom_gift' | 'general' = 'recharge') => {

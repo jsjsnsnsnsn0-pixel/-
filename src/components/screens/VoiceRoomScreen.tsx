@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoomUserProfileModal } from '../rooms/RoomUserProfileModal';
@@ -29,6 +30,7 @@ export const VoiceRoomScreen: React.FC = () => {
     setActiveSubScreen,
   } = useApp();
 
+  const scheduleTimeout = useTimeouts();
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -38,7 +40,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const [roomToast, setRoomToast] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setRoomToast(msg);
-    setTimeout(() => setRoomToast(null), 2200);
+    scheduleTimeout(() => setRoomToast(null), 2200);
   };
 
   if (!activeRoom) return null;

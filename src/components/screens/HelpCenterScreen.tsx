@@ -1,9 +1,11 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, Headphones, HelpCircle, MessageSquare, ShieldAlert, Send, Check } from 'lucide-react';
 
 export const HelpCenterScreen: React.FC = () => {
   const { setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [feedback, setFeedback] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -36,7 +38,7 @@ export const HelpCenterScreen: React.FC = () => {
     if (!feedback.trim()) return;
     setFeedbackSent(true);
     setFeedback('');
-    setTimeout(() => setFeedbackSent(false), 3500);
+    scheduleTimeout(() => setFeedbackSent(false), 3500);
   };
 
   return (

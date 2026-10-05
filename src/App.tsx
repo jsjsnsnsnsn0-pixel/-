@@ -31,8 +31,16 @@ import { RoomRankingsScreen } from './components/screens/RoomRankingsScreen';
 import { CharmRankingScreen } from './components/screens/CharmRankingScreen';
 import { WealthRankingScreen } from './components/screens/WealthRankingScreen';
 
+const subScreens = [
+  'level', 'vip', 'wallet', 'recharge', 'settings', 'search', 'friends',
+  'chat_detail', 'store', 'agency', 'badges', 'charm_wealth', 'wealth_level',
+  'charm_level', 'silver_coins', 'help_center', 'edit_profile',
+  'user_detail_profile', 'room_rankings', 'charm_ranking', 'wealth_ranking',
+  'fill_info', 'login', 'messages',
+];
+
 const MainLayout: React.FC = () => {
-  const { activeRoom, activeTab, activeSubScreen, isAuthenticated } = useApp();
+  const { activeRoom, activeTab, activeSubScreen, isAuthenticated, setActiveSubScreen } = useApp();
 
   // 0. If user is logged out, render the exact Login Screen
   if (!isAuthenticated) {
@@ -40,7 +48,7 @@ const MainLayout: React.FC = () => {
   }
 
   // 1. If currently in full live Voice Room
-  if (activeRoom) {
+  if (activeRoom && !activeSubScreen) {
     return (
       <div className="max-w-md mx-auto min-h-screen bg-[#080914] relative shadow-2xl">
         <VoiceRoomScreen />
@@ -50,6 +58,18 @@ const MainLayout: React.FC = () => {
 
   // 2. If viewing a sub-screen modal
   if (activeSubScreen) {
+    if (!subScreens.includes(activeSubScreen)) {
+      return (
+        <div className="max-w-md mx-auto min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+          <p className="font-bold mb-4">
+            {activeSubScreen === 'visitors' ? 'لا توجد بيانات زوار متاحة حالياً' : 'هذه الصفحة غير متاحة حالياً'}
+          </p>
+          <button type="button" onClick={() => setActiveSubScreen(null)} className="px-6 py-2 rounded-full bg-emerald-600 text-white font-bold cursor-pointer">
+            الرجوع
+          </button>
+        </div>
+      );
+    }
     const isLightScreen = [
       'store',
       'agency',
@@ -74,6 +94,7 @@ const MainLayout: React.FC = () => {
         {activeSubScreen === 'search' && <SearchModal />}
         {activeSubScreen === 'friends' && <FriendsModal />}
         {activeSubScreen === 'chat_detail' && <ChatDetailScreen />}
+        {activeSubScreen === 'messages' && <MessagesScreen />}
         {activeSubScreen === 'store' && <StoreScreen />}
         {activeSubScreen === 'agency' && <AgencyScreen />}
         {activeSubScreen === 'badges' && <BadgesScreen />}

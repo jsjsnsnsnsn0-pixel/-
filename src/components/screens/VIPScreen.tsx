@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -181,6 +182,7 @@ export const VIPScreen: React.FC = () => {
   const { user, setUser, setActiveSubScreen } = useApp();
 
   // Selected tier (Default to user's active tier or VIP 1)
+  const scheduleTimeout = useTimeouts();
   const [selectedTierId, setSelectedTierId] = useState<number>(() => user.vipLevel || 8);
   const [previewModal, setPreviewModal] = useState<PreviewModalState | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -208,7 +210,7 @@ export const VIPScreen: React.FC = () => {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    scheduleTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleAction = () => {

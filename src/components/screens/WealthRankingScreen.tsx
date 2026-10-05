@@ -1,3 +1,5 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
+import { setImageFallback } from '../../utils/imageFallback';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -6,6 +8,7 @@ import { ChevronRight, Gift, CheckCircle2 } from 'lucide-react';
 export const WealthRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user, rechargeGold } = useApp();
   const { wealthRankings, recordGiftSupport } = useRealtimeRankings();
+  const scheduleTimeout = useTimeouts();
   const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [showQuickSupport, setShowQuickSupport] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(50000);
@@ -32,7 +35,7 @@ export const WealthRankingScreen: React.FC = () => {
         id: 'host-royal-star',
         username: 'queen_laila',
         name: '👑 ملكة السهرة',
-        avatar: '/src/assets/images/beauty_girl_red_lipstick_1790230886064.jpg',
+        avatar: '/src/assets/images/default_arab_user_avatar_1790806239365.jpg',
         level: 45,
         vipLevel: 8,
         gold: 300000,
@@ -48,7 +51,7 @@ export const WealthRankingScreen: React.FC = () => {
     );
     setFeedbackMsg(`تم إرسال دعم بقيمة +${amount.toLocaleString()} 🪙 وارتفاع حسابك في الثروة!`);
     setShowQuickSupport(false);
-    setTimeout(() => setFeedbackMsg(null), 3500);
+    scheduleTimeout(() => setFeedbackMsg(null), 3500);
   };
 
   return (
@@ -127,7 +130,7 @@ export const WealthRankingScreen: React.FC = () => {
               <div className="w-18 h-18 rounded-full p-1 bg-gradient-to-tr from-slate-400 via-slate-100 to-slate-500 shadow-[0_0_20px_rgba(203,213,225,0.7)]">
                 <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center">
                   {top2 ? (
-                    <img src={top2.avatar} alt={top2.name} className="w-full h-full object-cover" />
+                    <img src={top2.avatar} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')} alt={top2.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xl text-slate-500">👤</span>
                   )}
@@ -159,7 +162,7 @@ export const WealthRankingScreen: React.FC = () => {
               <div className="w-22 h-22 rounded-full p-1.5 bg-gradient-to-tr from-amber-600 via-yellow-200 to-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.9)]">
                 <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center border-2 border-amber-300">
                   {top1 ? (
-                    <img src={top1.avatar} alt={top1.name} className="w-full h-full object-cover" />
+                    <img src={top1.avatar} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')} alt={top1.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-3xl text-amber-500/50">👤</span>
                   )}
@@ -191,7 +194,7 @@ export const WealthRankingScreen: React.FC = () => {
               <div className="w-18 h-18 rounded-full p-1 bg-gradient-to-tr from-amber-700 via-amber-500 to-amber-800 shadow-[0_0_20px_rgba(217,119,6,0.7)]">
                 <div className="w-full h-full rounded-full overflow-hidden bg-black flex items-center justify-center">
                   {top3 ? (
-                    <img src={top3.avatar} alt={top3.name} className="w-full h-full object-cover" />
+                    <img src={top3.avatar} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')} alt={top3.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xl text-amber-700/50">👤</span>
                   )}
@@ -257,7 +260,7 @@ export const WealthRankingScreen: React.FC = () => {
                 {/* Circle Avatar */}
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-amber-400/70 bg-black shrink-0 shadow-md">
                   {entry ? (
-                    <img src={entry.avatar} alt={entry.name} className="w-full h-full object-cover" />
+                    <img src={entry.avatar} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')} alt={entry.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-500 text-sm">
                       👤
@@ -299,7 +302,7 @@ export const WealthRankingScreen: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <div className="relative">
               <img
-                src={user.avatar}
+                src={user.avatar} onError={(e) => setImageFallback(e, '/src/assets/images/default_arab_user_avatar_1790806239365.jpg')}
                 alt={user.name}
                 className="w-11 h-11 rounded-full object-cover border-2 border-amber-400 shadow-md"
               />

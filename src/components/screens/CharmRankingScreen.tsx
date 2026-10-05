@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -6,6 +7,7 @@ import { ChevronRight, Heart, CheckCircle2 } from 'lucide-react';
 export const CharmRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user } = useApp();
   const { charmRankings, recordGiftSupport } = useRealtimeRankings();
+  const scheduleTimeout = useTimeouts();
   const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -41,7 +43,7 @@ export const CharmRankingScreen: React.FC = () => {
       amount
     );
     setFeedbackMsg(`تم استلام دعم بقيمة +${amount.toLocaleString()} ✨ وارتفاع جاذبيتك في الترتيب!`);
-    setTimeout(() => setFeedbackMsg(null), 3500);
+    scheduleTimeout(() => setFeedbackMsg(null), 3500);
   };
 
   return (

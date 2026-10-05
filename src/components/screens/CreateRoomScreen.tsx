@@ -1,3 +1,4 @@
+import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Radio, Lock, Globe, Sparkles, CheckCircle2 } from 'lucide-react';
@@ -5,6 +6,7 @@ import { Radio, Lock, Globe, Sparkles, CheckCircle2 } from 'lucide-react';
 export const CreateRoomScreen: React.FC = () => {
   const { createNewRoom, setActiveTab } = useApp();
 
+  const scheduleTimeout = useTimeouts();
   const [title, setTitle] = useState('مجلس النخبة والسمرات 🎙️');
   const [description, setDescription] = useState('حياكم الله جميعاً.. مساحة للحوار الراقي والموسيقى');
   const [category, setCategory] = useState<'طرب وموسيقى' | 'سوالف وألعاب' | 'مسابقات وفعاليات' | 'شعر وأدب' | 'عامة'>('طرب وموسيقى');
@@ -34,10 +36,10 @@ export const CreateRoomScreen: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    scheduleTimeout(() => {
       createNewRoom({
         title,
         description,

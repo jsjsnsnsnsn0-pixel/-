@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { setImageFallback } from '../../utils/imageFallback';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { getSystemMessages } from '../../services/systemNotificationService';
@@ -116,10 +117,7 @@ export const MessagesScreen: React.FC = () => {
           <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.22)] border border-amber-200/70 bg-[#f6ba5d] flex items-center justify-center">
             <img
               src="/src/assets/images/system_bell_icon_1790421934665.jpg"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg';
-              }}
+              onError={(e) => setImageFallback(e, '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg')}
               alt="رسائل النظام"
               className="w-full h-full object-cover"
             />
@@ -144,10 +142,7 @@ export const MessagesScreen: React.FC = () => {
           <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-emerald-200/70 bg-[#7ee0af] flex items-center justify-center">
             <img
               src="/src/assets/images/official_mascot_1790421946401.jpg"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  '/src/assets/images/msg_official_mascot_1790349038045.jpg';
-              }}
+              onError={(e) => setImageFallback(e, '/src/assets/images/msg_official_mascot_1790349038045.jpg')}
               alt="رسائل رسمية"
               className="w-full h-full object-cover"
             />
