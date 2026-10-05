@@ -81,27 +81,20 @@ export const MessagesScreen: React.FC = () => {
           'radial-gradient(ellipse 90% 45% at 50% -5%, #bce9c6 0%, #daf2e0 30%, #eef8f1 60%, #f6fbf7 85%, #f8faf8 100%)',
       }}
     >
-      {/* ============================================================== */}
-      {/* 1. TOP HEADER: Exact Screenshot Title "الرسائل"                */}
-      {/* ============================================================== */}
       <header className="px-6 pt-9 pb-5 flex items-center justify-end">
         <h1 className="text-[25px] font-black text-[#153424] tracking-tight">
           الرسائل
         </h1>
       </header>
 
-      {/* ============================================================== */}
-      {/* 2. MESSAGES LIST: Exact Screenshot Items                       */}
-      {/* ============================================================== */}
-      <div className="px-5 pt-1 space-y-6">
-        {/* ROW 1: رسائل النظام (System Messages with Golden Bell Cloche) */}
+      {/* Fixed three-column message matrix: meta | text | avatar */}
+      <div className="px-5 pt-1 space-y-4">
         <div
           onClick={handleOpenSystemChat}
-          className="flex items-start justify-between py-1 cursor-pointer group active:opacity-85 transition-opacity"
+          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 cursor-pointer group active:opacity-85 transition-opacity"
         >
-          {/* Left Side: Date / Time + Red Unread Badge under it if unread */}
-          <div className="flex flex-col items-center shrink-0 pt-0.5 pl-1">
-            <span className="text-[12px] font-medium text-[#8ea396]">
+          <div className="w-[44px] flex flex-col items-center justify-center self-stretch shrink-0">
+            <span className="text-[12px] font-medium text-[#8ea396] whitespace-nowrap">
               {latestSysMsg?.timestamp || 'الجمعة'}
             </span>
             {unreadSystemMessagesCount > 0 && (
@@ -111,68 +104,53 @@ export const MessagesScreen: React.FC = () => {
             )}
           </div>
 
-          {/* Right Side: Text in Middle + Golden Bell Avatar on the Far Right */}
-          <div className="flex items-center gap-3.5 flex-1 justify-end ml-3">
-            {/* Middle Texts (Right-Aligned) */}
-            <div className="text-right min-w-0 max-w-[240px]">
-              <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug">
-                رسائل النظام
-              </h2>
-              <p
-                dir="rtl"
-                className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5"
-              >
-                {latestSysMsg?.content || '...تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: ['}
-              </p>
-            </div>
+          <div className="text-right min-w-0 w-full" dir="rtl">
+            <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug truncate">
+              رسائل النظام
+            </h2>
+            <p className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5">
+              {latestSysMsg?.content || '...تهانينا! لقد حصلت على حزمة مكافأة المستخدم الجديد: ['}
+            </p>
+          </div>
 
-            {/* Circular Bell Avatar */}
-            <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.22)] border border-amber-200/70 bg-[#f6ba5d] flex items-center justify-center">
-              <img
-                src="/src/assets/images/system_bell_icon_1790421934665.jpg"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg';
-                }}
-                alt="رسائل النظام"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.22)] border border-amber-200/70 bg-[#f6ba5d] flex items-center justify-center">
+            <img
+              src="/src/assets/images/system_bell_icon_1790421934665.jpg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  '/src/assets/images/msg_system_bell_avatar_1790349025148.jpg';
+              }}
+              alt="رسائل النظام"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
-        {/* ROW 2: رسائل رسمية (Official Messages with Mint Mascot) */}
         <div
           onClick={handleOpenOfficialChat}
-          className="flex items-start justify-between py-1 cursor-pointer group active:opacity-85 transition-opacity"
+          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 cursor-pointer group active:opacity-85 transition-opacity"
         >
-          {/* Left Side: Empty spacer matching screenshot */}
-          <div className="w-10" />
+          <div className="w-[44px]" aria-hidden="true" />
 
-          {/* Right Side: Text in Middle + Mint Mascot Avatar on Far Right */}
-          <div className="flex items-center gap-3.5 flex-1 justify-end ml-3">
-            {/* Middle Texts (Right-Aligned) */}
-            <div className="text-right min-w-0">
-              <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug">
-                رسائل رسمية
-              </h2>
-              <p className="text-[13px] text-[#8ea396] font-normal mt-0.5 font-sans">
-                No message
-              </p>
-            </div>
+          <div className="text-right min-w-0 w-full" dir="rtl">
+            <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug truncate">
+              رسائل رسمية
+            </h2>
+            <p dir="ltr" className="text-[13px] text-[#8ea396] font-normal mt-0.5 font-sans truncate text-right">
+              No message
+            </p>
+          </div>
 
-            {/* Circular Mascot Avatar */}
-            <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-emerald-200/70 bg-[#7ee0af] flex items-center justify-center">
-              <img
-                src="/src/assets/images/official_mascot_1790421946401.jpg"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    '/src/assets/images/msg_official_mascot_1790349038045.jpg';
-                }}
-                alt="رسائل رسمية"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="w-[58px] h-[58px] rounded-full overflow-hidden shrink-0 shadow-[0_2px_8px_rgba(16,185,129,0.2)] border border-emerald-200/70 bg-[#7ee0af] flex items-center justify-center">
+            <img
+              src="/src/assets/images/official_mascot_1790421946401.jpg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  '/src/assets/images/msg_official_mascot_1790349038045.jpg';
+              }}
+              alt="رسائل رسمية"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
