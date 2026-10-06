@@ -39,3 +39,12 @@ P0/P1 code stabilization passed 20 units and 45 Chromium cases in run 3740778148
 Home/cards → voice room/sheets/profile card → full profile/messages/search/rankings → Wallet/Agency/forms/states → responsive/RTL/screenshots. Report each commit and its checks below. Existing functional roadmap remains active; UI polish must not silently implement or replace unfinished features.
 
 APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
+
+## Batch 2 — Home and room cards
+
+- Screens: Home and Rooms List; components: RoomCard and native Home room-card actions.
+- Fixed: room cards are single native buttons (keyboard/touch supported, no nested action), long UUIDs wrap on shared cards, image decode/lazy loading and brief pressed feedback, readable names/counts, Home empty state, selected-filter semantics and RTL Rooms List.
+- Presentation integrity: unknown country is omitted rather than defaulting to Iraq; VIP room cards do not invent VIP5/VIP6 for an owner with no VIP. Decorative numbered medals were replaced by an audio icon because this list is not the backend room ranking.
+- Preserved: card variants, cover aspect ratios, owner/actual counts/category, joins, create/search/filter controls, banners and ranking entry points.
+- Checks: TypeScript/ESLint passed; 23 units/DOM passed in the working increment, including exactly one join action per card. Batch 1 Chromium CI succeeded in run 37409278581 (45 browser tests); Android skipped. Further responsive screenshots and browser checks continue below.
+- Real devices: thumbnail quality, long Arabic names and finger targets still require review.

@@ -1,7 +1,9 @@
+import {EmptyState} from '../common/UIState';
+import {setImageFallback} from '../../utils/imageFallback';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Radio } from 'lucide-react';
 import { SpecialIdModal } from '../modals/SpecialIdModal';
 import { AgencyOpeningModal } from '../modals/AgencyOpeningModal';
 import { SoulmatesWeeklyModal } from '../modals/SoulmatesWeeklyModal';
@@ -132,7 +134,7 @@ export const HomeScreen: React.FC = () => {
         activeTopTab === 'discover' ? 'bg-[#0c0d12]/90 border-b border-white/10' : ''
       }`}>
         {/* Right: Text Tabs (حفلة | ملكي | اكتشف | ترتيب) */}
-        <div className="flex items-center gap-3.5 font-bold">
+        <div className="flex items-center gap-2 sm:gap-3.5 font-bold">
           <button
             type="button"
             onClick={() => setActiveTopTab('party')}
@@ -326,7 +328,7 @@ export const HomeScreen: React.FC = () => {
                 <img
                   src={banner.image}
                   alt={banner.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-150"
                 />
               </div>
             ))}
@@ -591,7 +593,7 @@ export const HomeScreen: React.FC = () => {
           {/* 1. شائع 🔥 (Active Mint Green Pill) */}
           <button
             type="button"
-            onClick={() => setSelectedFilter('trending')}
+            aria-pressed={selectedFilter==='trending'} onClick={() => setSelectedFilter('trending')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full font-bold text-xs cursor-pointer whitespace-nowrap shadow-xs transition-colors shrink-0 ${
               selectedFilter === 'trending'
                 ? 'bg-[#10b981] text-white shadow-emerald-600/30'
@@ -605,7 +607,7 @@ export const HomeScreen: React.FC = () => {
           {/* 2. العراق 🇮🇶 */}
           <button
             type="button"
-            onClick={() => setSelectedFilter('iraq')}
+            aria-pressed={selectedFilter==='iraq'} onClick={() => setSelectedFilter('iraq')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full font-bold text-xs cursor-pointer whitespace-nowrap transition-colors shrink-0 ${
               selectedFilter === 'iraq'
                 ? 'bg-[#10b981] text-white'
@@ -619,7 +621,7 @@ export const HomeScreen: React.FC = () => {
           {/* 3. المملكة العربية السعودية 🇸🇦 */}
           <button
             type="button"
-            onClick={() => setSelectedFilter('saudi')}
+            aria-pressed={selectedFilter==='saudi'} onClick={() => setSelectedFilter('saudi')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full font-bold text-xs cursor-pointer whitespace-nowrap transition-colors shrink-0 ${
               selectedFilter === 'saudi'
                 ? 'bg-[#10b981] text-white'
@@ -634,7 +636,7 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowCountryMenu((p) => !p)}
-            className="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center text-emerald-950 cursor-pointer shrink-0 hover:bg-white active:scale-90 transition-transform"
+            className="ui-icon-button rounded-full bg-white/80 flex items-center justify-center text-emerald-950 cursor-pointer shrink-0 hover:bg-white active:scale-90 transition-transform"
             title="اختيار دولة"
           >
             <ChevronDown size={14} className="stroke-[2.5]" />
@@ -676,27 +678,29 @@ export const HomeScreen: React.FC = () => {
       {/* 5. 2x2 ROOMS GRID: Real Rooms from State                       */}
       {/* ============================================================== */}
       <div className="px-3 mt-3 grid grid-cols-2 gap-2.5">
-        {rooms.slice(0, 4).map((room, index) => {
-          const rankMedals = ['🥇', '🥈', '🥉', '✨'];
+        {rooms.slice(0, 4).map((room) => {
+
           return (
-            <div
+            <button type="button" aria-label={`دخول غرفة ${room.title}`}
               key={room.id}
               onClick={() => joinRoom(room)}
-              className="flex flex-col cursor-pointer group active:scale-[0.98] transition-transform"
+              className="min-w-0 text-right flex flex-col cursor-pointer group active:scale-[0.98] transition-transform"
             >
               {/* Card Media Box */}
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-amber-300/40 shadow-sm">
                 <img
                   src={room.coverImage}
-                  alt={room.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={e=>setImageFallback(e,"/assets/images/room_cover_majlis_1790226059300.jpg")}
+                  loading="lazy" decoding="async"
+                  alt=""
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-150"
                 />
                 {/* Vignette */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
 
                 {/* Rank Medal on top-right */}
                 <div className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center filter drop-shadow-md">
-                  <span className="text-xl">{rankMedals[index] || '✨'}</span>
+                  <Radio size={20} className="text-white" aria-hidden="true"/>
                 </div>
 
                 {/* Equalizer & Listeners at bottom-left */}
@@ -717,15 +721,16 @@ export const HomeScreen: React.FC = () => {
 
               {/* Title Row with Country Flag */}
               <div className="flex items-center gap-1 mt-1.5 justify-start">
-                <span className="text-xs">{room.countryFlag || '🇮🇶'}</span>
-                <span className="text-xs font-black text-slate-900 truncate">
+                {room.countryFlag && <span className="text-xs shrink-0">{room.countryFlag}</span>}
+                <span className="text-sm font-bold text-slate-900 line-clamp-2">
                   {room.title}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
+      {!rooms.length && <div className="mx-3 mt-3 text-emerald-950"><EmptyState title="لا توجد غرف نشطة حالياً" description="يمكنك إنشاء غرفتك أو العودة لاحقاً." /></div>}
         </>
       )}
 

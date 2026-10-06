@@ -49,7 +49,7 @@ export const RoomsListScreen: React.FC = () => {
   const filteredRooms = getFilteredRooms();
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-24 select-none">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-24 select-none" dir="rtl">
       {/* Sticky Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 pt-3 pb-2.5 shadow-xs">
         <div className="flex items-center justify-between mb-2.5">
@@ -85,7 +85,7 @@ export const RoomsListScreen: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTabState(tab.id as any)}
+                aria-pressed={isActive} onClick={() => setActiveTabState(tab.id as any)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 text-white shadow-xs'

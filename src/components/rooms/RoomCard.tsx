@@ -17,18 +17,19 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', 
   // 1. Featured Room Card (Panoramic Carousel)
   if (variant === 'featured') {
     return (
-      <div
+      <button type="button" aria-label={`دخول غرفة ${room.title}`}
         onClick={() => onJoin(room)}
-        className="group relative w-76 shrink-0 rounded-3xl overflow-hidden bg-white border border-slate-200/90 shadow-[0_6px_25px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.1)] cursor-pointer active:scale-[0.98] transition-all"
+        className="text-right min-w-0 group relative w-76 shrink-0 rounded-3xl overflow-hidden bg-white border border-slate-200/90 shadow-[0_6px_25px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.1)] cursor-pointer active:scale-[0.98] transition-all"
       >
         {/* Cover Image & Scrim */}
         <div className="relative h-40 w-full overflow-hidden bg-slate-100">
           {!imgError && room.coverImage ? (
             <img
               src={room.coverImage}
-              alt={room.title}
+              alt=""
+              loading="lazy" decoding="async"
               onError={() => setImgError(true)}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-150"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-700 flex items-center justify-center">
@@ -43,7 +44,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', 
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
               مباشر
             </span>
-            {room.isVIP && <VIPBadge level={room.owner.vipLevel || 5} size="sm" />}
+            {room.isVIP && room.owner.vipLevel > 0 && <VIPBadge level={room.owner.vipLevel} size="sm" />}
           </div>
 
           {/* Listeners Count */}
@@ -77,36 +78,31 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', 
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onJoin(room);
-              }}
-              className="px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-extrabold rounded-xl shadow-md shadow-cyan-600/25 active:scale-95 transition-all cursor-pointer"
+            <span className="px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-extrabold rounded-xl shadow-md shadow-cyan-600/25 active:scale-95 transition-all cursor-pointer"
             >
               دخول
-            </button>
+            </span>
           </div>
         </div>
-      </div>
+      </button>
     );
   }
 
   // 2. Standard Card (Grid layout with pristine white styling)
   return (
-    <div
+    <button type="button" aria-label={`دخول غرفة ${room.title}`}
       onClick={() => onJoin(room)}
-      className="group relative rounded-2xl bg-white border border-slate-200/80 hover:border-cyan-500/50 p-2.5 shadow-[0_3px_15px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98] cursor-pointer flex flex-col justify-between"
+      className="text-right min-w-0 group relative rounded-2xl bg-white border border-slate-200/80 hover:border-cyan-500/50 p-2.5 shadow-[0_3px_15px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98] cursor-pointer flex flex-col justify-between"
     >
       {/* Top Banner Row */}
       <div className="relative h-28 rounded-xl overflow-hidden bg-slate-100 mb-2">
         {!imgError && room.coverImage ? (
           <img
             src={room.coverImage}
-            alt={room.title}
+            alt=""
+              loading="lazy" decoding="async"
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-150"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center">
@@ -146,19 +142,19 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', 
         </div>
 
         {/* VIP badge if any */}
-        {room.isVIP && (
+        {room.isVIP && room.owner.vipLevel > 0 && (
           <div className="absolute bottom-1.5 left-2">
-            <VIPBadge level={room.owner.vipLevel || 6} size="sm" />
+            <VIPBadge level={room.owner.vipLevel} size="sm" />
           </div>
         )}
       </div>
 
       {/* Room Title */}
       <div className="px-0.5">
-        <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-cyan-700 transition-colors">
+        <h4 className="font-bold text-sm text-slate-900 line-clamp-2 group-hover:text-cyan-700 transition-colors">
           {room.title}
         </h4>
-        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+        <span className="ui-id text-[11px] text-slate-500 font-mono block mt-1">
           ID: {room.id}
         </span>
       </div>
@@ -167,22 +163,16 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, variant = 'standard', 
       <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-1.5 min-w-0">
           <UserAvatar user={room.owner} size="xs" showVIP={false} />
-          <span className="text-[11px] font-medium text-slate-700 truncate max-w-[85px]">
+          <span className="text-xs font-medium text-slate-700 truncate max-w-[85px]">
             {room.owner.name}
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onJoin(room);
-          }}
-          className="px-2.5 py-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[11px] font-bold rounded-lg shadow-xs active:scale-95 transition-all cursor-pointer"
+        <span className="px-2.5 py-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[11px] font-bold rounded-lg shadow-xs active:scale-95 transition-all cursor-pointer"
         >
           دخول
-        </button>
+        </span>
       </div>
-    </div>
+    </button>
   );
 };
