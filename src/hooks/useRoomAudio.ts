@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Room } from '../types';
+import { useLegacyRoomAudio } from './useLegacyRoomAudio';
 
 type LiveKitGlobal = {
   Room?: new (...args: any[]) => any;
@@ -28,7 +29,7 @@ const friendlyAudioError = (error: unknown) => {
   return 'تعذر إعداد الصوت الحقيقي. تحقق من الاتصال وحاول مجدداً.';
 };
 
-export function useRoomAudio(
+function useLiveKitRoomAudio(
   room: Room | null,
   authId: string | undefined,
   muted: boolean,
@@ -136,7 +137,6 @@ export function useRoomAudio(
         }
         setConnected(true);
         void client.startAudio?.().catch?.(() => {});
-        // Re-evaluate permissions after the participant is actually present in LiveKit.
         void invokeAudio('sync-permissions').catch(() => {});
       } catch (error) {
         if (!disposed) {
@@ -216,8 +216,6 @@ export function useRoomAudio(
     if (!connected || !clientRef.current) throw new Error('تعذر الاتصال بخدمة الصوت. حاول بعد لحظة.');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
 
-    // Preflight microphone permission while this function is running directly from the user's tap.
-    // The actual published track is then created by LiveKit after the server-side seat/mute permission flips.
     const preview = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: noiseRef.current },
       video: false,
@@ -226,8 +224,6 @@ export function useRoomAudio(
     pendingEnable.current = true;
     void clientRef.current?.startAudio?.().catch?.(() => {});
 
-    // If the database already says unmuted, publish immediately; the common flow publishes
-    // after toggleMyMic updates the server and the permission effect runs.
     if (!mutedRef.current) {
       const permission = await invokeAudio('sync-permissions');
       if (permission.canPublish === false) throw new Error('MIC_PUBLISH_NOT_ALLOWED');
@@ -241,3 +237,9 @@ export function useRoomAudio(
 
   return { connected, enableMicrophone, speakingIds };
 }
+
+// index.html loads the pinned LiveKit SDK before the app module. If that CDN load fails,
+// select the already-tested custom WebRTC engine at module evaluation time instead of
+// leaving the room without audio or running two engines in parallel.
+const useLiveKitAtModuleLoad = Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
+export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;
