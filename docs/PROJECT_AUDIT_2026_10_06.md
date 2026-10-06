@@ -54,4 +54,4 @@
 4. Security Advisor يعرض معلومات RLS بلا policies على جدول الطابور الخاص؛ هذا مقصود لمنع وصول العملاء، وتعمل الوظائف الداخلية بصلاحيات محدودة. التحذير الأمني المتبقي هو تعطيل حماية كلمات المرور المسرّبة في Auth: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
 5. اعتماد تحويل الشحن الخارجي إلى رصيد فعلي يحتاج اختباراً تشغيلياً من المالك؛ اختبارات SQL لا تثبت دفعاً مالياً حقيقياً.
 
-لم يُبن APK/AAB في هذا الفحص. إصلاحات الخادم نافذة، أما تعديلات الواجهة وCodemagic فتحتاج دمج الفرع وبناء نسخة جديدة كي تصل إلى الهاتف.
+نجح فحص GitHub Actions الأخير، بما فيه Playwright، عند commit `33458511f705379ab061b93b38f05f622ad5fd02`: https://github.com/jsjsnsnsnsn0-pixel/TotiChat/actions/runs/37466279422 . دُمج طلب التغييرات #7 في `stabilization-room-core` عند commit `02d8e81bb04da014d8acb4cf7b0b51410aa15f1f`. لم يُبن APK/AAB في هذا الفحص. إصلاحات الخادم نافذة، وتعديلات الواجهة وCodemagic تحتاج بناء نسخة جديدة كي تصل إلى الهاتف.
