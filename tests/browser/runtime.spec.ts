@@ -7,8 +7,10 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
+  let membershipRemoved = false;
+  let currentRoom = {...room, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
@@ -40,8 +42,8 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       if (method==='PATCH') for (const m of directMessages) if (m.recipient_id===actor) m.read_at=new Date().toISOString();
       return respond(directMessages);
     }
-    if (path.endsWith('/rooms')) return respond(overrides.rooms ? [room] : []);
-    if (path.endsWith('/room_members')) return respond(overrides.rooms ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
+    if (path.endsWith('/rooms')) return respond(overrides.rooms && currentRoom.is_active ? [currentRoom] : []);
+    if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
     if (path.endsWith('/create_recharge_request')) {
@@ -85,6 +87,12 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       }
       return respond(quote);
     }
+    if (path.endsWith('/update_room_settings')) {
+      if (overrides.settingsError) return respond({message:'save failed'},400);
+      currentRoom = {...currentRoom, name:body.p_name, description:body.p_welcome_message, welcome_message:body.p_welcome_message, chat_enabled:body.p_chat_enabled, gift_effects_enabled:body.p_gift_effects_enabled, vehicle_effects_enabled:body.p_vehicle_effects_enabled, entrance_effects_enabled:body.p_entrance_effects_enabled};
+      return respond(null);
+    }
+    if (path.endsWith('/close_room')) {currentRoom.is_active=false;return respond(null);}
     if (path.endsWith('/create_room')) return respond(roomId);
     if (path.includes('/rpc/')) return respond(null);
     return respond([]);
@@ -94,7 +102,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     localStorage.setItem('app_user_profile',JSON.stringify({id:'30301',gold:999999,name:'الحساب الوهمي'}));
     if (loggedIn) localStorage.setItem('sb-bfadhdnudmsggylunhlh-auth-token',JSON.stringify(session));
   },{session,loggedIn});
-  return {errors,requests};
+  return {errors,requests, removeMembership: () => {membershipRemoved = true;}};
 }
 
 test('production login images load and phone cannot bypass OTP', async ({page})=>{
@@ -138,8 +146,9 @@ test('home create action opens a real screen rather than a blank page', async ({
 test('room seats are rendered from the database and recharge opens while joined', async ({page})=>{
   const {errors}=await setup(page,true,{rooms:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
-  await expect(page.getByText('دردشة الغرفة',{exact:true})).toBeVisible();
+  await expect(page.getByText('إشعار الغرفة',{exact:true})).toBeVisible();
   await expect(page.getByText('مقعد 4',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   await page.getByRole('button',{name:'شحن',exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
@@ -350,7 +359,8 @@ test('late microphone permission result is stopped after leaving the room', asyn
   await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'تشغيل المايكروفون',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>typeof (window as any).finishCapture)).toBe('function');
-  await page.getByRole('button',{name:'مغادرة الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'الخروج من الغرفة',exact:true}).click();
   await expect(page.getByRole('navigation',{name:'التنقل الرئيسي'})).toBeVisible();
   await page.evaluate(()=>(window as any).finishCapture());
   await expect.poll(()=>page.evaluate(()=>(window as any).stoppedCapture)).toBe(1);
@@ -471,4 +481,69 @@ test('redemption rejects legacy-only preview and invalid amounts before confirma
  expect(requests.filter(r=>r.path.endsWith('/preview_diamond_redemption'))).toHaveLength(0);
  await dialog.getByRole('spinbutton').fill('200777');await dialog.getByRole('button',{name:'معاينة الفك'}).click();await expect(dialog.getByRole('alert')).toContainText('الماس القديم');
  await expect(dialog.getByRole('button',{name:/تأكيد فك الماس/})).toHaveCount(0);expect(requests.filter(r=>r.path.endsWith('/redeem_diamonds'))).toHaveLength(0);expect(errors).toEqual([]);
+});
+
+
+test('room settings preserve disabled server flags and refresh the announcement after saving', async ({page}) => {
+  const {requests,errors}=await setup(page,true,{rooms:true,roomSettings:true});
+  await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await expect(page.getByText('ترحيب محفوظ',{exact:true})).toBeVisible();
+  await expect(page.getByPlaceholder('الدردشة متوقفة من إدارة الغرفة')).toBeDisabled();
+  await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
+  for (const name of ['الدردشة العامة','تأثير الهدية','تأثير المركبة','تأثيرات الدخول']) {
+    await expect(page.getByRole('button',{name: new RegExp(name)})).toHaveAttribute('aria-pressed','false');
+  }
+  await page.getByLabel('اسم الغرفة').fill('اسم جديد');
+  await page.getByLabel('رسالة الترحيب').fill('ترحيب جديد');
+  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
+  await expect(page.getByText('تم حفظ إعدادات الغرفة',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'اسم جديد',exact:true})).toBeVisible();
+  await expect(page.getByText('ترحيب جديد',{exact:true})).toBeVisible();
+  const save=requests.find(r=>r.path.endsWith('/update_room_settings'));
+  expect(save?.body).toMatchObject({p_room_id:roomId,p_chat_enabled:false,p_gift_effects_enabled:false,p_vehicle_effects_enabled:false,p_entrance_effects_enabled:false});
+  expect(errors).toEqual([]);
+});
+
+test('failed room settings save keeps the confirmed room name and shows no success',async({page})=>{
+  const {errors}=await setup(page,true,{rooms:true,settingsError:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
+  await page.getByLabel('اسم الغرفة').fill('اسم غير محفوظ');
+  await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('تعذر حفظ إعدادات الغرفة');
+  await expect(page.getByRole('heading',{name:'غرفة الاختبار',exact:true})).toBeVisible();
+  await expect(page.getByText('تم حفظ إعدادات الغرفة',{exact:true})).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('membership removal clears the active public room and stops microphone capture',async({page})=>{
+  const {removeMembership,errors}=await setup(page,true,{rooms:true});
+  await page.addInitScript(()=>{
+    (window as any).captureStopped=false;
+    const track={kind:'audio',enabled:false,stop:()=>{(window as any).captureStopped=true;}};
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>({getTracks:()=>[track],getAudioTracks:()=>[track]})});
+  });
+  await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toBeVisible();
+  // The first footer button enables capture on the current user's occupied seat.
+  await page.locator('footer button').first().click();
+  removeMembership();
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>(window as any).captureStopped)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('owner closing the room clears the active room immediately',async({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'إغلاق الروم',exact:true}).click();
+  await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toHaveCount(0);
+  expect(requests.filter(r=>r.path.endsWith('/close_room'))).toHaveLength(1);
+  expect(errors).toEqual([]);
 });

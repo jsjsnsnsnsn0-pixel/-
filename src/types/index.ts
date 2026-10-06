@@ -53,6 +53,12 @@ export interface MicrophoneSeatState {
 }
 
 export interface Room {
+  isActive?: boolean;
+  welcomeMessage?: string;
+  chatEnabled?: boolean;
+  giftEffectsEnabled?: boolean;
+  vehicleEffectsEnabled?: boolean;
+  entranceEffectsEnabled?: boolean;
   ownerAuthId?: string;
   canModerate?: boolean;
   members?: User[];

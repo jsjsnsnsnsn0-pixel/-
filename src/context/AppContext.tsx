@@ -32,7 +32,7 @@ interface AppContextType {
   error: string | null; dismissError: () => void; reportError: (message: string) => void;
   loginWithGoogle: (profile?: {name?: string; email?: string; picture?: string}) => Promise<void>;
   loginWithPhone: (phone?: string, otp?: string) => Promise<void>;
-  logout: () => Promise<void>; refreshProfile: () => Promise<void>; refreshWallet: () => Promise<void>;
+  logout: () => Promise<void>; refreshRooms: () => Promise<Room[]>; refreshProfile: () => Promise<void>; refreshWallet: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   markConversationAsRead: (id: string) => Promise<void>;
 }
@@ -157,7 +157,10 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       });
       return {
         id: row.id, owner, ownerAuthId: row.owner_id, title: row.name,
-        description: row.description || '', coverImage: row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
+        isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
+        chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
+        vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
+        description: row.welcome_message ?? row.description ?? '', coverImage: row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
         isVIP: row.is_vip, status: 'live', tags: row.tags || [], usersCount: members.length,
         canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
@@ -170,7 +173,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       };
     });
     setRooms(mapped);
-    setActiveRoom(prev => prev ? mapped.find(r => r.id === prev.id) || null : null);
+    setActiveRoom(prev => prev ? mapped.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
     return mapped;
   }, []);
 
@@ -446,7 +449,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     markNotificationAsRead: id => { void markNotificationAsRead(id); },
     isAuthenticated: Boolean(authId), authLoading: authLoading || Boolean(authId && !profileReady),
     needsProfile: profileReady && !user.countryCode, error, dismissError: () => setError(null), reportError: setError,
-    loginWithGoogle, loginWithPhone, logout, refreshProfile, refreshWallet, updateProfile, markConversationAsRead,
+    loginWithGoogle, loginWithPhone, logout, refreshRooms, refreshProfile, refreshWallet, updateProfile, markConversationAsRead,
   }}>{children}</AppContext.Provider>;
 };
 
