@@ -23,14 +23,14 @@ test('room settings round trip, failed save, membership removal and close', asyn
   }}});
   let row:any={id:roomId,owner_id:actor,name:'Saved room',description:'Old description',welcome_message:'Saved welcome',is_active:true,max_seats:4,chat_enabled:false,gift_effects_enabled:false,vehicle_effects_enabled:false,entrance_effects_enabled:false};
   let members:any[]=[{room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true}];
-  let failSave=false;const requests:any[]=[];let context:any;
+  let failSave=false;let failReopen=false;const requests:any[]=[];let context:any;
   const profile={id:actor,public_id:920003,display_name:'Owner',country_code:'IQ',gold:100};
   const query=(table:string)=>{
     let method='select',body:any;
     const q:any={};
     for(const name of ['select','eq','order','limit','or','is','gte'])q[name]=()=>q;
     for(const name of ['insert','update','delete'])q[name]=(value:any)=>{method=name;body=value;return q;};
-    const result=()=>({data:table==='profiles'?profile:table==='rooms'?(row.is_active?[row]:[]):table==='room_members'?members:[],error:null});
+    const result=()=>({data:table==='profiles'?profile:table==='rooms'?[row]:table==='room_members'?members:[],error:null});
     q.single=()=>Promise.resolve(result());q.then=(resolve:any,reject:any)=>{if(method!=='select')requests.push({table,method,body});return Promise.resolve(result()).then(resolve,reject);};return q;
   };
   const client={from:query,auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getSession:async()=>({data:{session:{user:{id:actor}}},error:null})},rpc:async(name:string,body:any)=>{
@@ -40,6 +40,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
       if(failSave)return {data:null,error:{message:'failure'}};
       row={...row,name:body.p_name,welcome_message:body.p_welcome_message,chat_enabled:body.p_chat_enabled,gift_effects_enabled:body.p_gift_effects_enabled,vehicle_effects_enabled:body.p_vehicle_effects_enabled,entrance_effects_enabled:body.p_entrance_effects_enabled};
     }
+    if(name==='reopen_room'){if(failReopen)return {data:null,error:{message:'reopen denied'}};row={...row,is_active:true};}
     if(name==='close_room')row={...row,is_active:false};
     return {data:null,error:null};
   },channel:()=>{const ch:any={on:()=>ch,subscribe:()=>ch};return ch;},removeChannel:async()=>{}};
@@ -47,7 +48,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
   const temp=await mkdtemp(join(process.cwd(),'.room-test-'));
   let root:ReturnType<typeof createRoot>|undefined;
   try{
-    await build({stdin:{contents:`import React from 'react';import {AppProvider,useApp} from './src/context/AppContext';import {RoomAudioProvider} from './src/context/RoomAudioContext';import {VoiceRoomScreen} from './src/components/screens/VoiceRoomScreen';export function Harness({capture}){capture(useApp());return React.createElement(VoiceRoomScreen);}export {AppProvider,RoomAudioProvider};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:join(temp,'bundle.mjs'),plugins:[{name:'test-server',setup(b){
+    await build({stdin:{contents:`import React from 'react';import {AppProvider,useApp} from './src/context/AppContext';import {RoomAudioProvider} from './src/context/RoomAudioContext';import {VoiceRoomScreen} from './src/components/screens/VoiceRoomScreen';import {RoomsListScreen} from './src/components/screens/RoomsListScreen';export function Harness({capture}){const context=useApp();capture(context);return React.createElement(context.activeRoom?VoiceRoomScreen:RoomsListScreen);}export {AppProvider,RoomAudioProvider};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:join(temp,'bundle.mjs'),plugins:[{name:'test-server',setup(b){
       b.onResolve({filter:/\/services\/supabase$|^\.\/supabase$/},()=>({path:'supabase',namespace:'test'}));
       b.onResolve({filter:/\/services\/nativeAuth$/},()=>({path:'native',namespace:'test'}));
       b.onResolve({filter:/^motion\/react$/},()=>({path:'motion',namespace:'test'}));
@@ -96,6 +97,37 @@ test('room settings round trip, failed save, membership removal and close', asyn
     dom.window.confirm=()=>true;await click('إغلاق الروم');
     assert.equal(context.activeRoom,null);assert.equal(context.rooms.length,0);
     assert.equal(requests.filter(r=>r.name==='close_room').length,1);
+    assert.equal(context.ownedClosedRooms.length,1);
+    assert.equal(context.activeTab,'rooms');
+    assert.ok(dom.window.document.querySelector('section[aria-label="غرفي المغلقة"]'));
+    const joinsBefore=requests.filter(r=>r.name==='join_room').length;
+    await act(async()=>{await context.joinRoom(context.ownedClosedRooms[0]);});
+    assert.equal(requests.filter(r=>r.name==='join_room').length,joinsBefore);
+    failReopen=true;await click('إعادة فتح New room');
+    assert.equal(context.ownedClosedRooms.length,1);assert.equal(context.rooms.length,0);
+    failReopen=false;await click('إعادة فتح New room');
+    assert.equal(context.ownedClosedRooms.length,0);assert.equal(context.rooms.length,1);assert.equal(context.activeRoom,null);
+    assert.equal(dom.window.document.querySelector('section[aria-label="غرفي المغلقة"]'),null);
+    await act(async()=>{await context.joinRoom(context.rooms[0]);});
+    // A listener can inspect members without invoking moderator-only RPCs.
+    row={...row,owner_id:'other-owner'};members=[{room_id:roomId,user_id:actor,seat_number:null,role:'member',is_muted:true}];
+    await act(async()=>{await context.refreshRooms();});
+    assert.equal(context.activeRoom.canModerate,false);
+    assert.equal(button('إدارة الغرفة'),undefined);
+    await click('الموجودون في الغرفة');
+    const info=dom.window.document.querySelector('[role="dialog"][aria-label="معلومات الغرفة والموجودون"]');
+    assert.ok(info);assert.ok(info.textContent?.includes('الموجودون (1)'));
+    assert.ok(info.querySelector('button[aria-label="عرض ملف Owner"]'));
+    assert.equal(requests.filter(r=>r.name==='get_room_management_members').length,0);
+    await click('إغلاق معلومات الغرفة');await click('معلومات الغرفة');
+    assert.ok(dom.window.document.querySelector('[role="dialog"][aria-label="معلومات الغرفة والموجودون"]'));
+    assert.equal(context.activeRoom.id,roomId);
+    await click('عرض ملف Owner');
+    assert.ok(dom.window.document.querySelector('[role="dialog"][aria-label="بطاقة مستخدم الغرفة"]'));
+    assert.equal(context.activeRoom.id,roomId);
+    row={...row,is_active:false};await act(async()=>{await context.refreshRooms();});
+    assert.equal(context.ownedClosedRooms.length,0); // Closed rooms belonging to others never enter the owner list.
+
   }finally{
     if(root)await act(async()=>root!.unmount());
     await rm(temp,{recursive:true,force:true});dom.window.close();delete (globalThis as any).__roomTestClient;

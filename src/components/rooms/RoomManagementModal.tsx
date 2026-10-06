@@ -12,7 +12,7 @@ type MemberRow={public_id:number;display_name:string;avatar_url:string|null;role
 type BanRow={public_id:number;display_name:string;avatar_url:string|null;reason:string|null;created_at:string};
 
 export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen, onClose, room }) => {
-  const { lockSeat, unlockSeat, muteSeatUser, kickSeatUser, user, reportError, refreshRooms } = useApp();
+  const { lockSeat, unlockSeat, muteSeatUser, kickSeatUser, user, reportError, refreshRooms, setActiveTab: navigateTab } = useApp();
   const scheduleTimeout = useTimeouts(isOpen);
   const [activeTab,setActiveTab]=useState<'seats'|'members'|'bans'|'settings'>('seats');
   const [successToast,setSuccessToast]=useState<string|null>(null);
@@ -51,6 +51,7 @@ export const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen
       const {error}=await supabase.rpc(closing?'close_room':'reopen_room',{p_room_id:room.id});
       if(error)throw error;
       await refreshRooms();
+      if (closing) navigateTab('rooms');
       onClose();
     } catch { reportError(closing?'تعذر إغلاق الغرفة أو تحديث حالتها.':'تعذر إعادة فتح الغرفة أو تحديث حالتها.'); }
     finally { setBusy(false); }

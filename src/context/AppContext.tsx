@@ -6,7 +6,7 @@ import { supabase } from '../services/supabase';
 import { emptyUser, profileToUser, editableProfile, roomMemberToUser } from '../services/profile';
 
 interface AppContextType {
-  user: User; rooms: Room[]; activeRoom: Room | null;
+  user: User; rooms: Room[]; ownedClosedRooms: Room[]; activeRoom: Room | null;
   activeTab: 'home' | 'rooms' | 'create' | 'messages' | 'profile';
   activeSubScreen: string | null; selectedChatUser: User | null;
   activeGiftOverlay: ActiveGiftAnimation | null; transactions: Transaction[];
@@ -18,6 +18,7 @@ interface AppContextType {
   setUser: React.Dispatch<React.SetStateAction<User>>;
   setActiveTab: (tab: AppContextType['activeTab']) => void;
   setActiveSubScreen: (screen: string | null) => void; setSelectedChatUser: (user: User | null) => void;
+  reopenRoom: (room: Room) => Promise<boolean>;
   joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
   toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
@@ -48,6 +49,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [profileReady, setProfileReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [ownedClosedRooms,setOwnedClosedRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
   const [activeTab, setActiveTabState] = useState<AppContextType['activeTab']>('home');
@@ -121,7 +123,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       if (id !== authRef.current) {
         authRef.current = id; setAuthId(id); setProfileReady(false);
         userRef.current = emptyUser; setUserState(emptyUser);
-        setRooms([]); setConversations([]); setTransactions([]); setNotifications([]);
+        setRooms([]); setOwnedClosedRooms([]); setConversations([]); setTransactions([]); setNotifications([]);
         setSelectedChatUser(null); setActiveRoom(null); setActiveSubScreenState(null);
         setActiveGiftOverlay(null); setActiveTabState('home'); setError(null);
       }
@@ -143,7 +145,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const id = authRef.current;
     if (!id) return [];
     const [rs, ms, ls] = await Promise.all([
-      supabase.from('rooms').select('*').eq('is_active', true).order('created_at', {ascending: false}),
+      supabase.from('rooms').select('*').or(`is_active.eq.true,owner_id.eq.${id}`).order('created_at', {ascending: false}),
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
     ]);
     for (const result of [rs, ms, ls]) if (result.error) throw result.error;
@@ -162,7 +164,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
         description: row.welcome_message ?? row.description ?? '', coverImage: row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
-        isVIP: row.is_vip, status: 'live', tags: row.tags || [], usersCount: members.length,
+        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
         canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
         members: members.map(memberUser),
         seats: Array.from({length: row.max_seats}, (_, index) => {
@@ -172,9 +174,11 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         }),
       };
     });
-    setRooms(mapped);
-    setActiveRoom(prev => prev ? mapped.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
-    return mapped;
+    const liveRooms = mapped.filter(room => room.isActive);
+    setOwnedClosedRooms(mapped.filter(room => !room.isActive && room.ownerAuthId === id));
+    setRooms(liveRooms);
+    setActiveRoom(prev => prev ? liveRooms.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
+    return liveRooms;
   }, []);
 
   const refreshMessages = useCallback(async () => {
@@ -341,7 +345,20 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       await refreshRooms(); return true;
     } catch (e) { fail(e); return false; }
   };
+  const reopenRoom = async (room: Room): Promise<boolean> => {
+    const account = authRef.current;
+    if (!account || room.ownerAuthId !== account || room.isActive !== false) return false;
+    try {
+      const {error} = await supabase.rpc('reopen_room', {p_room_id: room.id});
+      if (error) throw error;
+      if (account !== authRef.current) return false;
+      try { await refreshRooms(); }
+      catch { setError('تم فتح الغرفة، لكن تعذر تحديث القائمة. حدّث الصفحة للتحقق.'); return false; }
+      return true;
+    } catch (error) { fail(error); return false; }
+  };
   const joinRoom = async (room: Room) => {
+    if (room.isActive === false) { setError('أعد فتح الغرفة قبل الدخول إليها.'); return; }
     try {
       if (activeRef.current && activeRef.current.id !== room.id) {
         const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
@@ -434,7 +451,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   };
 
   return <AppContext.Provider value={{
-    user, rooms, activeRoom, activeTab, activeSubScreen, selectedChatUser, activeGiftOverlay,
+    user, rooms, ownedClosedRooms, activeRoom, activeTab, activeSubScreen, selectedChatUser, activeGiftOverlay,
     transactions, conversations, notifications, isMyMicMuted, isHandRaised, isSpeakerOn, noiseSuppression,
     toggleNoiseSuppression: () => {setNoiseSuppression(!noiseSuppression); saveAudioPreference(isSpeakerOn, !noiseSuppression);},
     unreadMessagesCount: conversations.reduce((sum, c) => sum + c.unreadCount, 0),
@@ -442,7 +459,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     hasUnseenVisitors, hasUnseenFollowers,
     markSystemMessagesAsRead: () => { void markSystemMessagesAsRead(); },
     markVisitorsAsSeen: () => setHasUnseenVisitors(false), markFollowersAsSeen: () => setHasUnseenFollowers(false),
-    setUser, setActiveTab, setActiveSubScreen, setSelectedChatUser, joinRoom, leaveRoom,
+    setUser, setActiveTab, setActiveSubScreen, setSelectedChatUser, joinRoom, leaveRoom, reopenRoom,
     toggleMyMic, toggleRaiseHand, toggleSpeaker: () => {setIsSpeakerOn(!isSpeakerOn); saveAudioPreference(!isSpeakerOn, noiseSuppression);}, takeSeat, leaveSeat,
     sendGiftInRoom, rechargeGold: () => setActiveSubScreenState('recharge'), createNewRoom,
     lockSeat, unlockSeat, muteSeatUser, kickSeatUser, sendMessageToConversation,

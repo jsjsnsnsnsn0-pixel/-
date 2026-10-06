@@ -39,8 +39,22 @@ Read-only production schema/function inspection confirmed the room column names 
 
 - Execute the full Chromium suite in a browser-capable runner before release, then build the APK from this branch with the real public configuration.
 - Verify Google OAuth callback, microphone permission, background/resume behavior and voice between two physical Android devices; TURN remains a separate infrastructure task.
-- Ordinary listeners' room-info/member buttons currently target the moderator-only management dialog. A separate public information/member view is still needed.
-- Reopening closed rooms needs an owner-facing entry point outside the active room, since inactive rooms are filtered out of the current list.
+- Completed in the follow-up below: ordinary listener information/member view.
+- Completed in the follow-up below: owner closed room list and reopening.
 - Preserve the earlier report's remaining admin, support, direct voice message and migration-history work as separate increments.
 
 The commit targets this branch only; no main merge or APK release is part of this increment.
+
+
+## Follow-up: public room information and owner reopening
+
+Starting point: `5841de39ce2e715529aa6323a19587c871e4509b`.
+
+- Room title and member-count buttons now open a separate accessible public information dialog. It renders the current room and membership snapshots; ordinary listeners do not call management RPCs. Selecting a member opens the existing profile card.
+- The server query includes active rooms and the current owner's rooms. Inactive owned rooms are held separately from the live list. The existing RLS can_view_room permits owner access to closed rooms; the existing reopen_room RPC enforces ownership.
+- Closing a room takes the owner to the room list. Their closed rooms have a reopen action with a pending state, server readback and explicit error handling. Reopening preserves the UUID and does not automatically join or create a replacement room. Attempts to join an inactive room are rejected locally before the join RPC.
+- DOM regression coverage extends through close/reopen success and failure, own/other closed room separation, inactive join rejection, and the ordinary listener info buttons. All 17 tests pass; the scenario contains additional assertions rather than duplicate test counters. Lint, assets, build and whitespace checks pass.
+- Browser discovery includes 41 scenarios; two new browser cases cover listener information and owner reopening. Execution remains unavailable locally for the previously documented Chromium download reason.
+- The existing GitHub validation/APK workflow now also runs on pushes to stabilization-room-core, enabling the full browser suite and conditional APK pipeline on the working branch with its existing public configuration. No store publication or main merge is introduced. The remote run's actual result must be checked separately.
+
+No database migration, production record mutation, new finance behavior or fabricated member data is introduced by this follow-up.

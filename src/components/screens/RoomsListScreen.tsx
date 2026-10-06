@@ -5,8 +5,9 @@ import { SearchBar } from '../common/SearchBar';
 import { Radio, Plus, Flame, Users, Sparkles, Heart } from 'lucide-react';
 
 export const RoomsListScreen: React.FC = () => {
-  const { rooms, joinRoom, setActiveTab } = useApp();
+  const { rooms, ownedClosedRooms, reopenRoom, joinRoom, setActiveTab } = useApp();
   const [activeTab, setActiveTabState] = useState<'all' | 'live' | 'popular' | 'new' | 'friends'>('all');
+  const [reopening,setReopening] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const tabs = [
@@ -99,6 +100,13 @@ export const RoomsListScreen: React.FC = () => {
         </div>
       </header>
 
+      {ownedClosedRooms.length > 0 && <section aria-label="غرفي المغلقة" dir="rtl" className="mx-4 mt-4 p-4 bg-white rounded-2xl border border-slate-200">
+        <h2 className="text-sm font-bold mb-3">غرفي المغلقة</h2>
+        <div className="space-y-2">{ownedClosedRooms.map(room=><div key={room.id} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl">
+          <span className="min-w-0 text-sm font-semibold truncate">{room.title}</span>
+          <button type="button" disabled={reopening!==null} aria-label={`إعادة فتح ${room.title}`} onClick={async()=>{if(reopening!==null)return;setReopening(room.id);try{await reopenRoom(room);}finally{setReopening(null);}}} className="shrink-0 px-3 py-2 bg-cyan-600 text-white rounded-xl text-xs font-bold disabled:opacity-50">{reopening===room.id?'جارٍ الفتح…':'إعادة فتح'}</button>
+        </div>)}</div>
+      </section>}
       {/* Rooms Grid */}
       <div className="px-4 py-4">
         <div className="flex items-center justify-between text-xs text-slate-500 mb-3 font-medium">

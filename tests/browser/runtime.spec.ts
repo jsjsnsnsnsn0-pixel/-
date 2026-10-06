@@ -7,10 +7,10 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
-  let currentRoom = {...room, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
+  let currentRoom = {...room, owner_id:overrides.listener?other:actor, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
@@ -42,8 +42,8 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       if (method==='PATCH') for (const m of directMessages) if (m.recipient_id===actor) m.read_at=new Date().toISOString();
       return respond(directMessages);
     }
-    if (path.endsWith('/rooms')) return respond(overrides.rooms && currentRoom.is_active ? [currentRoom] : []);
-    if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
+    if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
+    if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:overrides.listener?null:1,role:overrides.listener?'member':'owner',is_muted:true,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
     if (path.endsWith('/create_recharge_request')) {
@@ -92,6 +92,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       currentRoom = {...currentRoom, name:body.p_name, description:body.p_welcome_message, welcome_message:body.p_welcome_message, chat_enabled:body.p_chat_enabled, gift_effects_enabled:body.p_gift_effects_enabled, vehicle_effects_enabled:body.p_vehicle_effects_enabled, entrance_effects_enabled:body.p_entrance_effects_enabled};
       return respond(null);
     }
+    if (path.endsWith('/reopen_room')) {currentRoom.is_active=true;return respond(null);}
     if (path.endsWith('/close_room')) {currentRoom.is_active=false;return respond(null);}
     if (path.endsWith('/create_room')) return respond(roomId);
     if (path.includes('/rpc/')) return respond(null);
@@ -545,5 +546,36 @@ test('owner closing the room clears the active room immediately',async({page})=>
   await page.getByRole('button',{name:'إغلاق الروم',exact:true}).click();
   await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toHaveCount(0);
   expect(requests.filter(r=>r.path.endsWith('/close_room'))).toHaveLength(1);
+  expect(errors).toEqual([]);
+});
+
+
+test('ordinary listener opens live room information and member list without moderator RPC',async({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true,listener:true,otherMember:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await expect(page.getByRole('button',{name:'إدارة الغرفة',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'الموجودون في الغرفة',exact:true}).click();
+  const info=page.getByRole('dialog',{name:'معلومات الغرفة والموجودون',exact:true});
+  await expect(info).toContainText('الموجودون (2)');
+  await expect(info.getByRole('button',{name:'عرض ملف مشارك آخر'})).toBeVisible();
+  expect(requests.filter(r=>r.path.endsWith('/get_room_management_members'))).toHaveLength(0);
+  await info.getByRole('button',{name:'إغلاق معلومات الغرفة'}).click();
+  await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('owner closes then reopens the same room from the closed room list',async({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
+  page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'إغلاق الروم',exact:true}).click();
+  const closed=page.getByRole('region',{name:'غرفي المغلقة',exact:true});
+  await expect(closed).toBeVisible();
+  await closed.getByRole('button',{name:'إعادة فتح غرفة الاختبار',exact:true}).click();
+  await expect(closed).toHaveCount(0);
+  expect(requests.find(r=>r.path.endsWith('/reopen_room'))?.body.p_room_id).toBe(roomId);
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
