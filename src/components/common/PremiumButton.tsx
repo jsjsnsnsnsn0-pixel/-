@@ -22,7 +22,7 @@ export const PremiumButton: React.FC<PremiumButtonProps> = ({
   className = '',
 }) => {
   const sizeClasses = {
-    sm: 'h-8 px-3 text-xs gap-1.5 rounded-lg',
+    sm: 'h-11 px-3 text-xs gap-1.5 rounded-lg',
     md: 'h-11 px-4 text-sm gap-2 rounded-xl font-semibold',
     lg: 'h-13 px-6 text-base gap-2.5 rounded-2xl font-bold',
   };
@@ -44,7 +44,7 @@ export const PremiumButton: React.FC<PremiumButtonProps> = ({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center justify-center cursor-pointer transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`ui-control inline-flex items-center justify-center cursor-pointer transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed ${
         fullWidth ? 'w-full' : ''
       } ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
     >

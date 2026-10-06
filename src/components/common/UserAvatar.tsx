@@ -48,12 +48,17 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const avatarContent = (
     <div
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? `عرض ملف ${user?.name || "المستخدم"}` : undefined}
+      onKeyDown={event => {if(onClick && (event.key === "Enter" || event.key === " ")) {event.preventDefault();onClick();}}}
       className={`relative rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white font-bold select-none cursor-pointer ${dimensionMap[size]} ${className}`}
     >
       {!imgError ? (
         <img
           src={effectiveAvatar}
           alt={effectiveAvatar === defaultAvatar ? 'صورة افتراضية' : user?.name || 'صورة المستخدم'}
+          decoding="async"
           referrerPolicy="no-referrer"
           onError={() => setImgError(true)}
           className="w-full h-full object-cover rounded-full"

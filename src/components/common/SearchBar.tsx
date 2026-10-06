@@ -26,28 +26,31 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     >
       <Search size={18} className="text-slate-400 shrink-0 ml-2" />
       <input
-        type="text"
+        type="search"
+        aria-label={placeholder}
+        autoComplete="off"
         dir="rtl"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+        className="min-w-0 w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
       />
       {value ? (
         <button
           type="button"
+          aria-label="مسح البحث"
           onClick={() => {
             onChange('');
             if (onClear) onClear();
           }}
-          className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+          className="ui-icon-button text-slate-500 hover:text-slate-700 cursor-pointer"
         >
           <X size={16} />
         </button>
       ) : (
-        <div className="text-cyan-600 p-1">
+        <div aria-hidden="true" className="text-cyan-600 p-1">
           <Mic size={16} />
         </div>
       )}

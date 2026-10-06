@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+/* Values extracted from the existing TotiChat palette, not a new theme. */
+:root {
+  --toti-home: #1fa373;
+  --toti-dark: #0b0c16;
+  --toti-surface: #141629;
+  --toti-light: #f8fafc;
+  --toti-accent: #9333ea;
+  --toti-gold: #f59e0b;
+  --toti-radius-card: 1rem;
+  --toti-radius-sheet: 1.5rem;
+  --toti-touch: 44px;
+  --toti-space-page: 1rem;
+  --toti-motion: 150ms;
+}
+
+.ui-control { min-block-size: var(--toti-touch); min-inline-size: var(--toti-touch); }
+.ui-icon-button { inline-size: var(--toti-touch); block-size: var(--toti-touch); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.ui-page button { min-block-size: var(--toti-touch); }
+.ui-page input:not([type="file"]):not([type="checkbox"]), .ui-page select { min-block-size: var(--toti-touch); }
+.ui-page :is(input,textarea,select) { scroll-margin-block: 5rem; }
+.ui-page button:disabled { cursor: not-allowed; }
+.ui-page :is(button,[role="button"],a,input,textarea,select):focus-visible { outline: 2px solid #22d3ee; outline-offset: 3px; }
+.ui-field { border-radius: var(--toti-radius-card); transition: border-color var(--toti-motion), box-shadow var(--toti-motion); }
+.ui-sheet { border-start-start-radius: var(--toti-radius-sheet); border-start-end-radius: var(--toti-radius-sheet); max-block-size: 85dvh; overscroll-behavior: contain; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.ui-empty { padding: 1.5rem 1rem; text-align: center; border: 1px dashed currentColor; border-radius: var(--toti-radius-card); }
+.ui-inline-status { display: flex; justify-content: center; align-items: center; gap: .5rem; padding: .75rem; font-size: .875rem; }
+.ui-spinner { inline-size: 1rem; block-size: 1rem; border: 2px solid currentColor; border-inline-end-color: transparent; border-radius: 50%; animation: ui-spin .7s linear infinite; flex-shrink: 0; }
+.ui-error { padding: .75rem; border-radius: var(--toti-radius-card); color: #fb7185; background: rgb(244 63 94 / .08); border: 1px solid rgb(244 63 94 / .25); }
+.ui-id { direction: ltr; unicode-bidi: isolate; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
 @layer base {
   body {
     padding-top: env(safe-area-inset-top, 0px);

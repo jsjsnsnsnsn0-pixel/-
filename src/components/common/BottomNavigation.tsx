@@ -38,6 +38,7 @@ export const BottomNavigation: React.FC = () => {
           onClick={() => setActiveTab('home')}
           className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
           title="الصفحة الرئيسية"
+          aria-current={isHomeActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
             {/* Mosque / Palace 3D Icon */}
@@ -60,6 +61,7 @@ export const BottomNavigation: React.FC = () => {
           onClick={() => setActiveTab('messages')}
           className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
           title="الرسائل"
+          aria-current={isMessagesActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
             {/* Aladdin Brass Magic Oil Lamp */}
@@ -87,6 +89,7 @@ export const BottomNavigation: React.FC = () => {
           onClick={() => setActiveTab('profile')}
           className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
           title="أنا"
+          aria-current={isProfileActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
             {/* Cute Green Owl Mascot */}

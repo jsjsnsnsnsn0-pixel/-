@@ -1,0 +1,41 @@
+# TotiChat UI/UX refinement — evolution, not redesign
+
+## Audit before editing — 2026-10-06
+
+All screen/common/room/modal TSX files were inventoried for controls, dialogs, typography, spacing and state handling. Existing identity: green gradient Home, pale green Messages, dark navy/purple room and social surfaces, gold/red VIP and ranking illustrations, light Recharge/forms and dark premium Wallet. Existing Cairo/Tajawal system font stack remains. No shared theme/token registry existed beyond CSS animation/gradient helpers; extracted tokens now describe existing values.
+
+| Pattern | Existing convention | Inconsistency to address |
+|---|---|---|
+| Colors | #1fa373 Home, #0b0c16 dark, #141629 surfaces, #f8fafc light, purple/cyan actions, #f59e0b gold | State feedback and bare social/agency pages |
+| Typography | Strong titles, 12–14px content, tiny decorative badges | 9–11px metadata used for important IDs and actions |
+| Spacing | 16px page gutters, 12px rows, 8–12px gaps | Dense inputs/buttons, inconsistent section gaps |
+| Radius | 16px cards, 12px controls, 24px sheets, circular avatars | Shared metrics absent; keep distinct functional shapes |
+| Controls | Lucide icons, gradients, pressed scale | Many 24–36px hit areas, missing focus/accessible names |
+| Room cards | Two-column grid/featured carousel, cover crop, owner/count/category | Click-only wrappers, UUID overflow, fallback fake VIP level |
+| Room seats | Avatar, muted/speaking icons, locked/empty seat, genuine activity | Small names; ensure speaking ring never obscures text |
+| Sheets/dialogs | Dark rounded sheets with backdrop | No shared Android Back dismissal or focus policy |
+| Profile/VIP | Existing unified profiles, crests, decorative frames | Preserve artwork; improve names/IDs/stat readability |
+| Messages | Fixed meta/text/avatar matrix | Low-contrast previews, no direct-conversation empty state |
+| Search | Debounced backend accounts and current rooms | UUID row overflow, nested clickable targets, unclear initial state |
+| Wallet | Existing Coins/Diamonds/source distinctions and completed ledger records | Long transaction UUIDs and no empty list feedback |
+| Forms | Create already validates and submits inline | Inconsistent labels/focus/touch sizing |
+| Loading/error | App shell transition and compact lazy progress; server hooks | Some bare text, missing inline retry hierarchy |
+
+## Functional prerequisite
+
+P0/P1 code stabilization passed 20 units and 45 Chromium cases in run 37407781484. No fake ranking actions remain, economic caches reconcile, minimize preserves session on Home, and lazy navigation no longer replaces the screen with a full-screen loader. Real-device microphone/transport verification remains explicitly pending; UI changes do not certify it. Economy, auth, RLS, room permission and realtime/audio semantics are outside this phase.
+
+## Batch 1 — global consistency and navigation presentation
+
+- Screens: shared app shell, navigation and every screen using shared search/avatar/button components.
+- Components: index.css extracted palette/spacing/touch/radius/motion tokens; UIState reusable inline loading/empty/error feedback; PremiumButton, SearchBar, UserAvatar, BottomNavigation.
+- Fixes: 44px action heights, visible keyboard focus, a labelled search/clear control, keyboard-operable clickable avatars, current-page semantics and reduced-motion support.
+- Preserved: all colors/artwork/routes/actions/data/business calls; no new subscriptions or dependencies.
+- Checks before commit: TypeScript, ESLint and 20 unit/DOM cases passed. Browser suite will run through CI; local Chromium remains unavailable.
+- Device checks pending: keyboard/insets, actual touch and native Back.
+
+## Remaining batches
+
+Home/cards → voice room/sheets/profile card → full profile/messages/search/rankings → Wallet/Agency/forms/states → responsive/RTL/screenshots. Report each commit and its checks below. Existing functional roadmap remains active; UI polish must not silently implement or replace unfinished features.
+
+APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
