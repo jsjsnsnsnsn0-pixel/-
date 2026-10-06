@@ -50,6 +50,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
+  const roomOperation = useRef(false);
   const [activeTab, setActiveTabState] = useState<AppContextType['activeTab']>('home');
   const [activeSubScreen, setActiveSubScreenState] = useState<string | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
@@ -124,6 +125,9 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         setRooms([]); setConversations([]); setTransactions([]); setNotifications([]);
         setSelectedChatUser(null); setActiveRoom(null); setActiveSubScreenState(null);
         setActiveGiftOverlay(null); setActiveTabState('home'); setError(null);
+        activeRef.current = null;
+        setUnreadSystemMessagesCount(0); setHasUnseenFollowers(false); setHasUnseenVisitors(false); setIsHandRaised(false);
+        if (overlayTimer.current) { clearTimeout(overlayTimer.current); overlayTimer.current = null; }
       }
       setAuthLoading(false);
     };
@@ -170,7 +174,13 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       };
     });
     setRooms(mapped);
-    setActiveRoom(prev => prev ? mapped.find(r => r.id === prev.id) || null : null);
+    const current = activeRef.current;
+    if (current) {
+      const next = mapped.find(r => r.id === current.id && r.members?.some(m => m.authId === id)) || null;
+      activeRef.current = next;
+      setActiveRoom(next);
+      if (!next) { setActiveSubScreenState(null); setIsHandRaised(false); }
+    }
     return mapped;
   }, []);
 
@@ -339,32 +349,52 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     } catch (e) { fail(e); return false; }
   };
   const joinRoom = async (room: Room) => {
+    if (roomOperation.current || !authRef.current) return;
+    roomOperation.current = true;
+    const account = authRef.current;
     try {
       if (activeRef.current && activeRef.current.id !== room.id) {
         const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
+        if (account !== authRef.current) return;
+        activeRef.current = null; setActiveRoom(null); setIsHandRaised(false);
       }
       const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
+      if (account !== authRef.current) return;
       const next = await refreshRooms();
-      setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
-    } catch (e) { fail(e); }
+      if (account !== authRef.current) return;
+      const joined = next.find(r => r.id === room.id && r.members?.some(m => m.authId === account)) || null;
+      activeRef.current = joined; setActiveRoom(joined); setActiveSubScreenState(null); setIsHandRaised(false);
+    } catch (e) { if (account === authRef.current) fail(e); }
+    finally { roomOperation.current = false; }
   };
   const leaveRoom = async () => {
     const room = activeRef.current; if (!room) return;
+    if (roomOperation.current || !authRef.current) return;
+    roomOperation.current = true;
+    const account = authRef.current;
     try {
       const {error} = await supabase.rpc('leave_room', {p_room_id: room.id}); if (error) throw error;
-      setActiveRoom(null); setActiveSubScreenState(null); setIsHandRaised(false); await refreshRooms();
-    } catch (e) { fail(e); }
+      if (account !== authRef.current) return;
+      activeRef.current = null; setActiveRoom(null); setActiveSubScreenState(null); setIsHandRaised(false); await refreshRooms();
+    } catch (e) { if (account === authRef.current) fail(e); }
+    finally { roomOperation.current = false; }
   };
   const createNewRoom = async (input: Partial<Room>): Promise<Room | null> => {
+    if (roomOperation.current || !authRef.current) return null;
+    roomOperation.current = true;
+    const account = authRef.current;
     try {
       const {data, error} = await supabase.rpc('create_room', {p_name: input.title?.trim(),
         p_description: input.description, p_image_url: input.coverImage, p_max_seats: input.seatsCount || 8,
         p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
         p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
       if (error) throw error;
+      if (account !== authRef.current) return null;
       const next = await refreshRooms(); const room = next.find(r => r.id === data) || null;
-      setActiveRoom(room); setActiveSubScreenState(null); return room;
-    } catch (e) { fail(e); return null; }
+      if (account !== authRef.current) return null;
+      activeRef.current = room; setActiveRoom(room); setActiveSubScreenState(null); setIsHandRaised(false); return room;
+    } catch (e) { if (account === authRef.current) fail(e); return null; }
+    finally { roomOperation.current = false; }
   };
 
   const mySeat = activeRoom?.seats.find(s => s.user?.authId === authId);

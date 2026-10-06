@@ -10,7 +10,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit && eslint src",
     "check:assets": "node scripts/check-assets.mjs",
-    "test:unit": "tsx --test tests/unit/*.test.ts",
+    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run check:assets && npm run test:unit && npm run build"
   },
