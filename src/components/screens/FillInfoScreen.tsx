@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ChevronLeft, Check } from 'lucide-react';
@@ -41,6 +42,9 @@ export const FillInfoScreen: React.FC<FillInfoScreenProps> = ({ onComplete, onBa
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [tempName, setTempName] = useState('');
+  const nameRef=useDismissableLayer(showNameModal,()=>setShowNameModal(false));
+  const birthdayRef=useDismissableLayer(showBirthdayModal,()=>setShowBirthdayModal(false));
+  const countryRef=useDismissableLayer(showCountryModal,()=>setShowCountryModal(false));
 
   // Handle completing registration with the sequential ID
 const [saving, setSaving] = useState(false);
@@ -93,7 +97,7 @@ const [saving, setSaving] = useState(false);
       {/* ============================================================== */}
       <div className="px-6 pt-2 flex items-center justify-center gap-10">
         {/* Female Avatar Option */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setSelectedGender('female')}
           className="flex flex-col items-center cursor-pointer group active:scale-95 transition-transform"
         >
@@ -129,7 +133,7 @@ const [saving, setSaving] = useState(false);
         </div>
 
         {/* Male Avatar Option */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setSelectedGender('male')}
           className="flex flex-col items-center cursor-pointer group active:scale-95 transition-transform"
         >
@@ -170,7 +174,7 @@ const [saving, setSaving] = useState(false);
       {/* ============================================================== */}
       <div className="px-6 mt-5 space-y-4 flex-1">
         {/* FIELD 1: الاسم (Name) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => {
             setTempName(name);
             setShowNameModal(true);
@@ -191,7 +195,7 @@ const [saving, setSaving] = useState(false);
         </div>
 
         {/* FIELD 2: تاريخ الميلاد (Birthday) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setShowBirthdayModal(true)}
           className="w-full h-15 px-6 rounded-full bg-[#f4f5f7] border border-slate-200/60 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] flex items-center justify-between cursor-pointer active:bg-slate-200/80 transition-colors"
         >
@@ -209,7 +213,7 @@ const [saving, setSaving] = useState(false);
         </div>
 
         {/* FIELD 3: البلد (Country) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setShowCountryModal(true)}
           className="w-full h-15 px-6 rounded-full bg-[#f4f5f7] border border-slate-200/60 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] flex items-center justify-between cursor-pointer active:bg-slate-200/80 transition-colors"
         >
@@ -248,7 +252,7 @@ const [saving, setSaving] = useState(false);
       {/* MODAL 1: ENTER NAME                                            */}
       {/* ============================================================== */}
       {showNameModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={nameRef} role="dialog" aria-modal="true" aria-label="اسم الحساب" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-xs bg-white rounded-3xl p-6 shadow-2xl animate-scaleIn text-right">
             <h3 className="text-lg font-black text-slate-900 mb-1">
               أدخل اسم الحساب
@@ -257,6 +261,7 @@ const [saving, setSaving] = useState(false);
               يمكنك كتابة اسمك أو لقبك الملكي في التطبيق
             </p>
             <input
+              aria-label="اسم الحساب"
               type="text"
               autoFocus
               value={tempName}
@@ -291,7 +296,7 @@ const [saving, setSaving] = useState(false);
       {/* MODAL 2: BIRTHDAY PICKER                                       */}
       {/* ============================================================== */}
       {showBirthdayModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={birthdayRef} role="dialog" aria-modal="true" aria-label="تاريخ الميلاد" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-xs bg-white rounded-3xl p-6 shadow-2xl animate-scaleIn text-right">
             <h3 className="text-lg font-black text-slate-900 mb-1">
               تحديد تاريخ الميلاد
@@ -300,6 +305,7 @@ const [saving, setSaving] = useState(false);
               اختر تاريخ ميلادك لحساب الأبراج والهدايا السنوية
             </p>
             <input
+              aria-label="تاريخ الميلاد"
               type="date"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
@@ -320,7 +326,7 @@ const [saving, setSaving] = useState(false);
       {/* MODAL 3: COUNTRY PICKER                                        */}
       {/* ============================================================== */}
       {showCountryModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center">
+        <div ref={countryRef} role="dialog" aria-modal="true" aria-label="اختيار الدولة" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center">
           <div className="w-full max-w-md bg-white rounded-t-3xl p-5 shadow-2xl max-h-[75vh] flex flex-col animate-slideUp">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-black text-slate-900">

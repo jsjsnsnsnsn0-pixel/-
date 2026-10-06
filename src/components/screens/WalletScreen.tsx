@@ -1,3 +1,4 @@
+import {EmptyState,InlineLoading,ErrorState} from '../common/UIState';
 import { DiamondRedeemModal } from '../modals/DiamondRedeemModal';
 import { diamondState } from '../../services/diamonds';
 import { useServerData } from '../../hooks/useServerData';
@@ -37,13 +38,13 @@ export const WalletScreen: React.FC = () => {
   const filteredList = getFilteredTransactions();
 
   return (
-    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-28">
+    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-28" dir="rtl">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#0b0c16]/95 border-b border-purple-500/20 px-4 py-3 backdrop-blur-md flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#0b0c16]/95 border-b border-purple-500/20 px-4 py-3 backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveSubScreen(null)}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 cursor-pointer"
+            aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 cursor-pointer"
           >
             <ChevronRight size={22} />
           </button>
@@ -62,8 +63,8 @@ export const WalletScreen: React.FC = () => {
       <div className="p-4 space-y-3">
         {/* GOLD CARD */}
         <div className="relative rounded-3xl bg-gradient-to-r from-[#2c2010] via-[#1f1910] to-[#121424] border border-amber-500/40 p-4 shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-2xl shadow-md">
                 🪙
               </div>
@@ -87,8 +88,8 @@ export const WalletScreen: React.FC = () => {
 
         {/* DIAMONDS CARD */}
         <div className="relative rounded-3xl bg-gradient-to-r from-[#0e2136] via-[#101b2a] to-[#121424] border border-cyan-500/40 p-4 shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-400 to-blue-500 text-slate-950 flex items-center justify-center text-2xl shadow-md">
                 💎
               </div>
@@ -111,8 +112,8 @@ export const WalletScreen: React.FC = () => {
       </div>
 
       <div className="px-4 text-xs text-slate-300 space-y-1">
-        {breakdown.loading && <p role="status">جارٍ تحميل مصادر الماس…</p>}
-        {breakdown.error && <p role="alert">{breakdown.error}</p>}
+        {breakdown.loading && <InlineLoading>جارٍ تحميل مصادر الماس…</InlineLoading>}
+        {breakdown.error && <ErrorState message={breakdown.error} onRetry={()=>void breakdown.reload()}/>}
         {breakdown.data && <><p>Fixed Diamonds: {Number(breakdown.data.fixed_diamonds).toLocaleString()} 💎 — 30%</p><p>Lucky Diamonds: {Number(breakdown.data.lucky_diamonds).toLocaleString()} 💎 — 10%</p><p>ماس قديم غير محدد المصدر: {Number(breakdown.data.legacy_diamonds).toLocaleString()} 💎 — يحتاج مراجعة</p></>}
       </div>
       {redeeming && <DiamondRedeemModal onClose={() => setRedeeming(false)} onRedeemed={() => void breakdown.reload()} />}
@@ -123,7 +124,7 @@ export const WalletScreen: React.FC = () => {
         {/* 4 Tabs Filter */}
         <div className="grid grid-cols-4 gap-1.5 p-1 bg-[#141629] rounded-xl border border-purple-500/15 text-xs mb-3">
           <button
-            onClick={() => setFilterTab('all')}
+            aria-pressed={filterTab==='all'} onClick={() => setFilterTab('all')}
             className={`py-1.5 rounded-lg font-medium transition-all ${
               filterTab === 'all'
                 ? 'bg-purple-600 text-white font-bold'
@@ -133,7 +134,7 @@ export const WalletScreen: React.FC = () => {
             الكل
           </button>
           <button
-            onClick={() => setFilterTab('recharge')}
+            aria-pressed={filterTab==='recharge'} onClick={() => setFilterTab('recharge')}
             className={`py-1.5 rounded-lg font-medium transition-all ${
               filterTab === 'recharge'
                 ? 'bg-purple-600 text-white font-bold'
@@ -143,7 +144,7 @@ export const WalletScreen: React.FC = () => {
             الشحن
           </button>
           <button
-            onClick={() => setFilterTab('sent')}
+            aria-pressed={filterTab==='sent'} onClick={() => setFilterTab('sent')}
             className={`py-1.5 rounded-lg font-medium transition-all ${
               filterTab === 'sent'
                 ? 'bg-purple-600 text-white font-bold'
@@ -153,7 +154,7 @@ export const WalletScreen: React.FC = () => {
             مرسلة
           </button>
           <button
-            onClick={() => setFilterTab('received')}
+            aria-pressed={filterTab==='received'} onClick={() => setFilterTab('received')}
             className={`py-1.5 rounded-lg font-medium transition-all ${
               filterTab === 'received'
                 ? 'bg-purple-600 text-white font-bold'
@@ -166,14 +167,15 @@ export const WalletScreen: React.FC = () => {
 
         {/* Transaction Items List */}
         <div className="space-y-2">
+          {!filteredList.length && <EmptyState title="لا توجد عمليات في هذه القائمة" />}
           {filteredList.map((tx) => {
             const isPositive = tx.amount > 0;
             return (
               <div
                 key={tx.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 shadow-sm"
+                className="flex items-start justify-between gap-3 p-3 rounded-2xl bg-[#141629] border border-purple-500/15 shadow-sm"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                       tx.type === 'recharge'
@@ -192,21 +194,21 @@ export const WalletScreen: React.FC = () => {
                     )}
                   </div>
 
-                  <div>
-                    <h4 className="font-bold text-xs text-slate-100">{tx.title}</h4>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-sm text-slate-100 break-words">{tx.title}</h4>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400 font-mono mt-1">
                       <span>{tx.date}</span>
                       <span>·</span>
                       <span>{tx.time}</span>
                       <span>·</span>
-                      <span className="text-purple-300 font-normal">ID: {tx.id}</span>
+                      <span className="ui-id basis-full text-purple-300 font-normal">ID: {tx.id}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="shrink-0 text-end max-w-[40%]">
                   <span
-                    className={`block text-xs font-extrabold font-mono ${
+                    dir="ltr" className={`block text-sm font-extrabold font-mono ${
                       isPositive ? 'text-emerald-400' : 'text-slate-200'
                     }`}
                   >

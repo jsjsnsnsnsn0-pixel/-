@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Sparkles, Palette, Check, X } from 'lucide-react';
@@ -122,6 +123,7 @@ export const ShimmeringAccountName: React.FC<ShimmeringAccountNameProps> = ({
 }) => {
   const { user, setUser } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const themeRef=useDismissableLayer(isModalOpen,()=>setIsModalOpen(false));
 
   // Check VIP status:
   // If vipLevel was passed explicitly, use it; otherwise, check if this is the active user

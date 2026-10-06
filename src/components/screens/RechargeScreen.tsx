@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import { DiamondRedeemModal } from '../modals/DiamondRedeemModal';
 import { usePublicChat } from '../../hooks/usePublicChat';
 import { useTimeouts } from '../../hooks/useTimeouts';
@@ -31,6 +32,8 @@ export const RechargeScreen: React.FC = () => {
   const [rechargeError, setRechargeError] = useState<string | null>(null);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [agentInfo, setAgentInfo] = useState<any>(null);
+  const agentRef=useDismissableLayer(showAgentModal,()=>setShowAgentModal(false));
+  const orderRef=useDismissableLayer(showOrderCheckModal,()=>setShowOrderCheckModal(false));
 
   // Exact 6 packages from the user's screenshots with bright realistic 3D assets on white background:
   const [coinPackages, setCoinPackages] = useState<any[]>([]);
@@ -169,6 +172,7 @@ export const RechargeScreen: React.FC = () => {
         </button>
       </header>
 
+      <div className="px-4 pt-3 flex justify-end"><button type="button" onClick={()=>setActiveSubScreen("wallet")} className="ui-control px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold">سجل العمليات</button></div>
       <p className="text-center text-xs text-slate-600 mt-3">الشحن للـCoins 🪙 فقط — عملة الشحن والإنفاق. Diamonds 💎 أرباح الهدايا.</p>
       {/* ============================================================== */}
       {/* 2. CAPSULE SWITCHER: [ أرباح الهدايا  |  عملات معدنية ]               */}
@@ -309,10 +313,10 @@ export const RechargeScreen: React.FC = () => {
             <button
               type="button"
               onClick={handleConfirmRecharge}
-              disabled={rechargeLoading || packagesLoading || !selectedPkgId}
+              aria-busy={rechargeLoading} disabled={rechargeLoading || packagesLoading || !selectedPkgId}
               className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#2cdb7f] to-[#1ec76f] hover:from-[#25c672] hover:to-[#19b563] active:scale-[0.99] text-white font-bold text-[16px] shadow-[0_6px_18px_rgba(44,219,127,0.35)] transition-all cursor-pointer"
             >
-              تأكيد الشحن
+              {rechargeLoading?"جارٍ إنشاء طلب الشحن…":"تأكيد الشحن"}
             </button>
           </div>
 {rechargeError && (
@@ -408,12 +412,12 @@ export const RechargeScreen: React.FC = () => {
       {/* ============================================================== */}
       {showConvertModal && <DiamondRedeemModal onClose={() => setShowConvertModal(false)} />}
 {showAgentModal && agentInfo && (
-  <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+  <div ref={agentRef} role="dialog" aria-modal="true" aria-label="وكيل الشحن الرسمي" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
     <div className="w-full max-w-sm bg-white rounded-3xl p-5 text-right" dir="rtl">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold">وكيل الشحن الرسمي</h3>
 
-        <button onClick={() => setShowAgentModal(false)}>
+        <button aria-label="إغلاق معلومات الوكيل" className="ui-icon-button" onClick={() => setShowAgentModal(false)}>
           <X size={20} />
         </button>
       </div>
@@ -483,13 +487,13 @@ export const RechargeScreen: React.FC = () => {
       {/* 4. ORDER CHECK MODAL                                           */}
       {/* ============================================================== */}
       {showOrderCheckModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={orderRef} role="dialog" aria-modal="true" aria-label="التحقق من حالة الشحن" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl text-right">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowOrderCheckModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800"
+                aria-label="إغلاق حالة الشحن" className="ui-icon-button rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800"
               >
                 <X size={18} />
               </button>

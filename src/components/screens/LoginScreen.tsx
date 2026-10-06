@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, {useState} from 'react';
 import {useApp} from '../../context/AppContext';
 import {X, Smartphone, ChevronRight, ShieldCheck} from 'lucide-react';
@@ -14,6 +15,8 @@ export const LoginScreen: React.FC = () => {
   const [otp,setOtp]=useState('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
+  const phoneRef=useDismissableLayer(phoneOpen,()=>setPhoneOpen(false));
+  const termsRef=useDismissableLayer(termsOpen,()=>setTermsOpen(false));
 
   const google = async () => {
     if (busy) return;
@@ -63,7 +66,7 @@ export const LoginScreen: React.FC = () => {
       <p className="p-4 rounded-2xl bg-black/70 border border-amber-500/40 text-sm text-center">للتواصل مع الدعم، سجّل الدخول ثم افتح الرسائل الرسمية داخل التطبيق.</p>
     </main>
 
-    {phoneOpen && <div className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="phone-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 border border-amber-500/40 shadow-2xl">
+    {phoneOpen && <div ref={phoneRef} className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="phone-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 border border-amber-500/40 shadow-2xl">
       <div className="flex items-center justify-between"><h2 id="phone-title" className="font-bold">تسجيل الدخول عبر رقم الهاتف</h2><button type="button" disabled={busy} aria-label="إغلاق" onClick={closePhone} className="p-2"><X size={20}/></button></div>
       <form onSubmit={submit} className="mt-5 space-y-4">
         <label htmlFor="login-phone" className="block text-sm">رقم الهاتف</label>
@@ -73,6 +76,6 @@ export const LoginScreen: React.FC = () => {
       </form>
     </section></div>}
 
-    {termsOpen && <div className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="terms-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 space-y-4 shadow-2xl"><h2 id="terms-title" className="font-bold text-amber-300">سياسة الاستخدام والخصوصية</h2><p className="text-sm leading-7">احترم المستخدمين ولا تشارك رمز الدخول أو بيانات حسابك. عمليات الشحن تعتمد بعد تأكيد الدفع من الوكيل الرسمي، وتُحفظ الأرصدة والحركات في حسابك. استخدم التطبيق بصورة قانونية ومسؤولة.</p><button type="button" onClick={()=>setTermsOpen(false)} className="w-full min-h-11 bg-amber-400 text-black font-bold rounded-xl p-2">إغلاق</button></section></div>}
+    {termsOpen && <div ref={termsRef} className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="terms-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 space-y-4 shadow-2xl"><h2 id="terms-title" className="font-bold text-amber-300">سياسة الاستخدام والخصوصية</h2><p className="text-sm leading-7">احترم المستخدمين ولا تشارك رمز الدخول أو بيانات حسابك. عمليات الشحن تعتمد بعد تأكيد الدفع من الوكيل الرسمي، وتُحفظ الأرصدة والحركات في حسابك. استخدم التطبيق بصورة قانونية ومسؤولة.</p><button type="button" onClick={()=>setTermsOpen(false)} className="w-full min-h-11 bg-amber-400 text-black font-bold rounded-xl p-2">إغلاق</button></section></div>}
   </div>;
 };

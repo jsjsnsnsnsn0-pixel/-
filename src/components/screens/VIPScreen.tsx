@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import { catalog, rpc, backendMessage } from '../../services/backend';
 import { useServerData } from '../../hooks/useServerData';
 import { useTimeouts } from '../../hooks/useTimeouts';
@@ -187,6 +188,7 @@ export const VIPScreen: React.FC = () => {
   const scheduleTimeout = useTimeouts();
   const [selectedTierId, setSelectedTierId] = useState<number>(() => user.vipLevel || 8);
   const [previewModal, setPreviewModal] = useState<PreviewModalState | null>(null);
+  const previewRef=useDismissableLayer(Boolean(previewModal),()=>setPreviewModal(null));
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Preload all assets in background on mount for instantaneous rendering
@@ -611,7 +613,7 @@ export const VIPScreen: React.FC = () => {
 
       {/* 7. PREVIEW MODAL POPUP (Locked to the clicked tier) */}
       {previewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+        <div ref={previewRef} role="dialog" aria-modal="true" aria-label="معاينة VIP" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-sm rounded-3xl bg-[#141523] border border-amber-500/40 p-5 shadow-2xl text-right">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <button

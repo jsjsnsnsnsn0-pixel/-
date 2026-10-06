@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -36,6 +37,7 @@ export const BadgesScreen: React.FC = () => {
   const [topTab, setTopTab] = useState<'medals' | 'titles'>('medals');
   const [subTab, setSubTab] = useState<'achievements' | 'activity'>('achievements');
   const [selectedMedal, setSelectedMedal] = useState<MedalDetail | null>(null);
+  const medalRef=useDismissableLayer(Boolean(selectedMedal),()=>setSelectedMedal(null));
   const [toast, setToast] = useState<string | null>(null);
 
   // Equipped medals in top shelf (Initial 5 matching Screenshot 1)
@@ -416,7 +418,7 @@ export const BadgesScreen: React.FC = () => {
 
       {/* 5. MEDAL DETAIL MODAL */}
       {selectedMedal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div ref={medalRef} role="dialog" aria-modal="true" aria-label="تفاصيل الشارة" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-3xl bg-[#141524] border border-amber-500/50 p-6 shadow-2xl text-right relative">
             {/* Close Button */}
             <button

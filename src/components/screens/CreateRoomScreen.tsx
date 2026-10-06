@@ -51,12 +51,12 @@ export const CreateRoomScreen: React.FC = () => {
         <p className="mt-3 text-center text-[11px] text-slate-400">اختر صورة من معرض الهاتف — الحد الأقصى 5MB</p>
       </section>
       <section className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-        <div><label htmlFor="room-name" className="block text-sm font-black mb-2">اسم الغرفة <span className="text-rose-500">*</span></label><input id="room-name" value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="اكتب اسم الغرفة" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-500" /><div className="mt-1 text-left text-[10px] text-slate-400">{title.length}/60</div></div>
+        <div><label htmlFor="room-name" className="block text-sm font-black mb-2">اسم الغرفة <span className="text-rose-500">*</span></label><input id="room-name" required aria-describedby="room-name-count" value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="اكتب اسم الغرفة" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-500" /><div id="room-name-count" className="mt-1 text-left text-xs text-slate-500">{title.length}/60</div></div>
         <div><label htmlFor="welcome-message" className="block text-sm font-black mb-2">رسالة الترحيب</label><textarea id="welcome-message" value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)} maxLength={300} rows={4} placeholder="مثال: أهلاً وسهلاً بكم ❤️" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-500 resize-none" /><div className="mt-1 text-left text-[10px] text-slate-400">{welcomeMessage.length}/300</div></div>
       </section>
       <div className="rounded-2xl bg-cyan-50 border border-cyan-100 p-3 text-xs text-cyan-900">سيتم إنشاء الغرفة بـ <strong>10 مقاعد صوتية</strong>، ويمكن للمالك إدارة الغرفة بعد إنشائها.</div>
       {localError && <div role="alert" className="rounded-2xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{localError}</div>}
-      <button type="submit" disabled={!canCreate} className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"><Sparkles size={19}/><span>{isSubmitting ? 'جارٍ إنشاء الغرفة...' : 'إنشاء غرفة'}</span></button>
+      <button type="submit" aria-busy={isSubmitting} disabled={!canCreate} className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg">{isSubmitting?<span className="ui-spinner" aria-hidden="true"/>:<Sparkles size={19}/>}<span>{isSubmitting ? 'جارٍ إنشاء الغرفة...' : 'إنشاء غرفة'}</span></button>
     </form>
   </div>;
 };

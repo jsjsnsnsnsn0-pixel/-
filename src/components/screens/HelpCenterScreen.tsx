@@ -122,6 +122,7 @@ export const HelpCenterScreen: React.FC = () => {
 
           <form onSubmit={handleSendFeedback} className="space-y-3">
             <textarea
+              aria-label="رسالتك إلى الدعم"
               rows={3}
               minLength={5}
               maxLength={2000}
@@ -131,7 +132,7 @@ export const HelpCenterScreen: React.FC = () => {
               className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-500 resize-none"
             />
             <button
-              type="submit"
+              type="submit" aria-busy={busy}
               disabled={busy || feedback.trim().length < 5}
               className="w-full py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs cursor-pointer flex items-center justify-center gap-2 transition-all"
             >

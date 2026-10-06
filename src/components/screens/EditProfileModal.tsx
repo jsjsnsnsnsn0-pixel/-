@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, { useState, useRef } from 'react';
 import { supabase } from '../../services/supabase';
 import { setImageFallback } from '../../utils/imageFallback';
@@ -38,6 +39,7 @@ export const EditProfileModal: React.FC = () => {
     'none' | 'name' | 'name_shimmer' | 'bio' | 'birthday' | 'country' | 'region' | 'avatar_picker'
   >('none');
   const [tempText, setTempText] = useState('');
+  const editRef=useDismissableLayer(editingField!=='none',()=>setEditingField('none'));
 
   // Hidden native file input for gallery upload
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,7 +152,7 @@ export const EditProfileModal: React.FC = () => {
       {/* List items matching the exact order and look in the screenshot */}
       <div className="divide-y divide-slate-100 px-4">
         {/* Row 1: إطار (Avatar and Frame) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setEditingField('avatar_picker')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -169,7 +171,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 2: اسم الكنية (Nickname / Name) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => {
             setTempText(name);
             setEditingField('name');
@@ -184,7 +186,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 2.5: لمعان وألوان اسم الحساب (ذهبي، أحمر، أسود، فضي، مستمر) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setEditingField('name_shimmer')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -201,7 +203,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 3: سيرة ذاتية (Bio) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => {
             setTempText(bio);
             setEditingField('bio');
@@ -218,7 +220,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 4: عيد ميلاد (Birthday) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setEditingField('birthday')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -232,7 +234,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 5: منطقة (Region) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setEditingField('region')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -243,7 +245,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 6: دولة (Country with Flag & Code) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setEditingField('country')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -256,7 +258,7 @@ export const EditProfileModal: React.FC = () => {
         </div>
 
         {/* Row 7: اعدادات (Settings) */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setActiveSubScreen('settings')}
           className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
         >
@@ -267,7 +269,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 1: Change Avatar / Photo Gallery --- */}
       {editingField === 'avatar_picker' && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center">
           <div className="w-full max-w-md bg-white rounded-t-3xl p-5 space-y-4 animate-slideUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <button
@@ -320,7 +322,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 2: Edit Name Modal --- */}
       {editingField === 'name' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4">
             <h3 className="text-base font-black text-slate-900 text-right">تعديل اسم الكنية</h3>
             <input
@@ -351,7 +353,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 3: Edit Bio Modal --- */}
       {editingField === 'bio' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4">
             <h3 className="text-base font-black text-slate-900 text-right">تعديل السيرة الذاتية</h3>
             <textarea
@@ -382,7 +384,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 4: Edit Birthday Modal --- */}
       {editingField === 'birthday' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4 text-right">
             <h3 className="text-base font-black text-slate-900">تحديد تاريخ الميلاد</h3>
             <input
@@ -403,7 +405,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 5: Select Country Modal --- */}
       {editingField === 'country' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-3">
             <h3 className="text-base font-black text-slate-900 text-right mb-2">اختر الدولة</h3>
             <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
@@ -433,7 +435,7 @@ export const EditProfileModal: React.FC = () => {
 
       {/* --- Dialog 6: Account Name Color & Continuous Shine Selector --- */}
       {editingField === 'name_shimmer' && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
+        <div ref={editRef} role="dialog" aria-modal="true" aria-label="تعديل بيانات الملف" className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
           <div
             className="w-full max-w-md bg-gradient-to-b from-[#18202f] to-[#0b0f17] text-white rounded-3xl p-5 border border-amber-500/30 shadow-2xl relative max-h-[85vh] overflow-y-auto no-scrollbar"
             dir="rtl"

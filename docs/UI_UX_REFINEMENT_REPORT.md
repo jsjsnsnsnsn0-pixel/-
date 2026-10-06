@@ -65,3 +65,12 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 - Ranking lower rows render only actual backend entries; seven invented empty numbered users/rooms are gone. Empty periods have an explicit state. Actual totals/period selection and podium artwork remain.
 - All old social/couple/friend/message/search actions remain; no financial or audio logic changed. The chat no longer claims every user is online when `isOnline` is false.
 - Checks before commit: TypeScript/ESLint and 23 unit/DOM cases passed. Batch 3 Chromium CI succeeded (48 tests, ten-seat widths 320/360/430px), Android skipped. Additional cross-screen screenshots and long-text checks follow in the final batch. Real keyboard/native interaction remains pending.
+
+## Batch 5 — Wallet, Agency, forms and state polish
+
+- Screens: Wallet, Recharge, Agency, Create Room, Edit Profile, profile bootstrap, Help; existing Login/VIP/Badge/name-theme overlays receive the same dismissal behavior without changing their functional logic.
+- Fixes: Coins/Diamonds hierarchy retained, transaction amounts isolated LTR with original currency/sign, dates and UUIDs wrap independently, filtered transaction empty state, source-load retry, selected-record tabs, Agency headers/IDs/actions unified, destructive agency actions distinct, real pending-applications empty state, required create-name hint and busy progress, clear form field focus/text size, keyboard-operable form rows, named and dismissable recharge/edit/bootstrap sheets.
+- Existing Wallet transaction screen was available in routing but had no visible entry from Recharge. Added “سجل العمليات” to expose that existing screen; navigation architecture unchanged.
+- Preserved: balances/source calculations, conversion quotes/idempotency, recharge requests/agent-only payment, agency membership/permissions, profile saves, authentication and all previous actions. No database/RLS/economy/realtime changes.
+- Games/Luck Games and full recharge-request records are still functional-roadmap items: current transaction model has no game-result type; no fake Games records or fabricated empty totals were added. Existing ledger records remain separate from pending recharge requests.
+- Checks before commit: TypeScript/ESLint, 23 unit/DOM and web build passed. Batch 4 Chromium passed 48 tests; Android skipped. Added cross-screen screenshot/overflow review at 320/360/430px, long Arabic profile name and 320×480 short viewport; 52 browser cases now collected. Genuine Arabic IME/native Back and live audio require a device.
