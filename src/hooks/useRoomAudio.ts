@@ -1,166 +1,247 @@
-import {useAudioActivity, AudioSource} from './useAudioActivity';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Room } from '../types';
+import { useLegacyRoomAudio } from './useLegacyRoomAudio';
 
-type Signal = {id: string; sender_id: string; kind: 'ready' | 'offer' | 'answer' | 'ice'; payload: any};
-type Peer = {connection: RTCPeerConnection; audio: HTMLAudioElement; candidates: RTCIceCandidateInit[]};
+type LiveKitGlobal = {
+  Room?: new (...args: any[]) => any;
+  RoomEvent?: Record<string, string>;
+};
 
-// Signaling rows are authorized by sender, recipient and room membership through RLS.
-export function useRoomAudio(room: Room | null, authId: string | undefined, muted: boolean, speaker: boolean, onError: (message: string) => void, noiseSuppression = true) {
+type TokenResponse = {
+  token?: string;
+  url?: string;
+  roomName?: string;
+  identity?: string;
+  canPublish?: boolean;
+  error?: string;
+};
+
+const liveKit = (): LiveKitGlobal | undefined => (globalThis as any).LivekitClient as LiveKitGlobal | undefined;
+
+const friendlyAudioError = (error: unknown) => {
+  const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error || '');
+  if (/LIVEKIT_NOT_CONFIGURED/i.test(message)) return 'خدمة الصوت غير مهيأة على الخادم بعد.';
+  if (/ROOM_BANNED/i.test(message)) return 'لا يمكنك الاتصال بصوت هذه الغرفة لأنك محظور منها.';
+  if (/ROOM_MEMBERSHIP_REQUIRED/i.test(message)) return 'انضم إلى الغرفة أولاً قبل تشغيل الصوت.';
+  if (/ROOM_NOT_AVAILABLE/i.test(message)) return 'الغرفة غير متاحة للصوت حالياً.';
+  if (/NotAllowedError|Permission|denied/i.test(message)) return 'تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.';
+  return 'تعذر إعداد الصوت الحقيقي. تحقق من الاتصال وحاول مجدداً.';
+};
+
+function useLiveKitRoomAudio(
+  room: Room | null,
+  authId: string | undefined,
+  muted: boolean,
+  speaker: boolean,
+  onError: (message: string) => void,
+  noiseSuppression = true,
+) {
   const [connected, setConnected] = useState(false);
-  const peers = useRef(new Map<string, Peer>());
-  const stream = useRef<MediaStream | null>(null);
+  const [speakingIds, setSpeakingIds] = useState<string[]>([]);
+  const clientRef = useRef<any>(null);
   const generation = useRef(0);
-  const capture = useRef<Promise<void> | null>(null);
+  const pendingEnable = useRef(false);
   const speakerRef = useRef(speaker); speakerRef.current = speaker;
-  const membersRef = useRef(room?.members || []); membersRef.current = room?.members || [];
-  const sendRef = useRef<(to: string, kind: Signal['kind'], payload: object) => Promise<void>>(async () => {});
   const mutedRef = useRef(muted); mutedRef.current = muted;
-  const roomRef = useRef(room); roomRef.current = room;
-  const readAudioSources = useCallback(() => {
-    const active = new Map<string, AudioSource>();
-    if (authId && stream.current) active.set(authId,{stream:stream.current,muted:mutedRef.current});
-    for (const [id,peer] of peers.current) {
-      if (typeof MediaStream !== 'undefined' && peer.audio.srcObject instanceof MediaStream) active.set(id,{stream:peer.audio.srcObject,
-        muted:roomRef.current?.seats.find(seat => seat.user?.authId === id)?.isMuted ?? true});
+  const noiseRef = useRef(noiseSuppression); noiseRef.current = noiseSuppression;
+  const remoteAudio = useRef(new Map<string, HTMLMediaElement>());
+  const roomId = room?.id;
+  const hasSeat = Boolean(authId && room?.seats.some(seat => seat.user?.authId === authId));
+
+  const invokeAudio = useCallback(async (action: 'token' | 'sync-permissions'): Promise<TokenResponse> => {
+    if (!roomId) throw new Error('ROOM_MEMBERSHIP_REQUIRED');
+    const { data, error } = await supabase.functions.invoke('livekit-room', { body: { roomId, action } });
+    if (error) throw error;
+    const response = (data || {}) as TokenResponse;
+    if (response.error) throw new Error(response.error);
+    return response;
+  }, [roomId]);
+
+  const removeRemoteAudio = useCallback((key: string) => {
+    const element = remoteAudio.current.get(key);
+    if (!element) return;
+    try { element.pause(); } catch {}
+    element.srcObject = null;
+    element.remove();
+    remoteAudio.current.delete(key);
+  }, []);
+
+  const clearRemoteAudio = useCallback(() => {
+    for (const key of [...remoteAudio.current.keys()]) removeRemoteAudio(key);
+  }, [removeRemoteAudio]);
+
+  useEffect(() => {
+    if (!roomId || !authId) return;
+    const SDK = liveKit();
+    const RoomCtor = SDK?.Room;
+    const Events = SDK?.RoomEvent;
+    if (!RoomCtor || !Events) {
+      onError('تعذر تحميل محرك LiveKit. تحقق من اتصال الإنترنت ثم أعد فتح التطبيق.');
+      return;
     }
-    return active;
-  },[authId]);
-  const speakingIds = useAudioActivity(room?.id, readAudioSources);
 
-  useEffect(() => {
-    for (const track of stream.current?.getAudioTracks() || []) track.enabled = !muted;
-  }, [muted]);
-  useEffect(() => {
-    for (const track of stream.current?.getAudioTracks() || []) void track.applyConstraints({echoCancellation: true, noiseSuppression}).catch(() => {});
-  }, [noiseSuppression]);
-  useEffect(() => { for (const peer of peers.current.values()) peer.audio.muted = !speaker; }, [speaker]);
+    const currentGeneration = ++generation.current;
+    let disposed = false;
+    const client = new RoomCtor();
+    clientRef.current = client;
 
-  useEffect(() => {
-    if (!room?.id || !authId || typeof RTCPeerConnection === 'undefined') return;
-    generation.current++;
-    const roomId = room.id;
-    let stopped = false;
-    const seen = new Set<string>();
-    const serial = new Map<string, Promise<void>>();
-    const startedAt = new Date().toISOString();
-    const send = async (to: string, kind: Signal['kind'], payload: object) => {
-      if (stopped) return;
-      const {error} = await supabase.from('room_audio_signals').insert({room_id: roomId, recipient_id: to, kind, payload});
-      if (error && !stopped) throw error;
+    const keyFor = (publication: any, participant: any) => String(publication?.trackSid || `${participant?.identity || 'remote'}:${Date.now()}`);
+    const onTrackSubscribed = (track: any, publication: any, participant: any) => {
+      if (track?.kind !== 'audio') return;
+      const key = keyFor(publication, participant);
+      removeRemoteAudio(key);
+      const element = track.attach?.() as HTMLMediaElement | undefined;
+      if (!element) return;
+      element.autoplay = true;
+      element.muted = !speakerRef.current;
+      element.setAttribute('data-totichat-livekit-audio', participant?.identity || 'remote');
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      remoteAudio.current.set(key, element);
+      void element.play().catch(() => {});
     };
-    sendRef.current = send;
-    const getPeer = (id: string): Peer => {
-      const existing = peers.current.get(id); if (existing) return existing;
-      const connection = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
-      const audio = new Audio(); audio.autoplay = true; audio.muted = !speakerRef.current;
-      const transceiver = connection.addTransceiver('audio', {direction: 'sendrecv'});
-      const track = stream.current?.getAudioTracks()[0];
-      if (track) void transceiver.sender.replaceTrack(track);
-      const peer: Peer = {connection, audio, candidates: []}; peers.current.set(id, peer);
-      connection.onicecandidate = event => { if (event.candidate) void send(id, 'ice', event.candidate.toJSON()).catch(() => onError('تعذر ربط الصوت. تحقق من اتصالك.')); };
-      connection.ontrack = event => { audio.srcObject = event.streams[0] || new MediaStream([event.track]); void audio.play().catch(() => {}); };
-      connection.onconnectionstatechange = () => {
-        if (connection.connectionState === 'failed') onError('تعذر الاتصال الصوتي بهذا المستخدم. أعد دخول الغرفة.');
-      };
-      return peer;
+    const onTrackUnsubscribed = (track: any, publication: any, participant: any) => {
+      const key = keyFor(publication, participant);
+      try { track?.detach?.(); } catch {}
+      removeRemoteAudio(key);
     };
-    const handle = async (signal: Signal) => {
-      if (stopped || seen.has(signal.id) || signal.sender_id === authId) return;
-      // Membership can change between the last room refresh and receipt; RLS is the authority.
-      seen.add(signal.id);
-      if (seen.size > 2000) seen.delete(seen.values().next().value!);
-      const peer = getPeer(signal.sender_id); const pc = peer.connection;
-      if (signal.kind === 'ready') {
-        // One deterministic offerer prevents negotiation glare.
-        if (authId < signal.sender_id && pc.signalingState === 'stable' && !pc.localDescription) {
-          await pc.setLocalDescription(await pc.createOffer());
-          await send(signal.sender_id, 'offer', pc.localDescription!.toJSON());
-        }
-      } else if (signal.kind === 'offer') {
-        if (authId < signal.sender_id) return;
-        await pc.setRemoteDescription(signal.payload);
-        for (const candidate of peer.candidates.splice(0)) await pc.addIceCandidate(candidate);
-        await pc.setLocalDescription(await pc.createAnswer());
-        await send(signal.sender_id, 'answer', pc.localDescription!.toJSON());
-      } else if (signal.kind === 'answer') {
-        if (pc.signalingState !== 'have-local-offer') return;
-        await pc.setRemoteDescription(signal.payload);
-        for (const candidate of peer.candidates.splice(0)) await pc.addIceCandidate(candidate);
-      } else if (signal.kind === 'ice') {
-        if (pc.remoteDescription) await pc.addIceCandidate(signal.payload);
-        else peer.candidates.push(signal.payload);
+    const onActiveSpeakers = (participants: any[]) => {
+      setSpeakingIds((participants || []).map(p => String(p.identity || '')).filter(Boolean));
+    };
+    const onDisconnected = () => {
+      if (!disposed) {
+        setConnected(false);
+        setSpeakingIds([]);
       }
-      // Acknowledged signals are short-lived and do not accumulate during normal use.
-      const {error} = await supabase.from('room_audio_signals').delete().eq('id', signal.id);
-      if (error) console.error('Signal cleanup failed', error);
     };
-    const queue = (signal: Signal) => {
-      const previous = serial.get(signal.sender_id) || Promise.resolve();
-      serial.set(signal.sender_id, previous.then(() => handle(signal)).catch(() => {
-        if (!stopped) onError('تعذر إعداد الصوت. أعد دخول الغرفة.');
-      }));
-    };
-    const channel = supabase.channel(`audio:${roomId}:${authId}`).on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'room_audio_signals', filter: `recipient_id=eq.${authId}`,
-    }, event => { if (event.new.room_id === roomId) queue(event.new as Signal); }).subscribe(status => {
-      void (async () => {
-      if (status === 'SUBSCRIBED' && !stopped) {
+    const onReconnecting = () => { if (!disposed) setConnected(false); };
+    const onReconnected = () => { if (!disposed) setConnected(true); };
+
+    if (Events.TrackSubscribed) client.on(Events.TrackSubscribed, onTrackSubscribed);
+    if (Events.TrackUnsubscribed) client.on(Events.TrackUnsubscribed, onTrackUnsubscribed);
+    if (Events.ActiveSpeakersChanged) client.on(Events.ActiveSpeakersChanged, onActiveSpeakers);
+    if (Events.Disconnected) client.on(Events.Disconnected, onDisconnected);
+    if (Events.Reconnecting) client.on(Events.Reconnecting, onReconnecting);
+    if (Events.Reconnected) client.on(Events.Reconnected, onReconnected);
+
+    void (async () => {
+      try {
+        const tokenData = await invokeAudio('token');
+        if (disposed || currentGeneration !== generation.current) return;
+        if (!tokenData.token || !tokenData.url) throw new Error('LIVEKIT_TOKEN_INVALID');
+        await client.connect(tokenData.url, tokenData.token, { autoSubscribe: true });
+        if (disposed || currentGeneration !== generation.current) {
+          void client.disconnect?.();
+          return;
+        }
         setConnected(true);
-        const {data, error} = await supabase.from('room_audio_signals').select('*').eq('room_id', roomId)
-          .eq('recipient_id', authId).gte('created_at', startedAt).order('created_at');
-        if (stopped) return;
-        if (error) onError('تعذر إعداد الاتصال الصوتي.');
-        else for (const signal of data || []) queue(signal);
-        for (const member of membersRef.current) if (member.authId && member.authId !== authId) {
-          void send(member.authId, 'ready', {}).catch(() => onError('تعذر إعداد الاتصال الصوتي.'));
+        void client.startAudio?.().catch?.(() => {});
+        void invokeAudio('sync-permissions').catch(() => {});
+      } catch (error) {
+        if (!disposed) {
+          setConnected(false);
+          onError(friendlyAudioError(error));
         }
-      } else if (!stopped && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) { setConnected(false); onError('انقطع اتصال الغرفة الصوتية.'); }
-      })().catch(() => {if (!stopped) onError('تعذر إعداد الاتصال الصوتي.');});
-    });
+      }
+    })();
+
     return () => {
-      stopped = true; generation.current++; capture.current = null; sendRef.current = async () => {}; setConnected(false); void supabase.removeChannel(channel);
-      for (const peer of peers.current.values()) { peer.connection.close(); peer.audio.pause(); peer.audio.srcObject = null; }
-      peers.current.clear();
-      for (const track of stream.current?.getTracks() || []) track.stop(); stream.current = null;
-      void supabase.from('room_audio_signals').delete().eq('room_id', roomId).eq('sender_id', authId).then(() => {});
+      disposed = true;
+      generation.current++;
+      pendingEnable.current = false;
+      setConnected(false);
+      setSpeakingIds([]);
+      clearRemoteAudio();
+      if (clientRef.current === client) clientRef.current = null;
+      try { void client.disconnect?.(); } catch {}
     };
-  }, [room?.id, authId]);
+  }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError]);
 
-  // Tell existing participants when the room membership changes; establish only missing peers.
-  const memberIds = (room?.members || []).map(m => m.authId).filter(Boolean).sort().join(',');
   useEffect(() => {
-    if (!connected || !authId) return;
-    const ids = new Set(memberIds.split(','));
-    for (const [id, peer] of peers.current) if (!ids.has(id)) { peer.connection.close(); peer.audio.pause(); peer.audio.srcObject = null; peers.current.delete(id); }
-    for (const id of ids) if (id && id !== authId && !peers.current.has(id)) void sendRef.current(id, 'ready', {}).catch(() => {});
-  }, [memberIds, connected, authId]);
+    for (const element of remoteAudio.current.values()) {
+      element.muted = !speaker;
+      if (speaker) void element.play().catch(() => {});
+    }
+    if (speaker) void clientRef.current?.startAudio?.().catch?.(() => {});
+  }, [speaker]);
 
-  const enableMicrophone = async () => {
-    if (!room?.id || !authId) throw new Error('ادخل الغرفة أولاً.');
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
-    const current = generation.current;
-    if (!stream.current && !capture.current) {
-      const pending = (async () => {
-        const captured = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression}, video: false});
-        if (current !== generation.current) { captured.getTracks().forEach(track => track.stop()); throw new Error('انتهت جلسة الغرفة.'); }
-        const track = captured.getAudioTracks()[0];
-        if (!track) { captured.getTracks().forEach(t => t.stop()); throw new Error('لم يتم العثور على الميكروفون.'); }
-        stream.current = captured; track.enabled = !mutedRef.current;
-        try {
-          await Promise.all([...peers.current.values()].map(p => p.connection.getSenders().find(s => s.track?.kind === 'audio' || !s.track)?.replaceTrack(track)));
-        } catch (error) {
-          captured.getTracks().forEach(t => t.stop());
-          if (stream.current === captured) stream.current = null;
-          throw error;
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!connected || !client || !roomId || !authId) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const permission = await invokeAudio('sync-permissions');
+        if (cancelled || client !== clientRef.current) return;
+        const allowed = hasSeat && !muted && permission.canPublish !== false;
+        if (!allowed) {
+          pendingEnable.current = false;
+          await client.localParticipant?.setMicrophoneEnabled?.(false);
+          return;
         }
-      })();
-      capture.current = pending;
-      try { await pending; } finally { if (capture.current === pending) capture.current = null; }
-    } else if (capture.current) await capture.current;
-    if (current !== generation.current) throw new Error('انتهت جلسة الغرفة.');
-    for (const peer of peers.current.values()) void peer.audio.play().catch(() => {});
-  };
-  return {connected, enableMicrophone, speakingIds};
+        if (pendingEnable.current) {
+          await client.localParticipant?.setMicrophoneEnabled?.(true, {
+            echoCancellation: true,
+            noiseSuppression: noiseRef.current,
+          });
+          pendingEnable.current = false;
+          void client.startAudio?.().catch?.(() => {});
+        }
+      } catch (error) {
+        if (!cancelled) onError(friendlyAudioError(error));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [connected, roomId, authId, hasSeat, muted, invokeAudio, onError]);
+
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!client || !connected) return;
+    const publications = client.localParticipant?.audioTrackPublications;
+    if (!publications) return;
+    for (const publication of publications.values?.() || []) {
+      const mediaTrack = publication?.track?.mediaStreamTrack;
+      if (mediaTrack?.applyConstraints) {
+        void mediaTrack.applyConstraints({ echoCancellation: true, noiseSuppression }).catch(() => {});
+      }
+    }
+  }, [noiseSuppression, connected]);
+
+  const enableMicrophone = useCallback(async () => {
+    if (!roomId || !authId) throw new Error('ادخل الغرفة أولاً.');
+    if (!hasSeat) throw new Error('اختر مقعداً أولاً لتشغيل المايكروفون.');
+    if (!connected || !clientRef.current) throw new Error('تعذر الاتصال بخدمة الصوت. حاول بعد لحظة.');
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
+
+    const preview = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: noiseRef.current },
+      video: false,
+    });
+    preview.getTracks().forEach(track => track.stop());
+    pendingEnable.current = true;
+    void clientRef.current?.startAudio?.().catch?.(() => {});
+
+    if (!mutedRef.current) {
+      const permission = await invokeAudio('sync-permissions');
+      if (permission.canPublish === false) throw new Error('MIC_PUBLISH_NOT_ALLOWED');
+      await clientRef.current.localParticipant?.setMicrophoneEnabled?.(true, {
+        echoCancellation: true,
+        noiseSuppression: noiseRef.current,
+      });
+      pendingEnable.current = false;
+    }
+  }, [roomId, authId, hasSeat, connected, invokeAudio]);
+
+  return { connected, enableMicrophone, speakingIds };
 }
+
+// index.html loads the pinned LiveKit SDK before the app module. Browser automation keeps
+// the existing custom WebRTC engine so transport-independent UI/lifecycle checks remain
+// deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
+// prefer LiveKit whenever the SDK loaded successfully.
+const automatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
+const useLiveKitAtModuleLoad = !automatedBrowser && Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
+export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;
