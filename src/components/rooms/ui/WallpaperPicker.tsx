@@ -2,6 +2,7 @@ import React, {useRef,useState} from 'react';
 import {ImagePlus,X,Check} from 'lucide-react';
 import {useDismissableLayer} from '../../../hooks/useDismissableLayer';
 export const roomWallpapers=[
+  '/assets/images/room_screen_bg_1790556227206.jpg',
   '/assets/images/room_cover_majlis_1790226059300.jpg',
   '/assets/images/room_cover_poetry_1790226070047.jpg',
   '/assets/images/room_wallpaper_crown_queen_1790560306491.jpg',

@@ -169,7 +169,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
         isFollowed:(links.data||[]).some(link=>link.room_id===row.id&&link.followed),
         lastVisitedAt:(links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
-        internalBackground:row.internal_background_url||row.image_url||undefined,
+        internalBackground:row.internal_background_url||'/assets/images/room_screen_bg_1790556227206.jpg',
         description: row.welcome_message ?? row.description ?? '', coverImage: row.external_image_url || row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
         isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
