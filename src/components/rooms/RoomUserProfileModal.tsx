@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React from 'react';
 import {defaultAvatar} from '../../services/profile';
 import {loadRoomPublicProfile, seatPublicProfile, RoomPublicProfile} from '../../services/roomPublicProfile';
@@ -21,6 +22,8 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   onOpenMore,
   targetUser,
 }) => {
+  const layerRef=useDismissableLayer(isOpen,onClose);
+
   const { user: currentUser } = useApp();
   const [loaded, setLoaded] = React.useState<{target: string; viewer: string; profile: RoomPublicProfile} | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -44,15 +47,15 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   // There is no implicit current-user fallback, even on a failed lookup.
   const displayUser = loaded?.target === targetUser?.id && loaded?.viewer === currentUser.id
     ? loaded.profile : targetUser ? seatPublicProfile(targetUser) : null;
-  if (!displayUser) return <div role="dialog" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"><div className="w-full max-w-md rounded-t-[32px] bg-[#131118] p-6 text-white text-center"><p>لا يوجد مستخدم محدد لعرضه.</p><button onClick={onClose} className="mt-3">إغلاق</button></div></div>;
+  if (!displayUser) return <div ref={layerRef} role="dialog" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"><div className="w-full max-w-md ui-sheet rounded-t-3xl bg-[#131118] p-6 text-white text-center"><p>لا يوجد مستخدم محدد لعرضه.</p><button onClick={onClose} className="mt-3">إغلاق</button></div></div>;
 
   return (
-    <div role="dialog" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs select-none animate-fadeIn">
+    <div ref={layerRef} role="dialog" aria-modal="true" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs select-none animate-fadeIn">
       {/* Tap backdrop to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Main Bottom Sheet Container */}
-      <div className="relative z-10 w-full max-w-md bg-gradient-to-b from-[#131118]/95 via-[#0e0c12]/98 to-[#07060a] rounded-t-[32px] pt-1 pb-safe pb-6 px-4 max-h-[90dvh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,0.85)] border-t border-amber-500/20 text-center animate-slideUp">
+      <div className="relative z-10 w-full max-w-md bg-gradient-to-b from-[#131118]/95 via-[#0e0c12]/98 to-[#07060a] ui-sheet rounded-t-3xl pt-1 pb-safe pb-6 px-4 max-h-[90dvh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,0.85)] border-t border-amber-500/20 text-center animate-slideUp">
         {/* Subtle drag handle / top glow line */}
         <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-2" />
 
@@ -61,7 +64,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           type="button"
           onClick={onClose}
           aria-label="إغلاق البطاقة"
-          className="absolute z-20 top-4 left-4 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+          className="absolute z-20 top-4 left-4 ui-icon-button rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
         >
           <X size={16} />
         </button>
@@ -93,7 +96,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {/* ========================================================= */}
         {/* 2. USERNAME & BADGES                                      */}
         {/* ========================================================= */}
-        <div className="flex items-center justify-center gap-1.5 flex-wrap mt-0.5">
+        <div className="flex items-center justify-center gap-1.5 flex-wrap mt-0.5 min-w-0 break-words">
           {/* Agency Badge - only if user has agency */}
           {displayUser.agency?.name && (
             <div

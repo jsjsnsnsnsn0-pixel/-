@@ -48,3 +48,11 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 - Preserved: card variants, cover aspect ratios, owner/actual counts/category, joins, create/search/filter controls, banners and ranking entry points.
 - Checks: TypeScript/ESLint passed; 23 units/DOM passed in the working increment, including exactly one join action per card. Batch 1 Chromium CI succeeded in run 37409278581 (45 browser tests); Android skipped. Further responsive screenshots and browser checks continue below.
 - Real devices: thumbnail quality, long Arabic names and finger targets still require review.
+
+## Batch 3 — voice room, sheets and profile card
+
+- Screens: Voice Room and room member card; sheets: Room Info, Management, Gift Store, existing Home event modals, diamond redemption and daily reward.
+- Components: shared dismissable-layer hook, overlay stack and a single native Back listener. Topmost overlay closes first; Escape closes it, keyboard focus stays in it, background scroll is locked and restored on cleanup. Native Back from an active room opens existing room options; it never silently calls leave-room. Unmount removes listeners.
+- Fixes: consistent 44px mic/speaker/gift/hand/leave-seat targets, explicit pressed/busy state, keyboard-accessible empty/locked seats, readable truncated seat names, contained room UUID, wrapped announcement, safe sheet padding, labelled close buttons, member-list empty state, shortened profile-card sheet metrics. Existing decorations remain.
+- Preserved: permission flow, capture/signaling/speaking-energy logic, mic moderation rules, gift requests/idempotency, seat actions, profile fields and all event/reward actions. No economy/RLS/auth changes.
+- Tests: TypeScript/ESLint, 23 unit/DOM and web build passed before commit. Tests include top-overlay cleanup, Back destinations and Escape without leave. Added browser checks at 320/360/430px with ten seats, 44px controls and gift/options Escape; CI screenshots are uploaded separately. Real native Back/device keyboard/audio still need hardware verification.

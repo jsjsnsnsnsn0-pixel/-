@@ -26,6 +26,8 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
     return (
       <div
         onClick={() => onSeatClick(seatIndex)}
+        role="button" tabIndex={0} aria-label={isLocked ? `مقعد ${seatIndex+1} مقفل` : `الجلوس في المقعد ${seatIndex+1}`} aria-disabled={isLocked}
+        onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();onSeatClick(seatIndex);}}}
         className="flex flex-col items-center cursor-pointer select-none group"
       >
         <div
@@ -87,9 +89,9 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
       </div>
 
       {/* Username & Level */}
-      <div className="mt-1.5 flex flex-col items-center max-w-[70px]">
-        <span
-          className={`text-[11px] font-semibold truncate w-full text-center ${
+      <div className="mt-1.5 flex flex-col items-center w-full min-w-0 max-w-[80px]">
+        <span title={user.name}
+          className={`text-xs font-semibold truncate w-full text-center ${
             user.vipLevel && user.vipLevel > 0
               ? VIPUsernameColors[user.vipLevel] || 'text-amber-400 font-bold'
               : isCurrentUserSeat

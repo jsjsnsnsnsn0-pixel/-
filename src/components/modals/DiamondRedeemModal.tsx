@@ -1,9 +1,12 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { backendMessage } from '../../services/backend';
 import { DiamondQuote, DiamondState, diamondPreview, diamondState, redeemDiamonds } from '../../services/diamonds';
 
 export const DiamondRedeemModal: React.FC<{onClose: () => void; onRedeemed?: () => void}> = ({onClose,onRedeemed}) => {
+
+  const layerRef=useDismissableLayer(true,onClose);
  const {user,refreshWallet} = useApp();
  const [state,setState] = useState<DiamondState|null>(null);
  const [amount,setAmount] = useState('');
@@ -42,7 +45,7 @@ export const DiamondRedeemModal: React.FC<{onClose: () => void; onRedeemed?: () 
   } catch(e){if(version===scope.current)setError(committed?'تم الفك في الخادم، لكن تعذر تحديث الرصيد. أعد فتح المحفظة للتحديث.':backendMessage(e));}
   finally{if(version===scope.current)setBusy(null);}
  };
- return <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" dir="rtl">
+ return <div ref={layerRef} className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" dir="rtl">
   <section role="dialog" aria-modal="true" aria-labelledby="redeem-heading" className="w-full max-w-sm rounded-3xl bg-[#141629] text-white p-5 space-y-3 max-h-[90vh] overflow-auto">
    <div className="flex justify-between"><h2 id="redeem-heading" className="font-bold">فك الماس إلى Coins 🪙</h2><button disabled={busy!==null} onClick={onClose} aria-label="إغلاق فك الماس">×</button></div>
    <p className="text-sm">ماس الهدايا الثابتة: 30% · ماس هدايا الحظ: 10%</p>

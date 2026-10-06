@@ -69,7 +69,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     const button=(name:string)=>[...dom.window.document.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')===name||b.textContent?.trim()===name)!;
     const click=async(name:string)=>{const el=button(name);assert.ok(el,`button ${name} exists`);await act(async()=>el.click());};
     await click('إدارة الغرفة');await click('الإعدادات');
-    const flags=[...dom.window.document.querySelectorAll('button[aria-pressed]')];assert.equal(flags.length,4);for(const flag of flags)assert.equal(flag.getAttribute('aria-pressed'),'false');
+    const flags=[...dom.window.document.querySelectorAll('[aria-label="إدارة الغرفة"][role=dialog] button[aria-pressed]')];assert.equal(flags.length,4);for(const flag of flags)assert.equal(flag.getAttribute('aria-pressed'),'false');
     await click('حفظ الإعدادات');
     assert.deepEqual(requests.find(r=>r.name==='update_room_settings').body,{p_room_id:roomId,p_name:'Saved room',p_welcome_message:'Saved welcome',p_image_url:null,p_chat_enabled:false,p_gift_effects_enabled:false,p_vehicle_effects_enabled:false,p_entrance_effects_enabled:false});
     // Enable chat and verify successful readback reaches the real screen.
@@ -90,7 +90,9 @@ test('room settings round trip, failed save, membership removal and close', asyn
     await click('تشغيل المايكروفون');assert.equal(captures,1);
     await click('خيارات الغرفة');
     assert.ok(dom.window.document.querySelector('[role=dialog][aria-label="خيارات الغرفة"]'));
-    await click('تصغير الغرفة');
+    await act(async()=>dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));
+    assert.equal(dom.window.document.querySelector('[role=dialog][aria-label="خيارات الغرفة"]'),null);
+    await click('خيارات الغرفة');await click('تصغير الغرفة');
     assert.equal(context.activeSubScreen,'home');assert.equal(context.activeRoom.id,roomId);assert.equal(stopped,0);
     assert.equal(requests.filter(r=>r.name==='leave_room').length,0);
     await act(async()=>context.setActiveSubScreen(null));

@@ -1,3 +1,4 @@
+import {NativeBackNavigation} from './components/common/NativeBackNavigation';
 import React, {lazy, Suspense} from 'react';
 import { RoomAudioProvider } from './context/RoomAudioContext';
 import { isSupabaseConfigured } from './services/supabase';
@@ -68,5 +69,5 @@ const OperationError: React.FC = () => { const {error, dismissError} = useApp();
 
 export default function App() {
   if (!isSupabaseConfigured) return <div dir="rtl" className="min-h-screen flex items-center justify-center text-white p-6"><p>إعداد الاتصال غير مكتمل. أضف رابط Supabase والمفتاح العام وفق ملف .env.example ثم أعد بناء التطبيق.</p></div>;
-  return <ErrorBoundary><AppProvider><RealtimeRankingsProvider><RoomAudioProvider><Suspense fallback={<div className="fixed top-0 inset-x-0 h-1 bg-emerald-500/60 animate-pulse" role="status" aria-label="تحميل الصفحة" />}><MainLayout /></Suspense><OperationError /></RoomAudioProvider></RealtimeRankingsProvider></AppProvider></ErrorBoundary>;
+  return <ErrorBoundary><AppProvider><RealtimeRankingsProvider><RoomAudioProvider><NativeBackNavigation /><Suspense fallback={<div className="fixed top-0 inset-x-0 h-1 bg-emerald-500/60 animate-pulse" role="status" aria-label="تحميل الصفحة" />}><MainLayout /></Suspense><OperationError /></RoomAudioProvider></RealtimeRankingsProvider></AppProvider></ErrorBoundary>;
 }

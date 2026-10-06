@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,6 +22,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   room,
   onRechargeClick,
 }) => {
+  const layerRef=useDismissableLayer(isOpen,onClose);
+
   const { user, sendGiftInRoom } = useApp();
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,7 +124,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
+      <div ref={layerRef} className="fixed inset-0 z-50 flex items-end justify-center pointer-events-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -137,7 +140,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-          className="relative w-full max-w-md bg-[#101222] border-t border-purple-500/30 rounded-t-3xl p-4 shadow-2xl z-10 max-h-[85vh] flex flex-col"
+          role="dialog" aria-modal="true" aria-label="متجر الهدايا" className="ui-sheet relative w-full max-w-md bg-[#101222] border-t border-purple-500/30 rounded-t-3xl p-4 shadow-2xl z-10 max-h-[85vh] flex flex-col"
         >
           {/* Header & Grab handle */}
           <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-3" />
@@ -149,7 +152,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded-full text-slate-400 hover:text-slate-200"
+              aria-label="إغلاق متجر الهدايا" className="ui-icon-button rounded-full text-slate-400 hover:text-slate-200"
             >
               <X size={20} />
             </button>

@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import { rpc, backendMessage } from '../../services/backend';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -8,6 +9,8 @@ interface DailyGiftModalProps {
 }
 
 export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
+
+  const layerRef=useDismissableLayer(true,onClose);
   const { reportError, refreshWallet } = useApp();
   const [opened, setOpened] = useState(false);
   const [rewardGold,setRewardGold] = useState(0);
@@ -26,7 +29,7 @@ export const DailyGiftModal: React.FC<DailyGiftModalProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div ref={layerRef} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="relative w-full max-w-sm rounded-3xl bg-white text-slate-800 p-6 shadow-2xl text-center border border-slate-100 animate-fadeIn">
         <button
           onClick={onClose}

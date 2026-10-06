@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React from 'react';
 import { X } from 'lucide-react';
 
@@ -7,10 +8,12 @@ interface AgencyOpeningModalProps {
 }
 
 export const AgencyOpeningModal: React.FC<AgencyOpeningModalProps> = ({ isOpen, onClose }) => {
+  const layerRef=useDismissableLayer(isOpen,onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div
+    <div ref={layerRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >

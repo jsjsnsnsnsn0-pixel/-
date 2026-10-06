@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, { useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Sparkles, Plus, Gift as GiftIcon, Trophy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -28,6 +29,8 @@ export interface CpLeaderboardEntry {
 }
 
 export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOpen, onClose }) => {
+  const layerRef=useDismissableLayer(isOpen,onClose);
+
   const { user, refreshWallet, reportError } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedRank, setSelectedRank] = useState<RankTier>('top1');
@@ -66,7 +69,7 @@ export const SoulmatesWeeklyModal: React.FC<SoulmatesWeeklyModalProps> = ({ isOp
   const top1Entry = leaderboard[0];
 
   return (
-    <div
+    <div ref={layerRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >

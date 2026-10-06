@@ -1,3 +1,4 @@
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React from 'react';
 import { X, MessageCircle, Sparkles, Lock, Unlock, CheckCircle } from 'lucide-react';
 import { useMonthlyRecharge } from '../../hooks/useMonthlyRecharge';
@@ -10,6 +11,8 @@ interface CustomGiftModalProps {
 }
 
 export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClose }) => {
+  const layerRef=useDismissableLayer(isOpen,onClose);
+
   const { user, setActiveSubScreen, setSelectedChatUser } = useApp();
 
   const { opening, openChat } = usePublicChat(isOpen);
@@ -22,7 +25,7 @@ export const CustomGiftModal: React.FC<CustomGiftModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div
+    <div ref={layerRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
       onClick={onClose}
     >
