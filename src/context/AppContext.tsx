@@ -1,3 +1,4 @@
+import {sampleGifts} from '../data/mockData';
 import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
@@ -88,8 +89,11 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       'private room requires an invitation': 'تحتاج دعوة لدخول هذه الغرفة.',
       'VIP membership required': 'هذه الغرفة تتطلب عضوية VIP.',
       'no official recharge agent is configured for this country': 'لا يوجد وكيل شحن رسمي لبلدك حالياً.',
+      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من قسم ملكي.',
       'authentication required': 'يرجى تسجيل الدخول مجدداً.',
     };
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){setError('خطأ اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.');return;}
+    if(/Failed to fetch|NetworkError|fetch failed/i.test(raw)){setError('تعذر الاتصال بالخدمة. تحقق من الاتصال وحاول مجدداً.');return;}
     setError(messages[raw] || 'تعذر إتمام العملية. تحقق من الاتصال وحاول مجدداً.');
   }, []);
 
@@ -144,11 +148,12 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const refreshRooms = useCallback(async (): Promise<Room[]> => {
     const id = authRef.current;
     if (!id) return [];
-    const [rs, ms, ls] = await Promise.all([
+    const [rs, ms, ls, links] = await Promise.all([
       supabase.from('rooms').select('*').or(`is_active.eq.true,owner_id.eq.${id}`).order('created_at', {ascending: false}),
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
+      supabase.from('user_room_links').select('*').eq('user_id',id),
     ]);
-    for (const result of [rs, ms, ls]) if (result.error) throw result.error;
+    for (const result of [rs, ms, ls, links]) if (result.error) throw result.error;
     if (id !== authRef.current) return [];
     const mapped: Room[] = (rs.data || []).map(row => {
       const members = (ms.data || []).filter(m => m.room_id === row.id);
@@ -162,15 +167,18 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
-        description: row.welcome_message ?? row.description ?? '', coverImage: row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
+        isFollowed:(links.data||[]).some(link=>link.room_id===row.id&&link.followed),
+        lastVisitedAt:(links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
+        internalBackground:row.internal_background_url||row.image_url||undefined,
+        description: row.welcome_message ?? row.description ?? '', coverImage: row.external_image_url || row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
         isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
         canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
-        members: members.map(memberUser),
+        members: members.map(m=>({...memberUser(m),roomRole:m.role})),
         seats: Array.from({length: row.max_seats}, (_, index) => {
           const member = members.find(m => m.seat_number === index + 1);
           return {seatIndex: index, isLocked: (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
-            isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? memberUser(member) : undefined};
+            isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? {...memberUser(member),roomRole:member.role} : undefined};
         }),
       };
     });
@@ -290,16 +298,27 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     };
     void sync();
     const channel = supabase.channel(`app:${authId}`);
-    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions', 'user_notifications']) {
+    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions', 'user_notifications','user_room_links']) {
       channel.on('postgres_changes', {event: '*', schema: 'public', table}, () => { void sync(); });
     }
     channel.subscribe();
     // Also recover missed events after reconnects, including membership deletions.
     const timer = setInterval(() => { void sync(); }, 15000);
     const onFocus = () => { void sync(); };
-    window.addEventListener('focus', onFocus);
-    return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', onFocus); void supabase.removeChannel(channel); };
+    window.addEventListener('focus', onFocus);window.addEventListener('online',onFocus);
+    return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', onFocus);window.removeEventListener('online',onFocus); void supabase.removeChannel(channel); };
   }, [authId, refreshProfile, refreshRooms, refreshMessages, refreshTransactions, refreshNotifications, fail]);
+
+  useEffect(()=>{
+    const roomId=activeRoom?.id;if(!roomId)return;let disposed=false;
+    const channel=supabase.channel(`gifts:${roomId}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
+      const row=event.new;if(disposed||String(row.sender_public_id)===userRef.current.id)return;
+      const sender=profileToUser({public_id:row.sender_public_id,display_name:row.sender_name,avatar_url:row.sender_avatar});
+      const recipient=profileToUser({public_id:row.recipient_public_id,display_name:row.recipient_name,avatar_url:row.recipient_avatar});
+      const gift:Gift={...(sampleGifts.find(item=>item.id===row.gift_id)||{id:row.gift_id,category:'all' as const,icon:'🎁',animationType:'sparkle' as const}),name:row.gift_name,price:Number(row.amount)};
+      if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay({id:row.id,gift,sender,recipient});overlayTimer.current=setTimeout(()=>setActiveGiftOverlay(null),3800);
+    }).subscribe();return()=>{disposed=true;void supabase.removeChannel(channel);if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay(null)};
+  },[activeRoom?.id]);
 
   useEffect(() => () => { if (overlayTimer.current) clearTimeout(overlayTimer.current); }, []);
 
@@ -359,6 +378,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     } catch (error) { fail(error); return false; }
   };
   const joinRoom = async (room: Room) => {
+    if(activeRef.current?.id===room.id){setActiveSubScreenState(null);return;}
     if (room.isActive === false) { setError('أعد فتح الغرفة قبل الدخول إليها.'); return; }
     try {
       if (activeRef.current && activeRef.current.id !== room.id) {
@@ -379,7 +399,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const createNewRoom = async (input: Partial<Room>): Promise<Room | null> => {
     try {
       const {data, error} = await supabase.rpc('create_room', {p_name: input.title?.trim(),
-        p_description: input.description, p_image_url: input.coverImage, p_max_seats: input.seatsCount || 8,
+        p_description: input.description, p_image_url: input.coverImage, p_max_seats: input.seatsCount || 10,
         p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
         p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
       if (error) throw error;
@@ -389,10 +409,27 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   };
 
   const mySeat = activeRoom?.seats.find(s => s.user?.authId === authId);
-  const isMyMicMuted = mySeat?.isMuted ?? true;
+  const [pendingMute,setPendingMute]=useState<string|null>(null);
+  const micRequest=useRef(false);
+  const isMyMicMuted = Boolean(activeRoom&&pendingMute===activeRoom.id)||(mySeat?.isMuted ?? true);
   const takeSeat = async (index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: index + 1}); };
   const leaveSeat = async (_index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: null}); };
-  const toggleMyMic = async () => { await runRoomRpc('set_my_room_muted', {p_muted: !isMyMicMuted}); };
+  const toggleMyMic = async () => {
+    const room=activeRef.current;const account=authRef.current;
+    if(!room||!account||micRequest.current)return;
+    const seat=room.seats.find(item=>item.user?.authId===account);if(!seat)return;
+    const next=!seat.isMuted;micRequest.current=true;
+    // Local capture stops immediately on mute. Unmute waits for server acceptance.
+    if(next)setPendingMute(room.id);
+    try {
+      const {error}=await supabase.rpc('set_my_room_muted',{p_room_id:room.id,p_muted:next});
+      if(error)throw error;
+      if(activeRef.current?.id!==room.id||authRef.current!==account)return;
+      setActiveRoom(current=>current?.id===room.id?{...current,seats:current.seats.map(item=>item.user?.authId===account?{...item,isMuted:next}:item)}:current);
+      void refreshRooms().catch(fail);
+    } catch(error){fail(error)}
+    finally{setPendingMute(null);micRequest.current=false;}
+  };
   const [isHandRaised, setIsHandRaised] = useState(false);
   const toggleRaiseHand = async () => {
     const next = !isHandRaised;
@@ -410,7 +447,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
     try {
-      const {error} = await supabase.rpc('send_room_gift', {p_room_id: room.id, p_recipient_public_id: Number(recipient.id), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
+      const {error} = await supabase.rpc(recipient.id===userRef.current.id?'send_self_room_gift':'send_room_gift', {p_room_id: room.id, ...(recipient.id===userRef.current.id?{}:{p_recipient_public_id:Number(recipient.id)}), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
       if (error) throw error;
       await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
       if (overlayTimer.current) clearTimeout(overlayTimer.current);

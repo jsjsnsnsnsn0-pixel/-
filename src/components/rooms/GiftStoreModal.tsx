@@ -11,6 +11,7 @@ import { X, Sparkles, Plus, Check } from 'lucide-react';
 
 interface GiftStoreModalProps {
   isOpen: boolean;
+  initialRecipient?:User|null;
   onClose: () => void;
   room?: Room | null;
   onRechargeClick: () => void;
@@ -18,6 +19,7 @@ interface GiftStoreModalProps {
 
 export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   isOpen,
+  initialRecipient,
   onClose,
   room,
   onRechargeClick,
@@ -32,19 +34,13 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   
   // Available recipients: room participants or host
-  const potentialRecipients: User[] = (room?.seats || [])
-    .map((s) => s.user)
-    .filter((u): u is User => !!u && u.id !== user.id);
-
-  // If room owner is not in seats, add them
-  if (room && room.owner.id !== user.id && !potentialRecipients.some((r) => r.id === room.owner.id)) {
-    potentialRecipients.unshift(room.owner);
-  }
+  const potentialRecipients: User[] = [...new Map([...(room?.members?.length?room.members:(room?.seats||[]).flatMap(seat=>seat.user?[seat.user]:[])),user].map(member=>[member.id,member])).values()];
 
   const [selectedRecipient, setSelectedRecipient] = useState<User | null>(
     potentialRecipients.length > 0 ? potentialRecipients[0] : null
   );
 
+  useEffect(()=>{if(isOpen&&initialRecipient&&Boolean(initialRecipient.id))setSelectedRecipient(initialRecipient)},[isOpen,initialRecipient?.id]);
   const giftRetry = useRef<{key:string;id:string}|null>(null);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);

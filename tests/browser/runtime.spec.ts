@@ -148,7 +148,7 @@ test('room seats are rendered from the database and recharge opens while joined'
   const {errors}=await setup(page,true,{rooms:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await expect(page.getByText('إشعار الغرفة',{exact:true})).toBeVisible();
-  await expect(page.getByText('مقعد 4',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'الجلوس في المقعد 4',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   await page.getByTitle('شحن رصيد',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
@@ -361,7 +361,7 @@ test('late microphone permission result is stopped after leaving the room', asyn
   await page.getByRole('button',{name:'تشغيل المايكروفون',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>typeof (window as any).finishCapture)).toBe('function');
   await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();
-  await page.getByRole('button',{name:'الخروج من الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'مغادرة الغرفة',exact:true}).click();
   await expect(page.getByRole('navigation',{name:'التنقل الرئيسي'})).toBeVisible();
   await page.evaluate(()=>(window as any).finishCapture());
   await expect.poll(()=>page.evaluate(()=>(window as any).stoppedCapture)).toBe(1);
@@ -489,7 +489,8 @@ test('room settings preserve disabled server flags and refresh the announcement 
   const {requests,errors}=await setup(page,true,{rooms:true,roomSettings:true});
   await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await expect(page.getByText('ترحيب محفوظ',{exact:true})).toBeVisible();
-  await expect(page.getByPlaceholder('الدردشة متوقفة من إدارة الغرفة')).toBeDisabled();
+  await expect(page.getByLabel('رسالة الغرفة')).toBeDisabled();
+  await page.getByRole('button',{name:'أدوات الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
   for (const name of ['الدردشة العامة','تأثير الهدية','تأثير المركبة','تأثيرات الدخول']) {
@@ -509,6 +510,7 @@ test('room settings preserve disabled server flags and refresh the announcement 
 test('failed room settings save keeps the confirmed room name and shows no success',async({page})=>{
   const {errors}=await setup(page,true,{rooms:true,settingsError:true});await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'أدوات الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
   await page.getByLabel('اسم الغرفة').fill('اسم غير محفوظ');
@@ -540,6 +542,7 @@ test('membership removal clears the active public room and stops microphone capt
 test('owner closing the room clears the active room immediately',async({page})=>{
   const {requests,errors}=await setup(page,true,{rooms:true});await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'أدوات الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
   page.once('dialog',dialog=>dialog.accept());
@@ -567,6 +570,7 @@ test('ordinary listener opens live room information and member list without mode
 test('owner closes then reopens the same room from the closed room list',async({page})=>{
   const {requests,errors}=await setup(page,true,{rooms:true});await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'أدوات الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'الإعدادات',exact:true}).click();
   page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'إغلاق الروم',exact:true}).click();
@@ -612,8 +616,10 @@ for(const width of [320,360,430]) test(`room controls and sheets retain actions 
  const {errors,requests}=await setup(page,true,{rooms:true,tenSeats:true});await page.setViewportSize({width,height:780});await page.goto('/');
  await page.getByRole('button',{name:'دخول غرفة غرفة الاختبار',exact:true}).first().click();
  await expect(page.getByRole('button',{name:'الجلوس في المقعد 10',exact:true})).toBeVisible();
- for(const name of ['تشغيل المايكروفون','كتم سماعة الغرفة','إرسال هدية','رفع اليد','مغادرة المقعد']){const box=await page.getByRole('button',{name,exact:true}).boundingBox();expect(box?.width).toBeGreaterThanOrEqual(44);expect(box?.height).toBeGreaterThanOrEqual(44);}
+ await page.getByRole('button',{name:'أدوات الغرفة',exact:true}).click();
+ for(const name of ['كتم سماعة الغرفة','رفع اليد','مغادرة المقعد']){const box=await page.getByRole('button',{name,exact:true}).boundingBox();expect(box?.width).toBeGreaterThanOrEqual(44);expect(box?.height).toBeGreaterThanOrEqual(44);}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await page.getByRole('button',{name:'إغلاق الأدوات',exact:true}).click();
  await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toHaveCount(0);
  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toHaveCount(0);
  await page.screenshot({path:`test-results/ui-review/room-${width}.png`,fullPage:true});expect(requests.some(r=>r.path.endsWith('/leave_room'))).toBe(false);expect(errors).toEqual([]);

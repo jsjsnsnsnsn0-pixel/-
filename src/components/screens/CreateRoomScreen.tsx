@@ -36,27 +36,27 @@ export const CreateRoomScreen: React.FC = () => {
 
   const canCreate = Boolean(title.trim()) && !isSubmitting;
 
-  return <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-24" dir="rtl">
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+  return <div className="min-h-screen bg-[#0b0822] text-white pb-24" dir="rtl">
+    <header className="sticky top-0 z-30 bg-[#0b0822]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2"><Radio size={20} className="text-cyan-600"/><h1 className="text-lg font-black">أنشئ غرفة</h1></div>
-      <button type="button" onClick={() => setActiveTab('home')} className="text-sm font-bold text-slate-500">إلغاء</button>
+      <button type="button" onClick={() => setActiveTab('home')} className="text-sm font-bold text-slate-400">إلغاء</button>
     </header>
     <form onSubmit={handleSubmit} className="p-5 max-w-md mx-auto space-y-5">
-      <section className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+      <section className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm">
         <label className="block text-sm font-black mb-3">صورة الغرفة</label>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
-        <button type="button" onClick={() => fileRef.current?.click()} className="mx-auto w-32 h-32 rounded-3xl overflow-hidden border-2 border-dashed border-cyan-300 bg-cyan-50 flex items-center justify-center">
-          {selectedCover ? <img src={selectedCover} alt="معاينة صورة الغرفة" className="w-full h-full object-cover"/> : <span className="flex flex-col items-center gap-2 text-cyan-700"><ImagePlus size={34}/><span className="text-xs font-bold">اختيار صورة</span></span>}
+        <button type="button" onClick={() => fileRef.current?.click()} className="mx-auto w-32 h-32 rounded-3xl overflow-hidden border-2 border-dashed border-purple-400/40 bg-[#211b35] flex items-center justify-center">
+          {selectedCover ? <img src={selectedCover} alt="معاينة صورة الغرفة" className="w-full h-full object-cover"/> : <span className="flex flex-col items-center gap-2 text-purple-300"><ImagePlus size={34}/><span className="text-xs font-bold">اختيار صورة</span></span>}
         </button>
         <p className="mt-3 text-center text-[11px] text-slate-400">اختر صورة من معرض الهاتف — الحد الأقصى 5MB</p>
       </section>
-      <section className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-        <div><label htmlFor="room-name" className="block text-sm font-black mb-2">اسم الغرفة <span className="text-rose-500">*</span></label><input id="room-name" required aria-describedby="room-name-count" value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="اكتب اسم الغرفة" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-500" /><div id="room-name-count" className="mt-1 text-left text-xs text-slate-500">{title.length}/60</div></div>
-        <div><label htmlFor="welcome-message" className="block text-sm font-black mb-2">رسالة الترحيب</label><textarea id="welcome-message" value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)} maxLength={300} rows={4} placeholder="مثال: أهلاً وسهلاً بكم ❤️" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-cyan-500 resize-none" /><div className="mt-1 text-left text-[10px] text-slate-400">{welcomeMessage.length}/300</div></div>
+      <section className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm space-y-4">
+        <div><label htmlFor="room-name" className="block text-sm font-black mb-2">اسم الغرفة <span className="text-rose-500">*</span></label><input id="room-name" required aria-describedby="room-name-count" value={title} onChange={e => setTitle(e.target.value)} maxLength={60} placeholder="اكتب اسم الغرفة" className="w-full rounded-2xl border border-white/10 bg-[#211b35] px-4 py-3 outline-none focus:border-cyan-500" /><div id="room-name-count" className="mt-1 text-left text-xs text-slate-400">{title.length}/60</div></div>
+        <div><label htmlFor="welcome-message" className="block text-sm font-black mb-2">رسالة الترحيب</label><textarea id="welcome-message" value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)} maxLength={300} rows={4} placeholder="مثال: أهلاً وسهلاً بكم ❤️" className="w-full rounded-2xl border border-white/10 bg-[#211b35] px-4 py-3 outline-none focus:border-cyan-500 resize-none" /><div className="mt-1 text-left text-[10px] text-slate-400">{welcomeMessage.length}/300</div></div>
       </section>
-      <div className="rounded-2xl bg-cyan-50 border border-cyan-100 p-3 text-xs text-cyan-900">سيتم إنشاء الغرفة بـ <strong>10 مقاعد صوتية</strong>، ويمكن للمالك إدارة الغرفة بعد إنشائها.</div>
+      <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-xs text-slate-300">سيتم إنشاء الغرفة بـ <strong>10 مقاعد صوتية</strong>، ويمكن للمالك إدارة الغرفة بعد إنشائها.</div>
       {localError && <div role="alert" className="rounded-2xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-700">{localError}</div>}
-      <button type="submit" aria-busy={isSubmitting} disabled={!canCreate} className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg">{isSubmitting?<span className="ui-spinner" aria-hidden="true"/>:<Sparkles size={19}/>}<span>{isSubmitting ? 'جارٍ إنشاء الغرفة...' : 'إنشاء غرفة'}</span></button>
+      <button type="submit" aria-busy={isSubmitting} disabled={!canCreate} className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-white font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg">{isSubmitting?<span className="ui-spinner" aria-hidden="true"/>:<Sparkles size={19}/>}<span>{isSubmitting ? 'جارٍ إنشاء الغرفة...' : 'إنشاء غرفة'}</span></button>
     </form>
   </div>;
 };

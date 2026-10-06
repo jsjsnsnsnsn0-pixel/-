@@ -1,3 +1,4 @@
+import {RoyalRooms} from '../rooms/RoyalRooms';
 import {EmptyState} from '../common/UIState';
 import {setImageFallback} from '../../utils/imageFallback';
 import React, { useState, useEffect, useRef } from 'react';
@@ -154,7 +155,7 @@ export const HomeScreen: React.FC = () => {
             type="button"
             onClick={() => {
               setActiveTopTab('royal');
-              setActiveSubScreen('vip');
+
             }}
             className={`text-base font-bold transition-all cursor-pointer ${
               activeTopTab === 'royal'
@@ -672,6 +673,7 @@ export const HomeScreen: React.FC = () => {
         )}
       </div>
 
+      {activeTopTab==='royal'?<RoyalRooms/>:<>
       {/* ============================================================== */}
       {/* 5. 2x2 ROOMS GRID: Real Rooms from State                       */}
       {/* ============================================================== */}
@@ -729,6 +731,7 @@ export const HomeScreen: React.FC = () => {
         })}
       </div>
       {!rooms.length && <div className="mx-3 mt-3 text-emerald-950"><EmptyState title="لا توجد غرف نشطة حالياً" description="يمكنك إنشاء غرفتك أو العودة لاحقاً." /></div>}
+      </>}
         </>
       )}
 

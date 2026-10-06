@@ -11,12 +11,14 @@ interface MicrophoneSeatProps {
   seat: MicrophoneSeatState;
   onSeatClick: (seatIndex: number) => void;
   isCurrentUserSeat?: boolean;
+  isOwner?: boolean;
 }
 
 export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
   seat,
   onSeatClick,
   isCurrentUserSeat = false,
+  isOwner = false,
 }) => {
   const { seatIndex, isLocked, isMuted, isSpeaking } = seat;
   const user = useRoomSeatProfile(seat.user);
@@ -46,7 +48,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
 
         <div className="mt-1.5 flex items-center justify-center">
           <span className="text-[11px] text-slate-400 font-mono">
-            {isLocked ? 'مقفل' : `مقعد ${seatIndex + 1}`}
+            {seatIndex + 1}{isLocked ? ' • مقفل' : ''}
           </span>
         </div>
       </div>
@@ -88,6 +90,9 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
         )}
       </div>
 
+      <span className="absolute top-0 left-0 text-[9px] text-slate-300">{seatIndex+1}</span>
+      {seat.user?.roomRole==='moderator'&&<span className="text-[9px] text-cyan-300">مشرف</span>}
+      {isOwner&&<span className="text-[9px] text-amber-300">المضيف</span>}
       {/* Username & Level */}
       <div className="mt-1.5 flex flex-col items-center w-full min-w-0 max-w-[80px]">
         <span title={user.name}

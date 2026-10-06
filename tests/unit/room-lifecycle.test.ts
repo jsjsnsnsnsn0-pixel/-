@@ -68,7 +68,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     assert.equal(dom.window.document.body.textContent?.includes('هدية فاخرة'),false);
     const button=(name:string)=>[...dom.window.document.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')===name||b.textContent?.trim()===name)!;
     const click=async(name:string)=>{const el=button(name);assert.ok(el,`button ${name} exists`);await act(async()=>el.click());};
-    await click('إدارة الغرفة');await click('الإعدادات');
+    await click('أدوات الغرفة');await click('إدارة الغرفة');await click('الإعدادات');
     const flags=[...dom.window.document.querySelectorAll('[aria-label="إدارة الغرفة"][role=dialog] button[aria-pressed]')];assert.equal(flags.length,4);for(const flag of flags)assert.equal(flag.getAttribute('aria-pressed'),'false');
     await click('حفظ الإعدادات');
     assert.deepEqual(requests.find(r=>r.name==='update_room_settings').body,{p_room_id:roomId,p_name:'Saved room',p_welcome_message:'Saved welcome',p_image_url:null,p_chat_enabled:false,p_gift_effects_enabled:false,p_vehicle_effects_enabled:false,p_entrance_effects_enabled:false});
@@ -101,7 +101,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     assert.equal(dom.window.document.querySelector('input[aria-label="رسالة الغرفة"]'),null);
     members=[{room_id:roomId,user_id:actor,seat_number:1,role:'owner',is_muted:true}];failSave=false;
     await act(async()=>{await context.refreshRooms();await context.joinRoom(context.rooms[0]);});
-    await click('إدارة الغرفة');await click('الإعدادات');
+    await click('أدوات الغرفة');await click('إدارة الغرفة');await click('الإعدادات');
     dom.window.confirm=()=>true;await click('إغلاق الروم');
     assert.equal(context.activeRoom,null);assert.equal(context.rooms.length,0);
     assert.equal(requests.filter(r=>r.name==='close_room').length,1);

@@ -1,0 +1,66 @@
+import {useDismissableLayer} from '../../../hooks/useDismissableLayer';
+import React, {useEffect, useRef, useState} from 'react';
+import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, X} from 'lucide-react';
+import './room-ui.css';
+
+export interface RoomChatMessage {id: string; content: string; sender_display_name?: string}
+interface Props {
+  title: string; cover: string; thumbnail?:string; count: number; welcome: string; seats: React.ReactNode;
+  onDeleteMessage?:(id:string)=>void;
+  messages: RoomChatMessage[]; chatEnabled: boolean; text: string; sending: boolean;
+  muted: boolean; micBusy: boolean; seated: boolean; speaker: boolean; handRaised: boolean; canModerate: boolean;
+  onText: (value: string) => void; onSend: (event: React.FormEvent) => void;
+  onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
+  onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
+  musicName?: string; onMusic?: (file:File) => void; onStopMusic?:()=>void;
+  onManage: () => void; onMessages: () => void;
+}
+
+/** Shared by the real room and the review page; session/audio remain with the provider. */
+export function RoomStage(props: Props) {
+  const [tools, setTools] = useState(false);
+  const toolsRef=useDismissableLayer(tools,()=>setTools(false));
+  const fileRef=useRef<HTMLInputElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const atBottom = useRef(true);
+  useEffect(() => {
+    const chat = chatRef.current;
+    if (chat && atBottom.current) chat.scrollTop = chat.scrollHeight;
+  }, [props.messages]);
+  return <main dir="rtl" className="room-stage">
+    <img className="room-wallpaper" src={props.cover} alt=""/>
+    <div className="room-shade"/>
+    <header className="room-header">
+      <button type="button" aria-label="معلومات الغرفة" onClick={props.onInfo} className="room-thumbnail"><img src={props.thumbnail||props.cover} alt={props.title}/></button>
+      <div className="room-header-spacer"/>
+      <button type="button" aria-label="الموجودون في الغرفة" onClick={props.onUsers} className="room-presence"><Users size={17}/><span>USR {props.count}</span></button>
+      <button type="button" aria-label="خيارات الغرفة" onClick={props.onExit} className="room-icon"><Power/></button>
+    </header>
+    <section aria-label="المقاعد الصوتية" className="room-seats">{props.seats}</section>
+    <button type="button" onClick={props.onMessages} aria-label="المحادثات الخاصة" className="room-private room-icon"><MessageCircle/></button>
+    <section className="room-chat-area" aria-label="دردشة الغرفة">
+      <div ref={chatRef} className="room-chat" role="log" aria-live="polite" onScroll={event=>{const el=event.currentTarget;atBottom.current=el.scrollHeight-el.scrollTop-el.clientHeight<48;}}>
+        {props.welcome&&<p className="room-welcome">{props.welcome}</p>}
+        {props.messages.map(message=><p className="room-message" key={message.id}><b>{message.sender_display_name||'مستخدم'} </b><span>{message.content}</span>{props.onDeleteMessage&&<button type="button" aria-label={`حذف رسالة ${message.sender_display_name||'مستخدم'}`} onClick={()=>props.onDeleteMessage?.(message.id)} className="inline-flex align-middle p-2 opacity-60"><X size={12}/></button>}</p>)}
+      </div>
+      {!props.chatEnabled&&<p role="status" className="room-chat-status">الدردشة العامة متوقفة</p>}
+      <form className="room-compose" onSubmit={props.onSend}>
+        <input ref={inputRef} aria-label="رسالة الغرفة" disabled={!props.chatEnabled} value={props.text} onChange={event=>props.onText(event.target.value)} maxLength={1000} placeholder="اكتب رسالة…"/>
+        <button type="submit" aria-label="إرسال رسالة الغرفة" disabled={props.sending||!props.text.trim()||!props.chatEnabled} className="room-icon"><Send size={19}/></button>
+      </form>
+    </section>
+    <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)props.onMusic?.(file)}}/>
+    {props.musicName&&<div className="px-4 flex justify-between gap-2 text-xs text-cyan-200"><span className="truncate">♫ {props.musicName}</span><button type="button" onClick={props.onStopMusic}>إيقاف</button></div>}
+    <footer className="room-footer">
+      <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
+      <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>
+      <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
+      {props.onMusic&&<button type="button" aria-label="موسيقى الهاتف" className="room-icon" onClick={()=>fileRef.current?.click()}><Music size={20}/></button>}
+      <button type="button" aria-label="أدوات الغرفة" aria-expanded={tools} onClick={()=>setTools(value=>!value)} className="room-icon"><Settings/></button>
+    </footer>
+    {tools&&<div ref={toolsRef} className="absolute inset-0 z-30 bg-black/50" onClick={()=>setTools(false)}><div role="dialog" aria-modal="true" aria-label="أدوات الغرفة" className="room-tools" dir="rtl" onClick={event=>event.stopPropagation()}><div className="flex items-center justify-between mb-3"><h2>أدوات الغرفة</h2><button type="button" className="room-icon" aria-label="إغلاق الأدوات" onClick={()=>setTools(false)}><X size={18}/></button></div><div className="grid grid-cols-2 gap-3">      <button type="button" aria-label={props.speaker?'كتم سماعة الغرفة':'تشغيل سماعة الغرفة'} aria-pressed={props.speaker} onClick={props.onSpeaker} className="room-icon">{props.speaker?<Volume2/>:<VolumeX/>}</button>
+      <button type="button" aria-label={props.handRaised?'إنزال اليد':'رفع اليد'} aria-pressed={props.handRaised} onClick={props.onHand} className="room-icon"><Hand className={props.handRaised?'text-amber-300':''}/></button>
+{props.canModerate&&<button type="button" onClick={()=>{setTools(false);props.onManage();}}>إدارة الغرفة</button>}<button type="button" onClick={()=>{setTools(false);props.onInfo();}}>معلومات الغرفة</button><button type="button" onClick={()=>{setTools(false);props.onUsers();}}>المستخدمون</button>{props.seated&&<button type="button" aria-label="مغادرة المقعد" onClick={()=>{setTools(false);props.onLeaveSeat();}}>النزول من المايك</button>}</div></div></div>}
+  </main>;
+}
