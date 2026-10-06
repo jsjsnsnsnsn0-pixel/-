@@ -81,3 +81,5 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 - Banner indicators keep small decorative dots inside 44px buttons; automatic rotation respects reduced motion and hidden tabs. Long profile names retain actual level/country/gender badges. No fabricated data or business logic changes.
 - Batch 5 CI: 23 unit cases and 49 browser cases passed; three cross-screen cases exposed duplicate records navigation. Removed the redundant entry and kept the original action. Final cross-screen and visual checks are rerun, including 320/360/430px, ten mic seats and short viewport.
 - Physical-device verification remains: microphone/audio permissions and routing, Android Back/minimize/restore, Arabic IME, Bluetooth/background audio, performance on low-end phones. APK/AAB: NOT REQUESTED — skipped by owner instruction.
+
+- Screenshot review additionally found a low-contrast non-VIP ID on dark full profile. Shared ID supports dark-surface text while retaining VIP gradients; copy action gains keyboard access and a 44px target.

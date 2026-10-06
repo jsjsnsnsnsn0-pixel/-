@@ -47,6 +47,7 @@ interface RoyalAccountIdProps {
   vipLevel?: number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  tone?: 'light' | 'dark';
 }
 
 export const VIP_ID_STYLES: Record<number, { background: string; textShadow?: string }> = {
@@ -95,6 +96,7 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
   vipLevel,
   size = 'md',
   className = '',
+  tone = 'light',
 }) => {
   const { user } = useApp();
   const scheduleTimeout = useTimeouts();
@@ -104,7 +106,7 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
   const rawVip = vipLevel !== undefined ? vipLevel : (user.id === id ? user.vipLevel : 0);
   const effectiveVip = rawVip ? Math.min(rawVip, 8) : 0;
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     if (!await copyText(id)) return;
     setCopied(true);
@@ -130,9 +132,13 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`نسخ معرف الحساب ${id}`}
+      onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();void handleCopy(e);}}}
       onClick={handleCopy}
       title={`معرف الحساب: ${id} (انقر للنسخ)`}
-      className={`relative inline-flex items-center gap-1.5 cursor-pointer select-none group transition-transform active:scale-95 py-0.5 ${className}`}
+      className={`relative inline-flex items-center gap-1.5 cursor-pointer select-none group transition-transform active:scale-95 min-h-11 py-0.5 ${className}`}
       dir="ltr"
     >
       {/* 1. Left: Dual Rounded Rectangles Copy Icon */}
@@ -140,7 +146,7 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
         className={`shrink-0 flex items-center justify-center transition-colors ${
           hasVip
             ? 'text-slate-400 group-hover:text-amber-400'
-            : 'text-slate-500 group-hover:text-slate-800'
+            : tone==='dark' ? 'text-slate-300 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-800'
         }`}
       >
         {copied ? (
@@ -166,7 +172,7 @@ export const RoyalAccountId: React.FC<RoyalAccountIdProps> = ({
       ) : (
         /* Default new user / non-VIP ID: Pure plain black color without any effects */
         <span
-          className={`${textSizes} font-mono font-black tracking-wide select-text text-black transition-colors`}
+          className={`${textSizes} font-mono font-black tracking-wide select-text ${tone==='dark'?'text-slate-100':'text-black'} transition-colors`}
         >
           {id}
         </span>

@@ -140,7 +140,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           {displayUser.countryCode && displayUser.id && <span className="text-slate-600">|</span>}
 
           {/* Royal Account ID component */}
-          {displayUser.id && <RoyalAccountId
+          {displayUser.id && <RoyalAccountId tone="dark"
             id={displayUser.id}
             vipLevel={displayUser.vipLevel}
             size="sm"
