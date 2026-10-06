@@ -9,6 +9,7 @@ const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
 async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
+  await page.routeWebSocket(/wss:\/\/.*\.supabase\.co\/.*/, socket => socket.close());
   let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
@@ -92,7 +93,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
   await page.addInitScript(({session,loggedIn})=>{
     // A forged legacy local profile must never become the authenticated identity.
     localStorage.setItem('app_user_profile',JSON.stringify({id:'30301',gold:999999,name:'الحساب الوهمي'}));
-    if (loggedIn) localStorage.setItem('sb-bfadhdnudmsggylunhlh-auth-token',JSON.stringify(session));
+    if (loggedIn) localStorage.setItem('sb-totichat-test-auth-token',JSON.stringify(session));
   },{session,loggedIn});
   return {errors,requests};
 }
@@ -143,6 +144,44 @@ test('room seats are rendered from the database and recharge opens while joined'
   await page.getByRole('button',{name:'شحن',exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('removed room membership closes the room and stops microphone capture on refresh', async ({page}) => {
+  const {errors}=await setup(page,true,{rooms:true});
+  await page.addInitScript(() => {
+    (window as any).captureStopped=0;
+    const track={kind:'audio',enabled:true,readyState:'live',stop:()=>{(window as any).captureStopped++;},applyConstraints:async()=>{}};
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>({getTracks:()=>[track],getAudioTracks:()=>[track]})});
+  });
+  await page.goto('/'); await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await expect(page.getByText('دردشة الغرفة',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'تشغيل المايكروفون',exact:true}).click();
+  // Keep the room active and remove only this account's membership.
+  await page.route('**/rest/v1/room_members?**',route=>route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'[]'}));
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(page.getByRole('navigation',{name:'التنقل الرئيسي'})).toBeVisible();
+  await expect(page.getByText('دردشة الغرفة',{exact:true})).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>(window as any).captureStopped)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('sent room messages appear exactly once without a realtime connection', async ({page}) => {
+  const {errors}=await setup(page,true,{rooms:true});
+  const messages:Record<string,unknown>[]=[];
+  await page.route('**/rest/v1/room_messages?**',async route=>{
+    if(route.request().method()==='POST') messages.push({id:'sent-room-message',room_id:roomId,content:route.request().postDataJSON().content,sender_display_name:'حساب الاختبار',created_at:new Date().toISOString()});
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(messages)});
+  });
+  // POST currently has no query string.
+  await page.route('**/rest/v1/room_messages',async route=>{
+    messages.push({id:'sent-room-message',room_id:roomId,content:route.request().postDataJSON().content,sender_display_name:'حساب الاختبار',created_at:new Date().toISOString()});
+    await route.fulfill({status:201,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'[]'});
+  });
+  await page.goto('/'); await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('textbox',{name:'رسالة الغرفة'}).fill('رسالة بدون اتصال لحظي');
+  await page.getByRole('textbox',{name:'رسالة الغرفة'}).press('Enter');
+  await expect(page.getByText('رسالة بدون اتصال لحظي',{exact:false})).toHaveCount(1);
+  expect(messages).toHaveLength(1); expect(errors).toEqual([]);
 });
 
 test('search uses server profiles and does not display invented accounts', async ({page})=>{

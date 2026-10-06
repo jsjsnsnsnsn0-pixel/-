@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MicrophoneSeat } from '../rooms/MicrophoneSeat';
 import { RoomUserProfileModal } from '../rooms/RoomUserProfileModal';
@@ -21,6 +21,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [micBusy, setMicBusy] = useState(false);
+  const reloadMessages = useRef<() => Promise<void>>(async () => {});
   const {connected, enableMicrophone, speakingIds} = useRoomAudioContext();
 
   useEffect(() => {
@@ -35,11 +36,15 @@ export const VoiceRoomScreen: React.FC = () => {
       if (error) reportError('تعذر تحميل دردشة الغرفة.');
       else setMessages(prev => [...new Map([...(data || []).reverse(), ...prev].map(m => [m.id, m])).values()].sort((a,b) => new Date(a.created_at).getTime()-new Date(b.created_at).getTime()).slice(-100));
     };
+    reloadMessages.current = load;
     void load().catch(() => { if (!disposed) reportError('تعذر تحميل دردشة الغرفة.'); });
     const channel = supabase.channel(`chat:${roomId}`).on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}`,
-    }, event => { if (disposed) return; setMessages(prev => prev.some(m => m.id === event.new.id) ? prev : [...prev.slice(-99), event.new]); }).subscribe();
-    return () => { disposed = true; void supabase.removeChannel(channel); };
+    }, event => { if (disposed) return; setMessages(prev => prev.some(m => m.id === event.new.id) ? prev : [...prev.slice(-99), event.new]); }).subscribe(status => {
+      if (status === 'SUBSCRIBED') void load().catch(() => { if (!disposed) reportError('تعذر تحميل دردشة الغرفة.'); });
+    });
+    const timer = setInterval(() => { void load().catch(() => { if (!disposed) reportError('تعذر تحميل دردشة الغرفة.'); }); }, 15000);
+    return () => { disposed = true; clearInterval(timer); reloadMessages.current = async () => {}; void supabase.removeChannel(channel); };
   }, [activeRoom?.id]);
 
   if (!activeRoom) return null;
@@ -59,6 +64,7 @@ export const VoiceRoomScreen: React.FC = () => {
       const {error} = await supabase.from('room_messages').insert({room_id: activeRoom.id, content: text.trim()});
       if (error) throw error;
       setText('');
+      await reloadMessages.current();
     } catch { reportError('تعذر إرسال الرسالة. حاول مجدداً.'); }
     finally { setSending(false); }
   };

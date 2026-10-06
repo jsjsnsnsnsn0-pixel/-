@@ -29,7 +29,12 @@ export async function listenForNativeAuth(onError: () => void): Promise<() => vo
     if (error) onError();
   };
   const listener = await App.addListener('appUrlOpen', ({url}) => { void accept(url).catch(onError); });
-  const launch = await App.getLaunchUrl();
-  if (launch?.url) void accept(launch.url).catch(onError);
+  try {
+    const launch = await App.getLaunchUrl();
+    if (launch?.url) void accept(launch.url).catch(onError);
+  } catch (error) {
+    await listener.remove();
+    throw error;
+  }
   return () => { void listener.remove(); };
 }
