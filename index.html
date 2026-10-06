@@ -15,8 +15,8 @@
   </head>
   <body class="bg-[#0b0c16] text-[#e2e8f0] antialiased select-none font-sans overflow-x-hidden">
     <div id="root"></div>
-    <!-- Device-test branch only: pin the official LiveKit browser SDK without changing the production lockfile. -->
-    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js" crossorigin="anonymous"></script>
+    <!-- Pinned LiveKit SDK. Retry through a second trusted CDN if the first network path is unavailable. -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://unpkg.com/livekit-client@2.22.3/dist/livekit-client.umd.min.js';"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
