@@ -1,15 +1,7 @@
-name: Validate TotiChat
+name: Owner requested Android delivery
 on:
-  workflow_dispatch:
-    inputs:
-      build_android:
-        description: Build APK only after an explicit owner request
-        type: boolean
-        default: false
   push:
-    branches: [main, stabilization-room-core, livekit-audio-test]
-  pull_request:
-    branches: [main, stabilization-room-core]
+    branches: [build/android-audit-2026-10-06]
 permissions:
   contents: read
 jobs:
@@ -49,8 +41,6 @@ jobs:
           name: playwright-report
           path: playwright-report/
   build-apk:
-    # NOT REQUESTED — skipped by owner instruction unless explicitly dispatched.
-    if: github.event_name == 'workflow_dispatch' && inputs.build_android == true
     needs: validate
     runs-on: ubuntu-latest
     env:
@@ -74,7 +64,7 @@ jobs:
       - run: npx cap doctor android
       - name: Build Android debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug lintDebug --no-daemon
       - name: Hash debug APK
         run: sha256sum android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
