@@ -1,0 +1,45 @@
+-- Transactional contract regression; creates isolated accounts and always rolls back.
+begin;
+do $$
+declare owner_uuid uuid:=gen_random_uuid();guest uuid:=gen_random_uuid();room_uuid uuid;guest_public bigint;gift text;cost bigint;req uuid:=gen_random_uuid();failed boolean;diamond_before bigint;sent_before bigint;
+begin
+ insert into auth.users(id,aud,role,email)values(owner_uuid,'authenticated','authenticated',owner_uuid::text||'@test.invalid'),(guest,'authenticated','authenticated',guest::text||'@test.invalid');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_uuid,'role','authenticated')::text,true);
+ room_uuid:=public.create_room('Agreed update regression',p_max_seats=>10);
+ failed:=false;begin perform public.create_room('Duplicate regression');exception when others then if sqlerrm='account already owns a room'then failed:=true;else raise;end if;end;
+ if not failed then raise exception 'duplicate creation accepted';end if;
+ perform public.follow_room(room_uuid,true);
+ perform public.update_room_appearance(room_uuid,'/assets/internal.png','/assets/external.png',10);
+ if not exists(select 1 from public.user_room_links where user_id=owner_uuid and room_id=room_uuid and followed)then raise exception 'follow not saved';end if;
+ select public_id into guest_public from public.profiles where id=guest;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',guest,'role','authenticated')::text,true);
+ perform public.join_room(room_uuid);
+ perform set_config('role','authenticated',true);
+ if exists(select 1 from public.user_room_links where user_id=owner_uuid)then raise exception 'private room links leaked';end if;
+ failed:=false;begin perform public.clear_room_chat(room_uuid);exception when others then if sqlerrm='moderator permission required'then failed:=true;else raise;end if;end;
+ if not failed then raise exception 'guest cleared room chat';end if;
+ perform set_config('role','postgres',true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_uuid,'role','authenticated')::text,true);
+ perform public.moderate_room_user(room_uuid,guest_public,'raise');
+ perform public.moderate_room_user(room_uuid,guest_public,'mute');
+ perform public.moderate_room_user(room_uuid,guest_public,'ban',1);
+ if not exists(select 1 from public.room_moderation_log where room_id=room_uuid and action='ban')then raise exception 'ban not logged';end if;
+ update public.room_bans set expires_at=now()-interval '1 minute'where room_id=room_uuid and user_id=guest;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',guest,'role','authenticated')::text,true);
+ perform public.join_room(room_uuid);
+ if exists(select 1 from public.room_bans where room_id=room_uuid and user_id=guest)then raise exception 'expired ban blocked entry';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_uuid,'role','authenticated')::text,true);
+ select id,price into gift,cost from public.gift_catalog where is_active order by price limit 1;
+ update public.profiles set gold=cost*2 where id=owner_uuid;
+ select diamonds,sent_gold into diamond_before,sent_before from public.profiles where id=owner_uuid;
+ perform public.send_self_room_gift(room_uuid,gift,req);perform public.send_self_room_gift(room_uuid,gift,req);
+ if(select gold from public.profiles where id=owner_uuid)<>cost then raise exception 'self gift charged twice';end if;
+ if(select diamonds from public.profiles where id=owner_uuid)<>diamond_before or(select sent_gold from public.profiles where id=owner_uuid)<>sent_before then raise exception 'deferred rewards changed';end if;
+ failed:=false;begin perform public.send_room_gift(room_uuid,guest_public,gift,req);exception when others then if sqlerrm='request id already used'then failed:=true;else raise;end if;end;
+ if not failed then raise exception 'self request reused for normal gift';end if;
+ perform public.leave_room(room_uuid);
+ if not exists(select 1 from public.rooms where id=room_uuid)then raise exception 'leaving deleted room';end if;
+ if not exists(select 1 from public.user_room_links where user_id=owner_uuid and room_id=room_uuid and followed)then raise exception 'leaving erased follow';end if;
+end$$;
+select 'agreed room update, RLS, moderation, idempotency and preservation passed' as result;
+rollback;

@@ -31,6 +31,7 @@ export interface User {
   sentGiftsCount?: string;
   receivedTotal?: string;
   isHost?: boolean;
+  roomRole?: 'owner'|'moderator'|'member';
   agencyName?: string;
   agencyOwner?: string;
   agencyId?: string;
@@ -66,6 +67,9 @@ export interface Room {
   title: string;
   description: string;
   coverImage: string;
+  internalBackground?: string;
+  isFollowed?: boolean;
+  lastVisitedAt?: string;
   category: 'طرب وموسيقى' | 'سوالف وألعاب' | 'مسابقات وفعاليات' | 'شعر وأدب' | 'عامة';
   owner: User;
   usersCount: number;

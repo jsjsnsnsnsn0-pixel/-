@@ -1,3 +1,4 @@
+import {ConnectionBanner} from './components/common/ConnectionBanner';
 import {NativeBackNavigation} from './components/common/NativeBackNavigation';
 import React, {lazy, Suspense} from 'react';
 import { RoomAudioProvider } from './context/RoomAudioContext';
@@ -39,7 +40,7 @@ const subScreens = ['home','rooms','profile','level','vip','wallet','recharge','
 const MinimizedRoomBar: React.FC = () => {
   const {activeRoom, activeSubScreen, setActiveSubScreen} = useApp();
   if (!activeRoom || !activeSubScreen) return null;
-  return <button type="button" dir="rtl" onClick={() => setActiveSubScreen(null)} aria-label={`العودة إلى غرفة ${activeRoom.title}`} className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[180] w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-[#17192a]/95 text-white shadow-2xl border border-white/10 p-3 flex items-center gap-3 text-right">
+  return <button type="button" dir="rtl" onClick={() => setActiveSubScreen(null)} aria-label={`العودة إلى غرفة ${activeRoom.title}`} className="fixed bottom-24 left-3 z-[40] w-52 max-w-[65vw] rounded-2xl bg-[#17192a]/95 text-white shadow-2xl border border-white/10 p-2 flex items-center gap-2 text-right">
     <img src={activeRoom.coverImage} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
     <span className="min-w-0 flex-1"><span className="block text-xs text-emerald-300">أنت داخل الغرفة الآن</span><span className="block font-bold truncate">{activeRoom.title}</span></span>
     <span className="text-xs bg-emerald-500/20 text-emerald-200 rounded-full px-3 py-1.5">عودة</span>
@@ -69,5 +70,5 @@ const OperationError: React.FC = () => { const {error, dismissError} = useApp();
 
 export default function App() {
   if (!isSupabaseConfigured) return <div dir="rtl" className="min-h-screen flex items-center justify-center text-white p-6"><p>إعداد الاتصال غير مكتمل. أضف رابط Supabase والمفتاح العام وفق ملف .env.example ثم أعد بناء التطبيق.</p></div>;
-  return <ErrorBoundary><AppProvider><RealtimeRankingsProvider><RoomAudioProvider><NativeBackNavigation /><Suspense fallback={<div className="fixed top-0 inset-x-0 h-1 bg-emerald-500/60 animate-pulse" role="status" aria-label="تحميل الصفحة" />}><MainLayout /></Suspense><OperationError /></RoomAudioProvider></RealtimeRankingsProvider></AppProvider></ErrorBoundary>;
+  return <ErrorBoundary><AppProvider><RealtimeRankingsProvider><RoomAudioProvider><NativeBackNavigation /><Suspense fallback={<div className="fixed top-0 inset-x-0 h-1 bg-emerald-500/60 animate-pulse" role="status" aria-label="تحميل الصفحة" />}><MainLayout /></Suspense><OperationError /><ConnectionBanner/></RoomAudioProvider></RealtimeRankingsProvider></AppProvider></ErrorBoundary>;
 }

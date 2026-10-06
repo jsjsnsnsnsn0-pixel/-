@@ -167,7 +167,7 @@ export const ProfileScreen: React.FC = () => {
 
       {/* Statistics Row: زائر | متابعين | متابعة */}
       <div className="px-6 py-3">
-        <div className="grid grid-cols-3 text-center">
+        <div className="grid grid-cols-4 text-center">
           {/* Column 1: زائر */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => {
@@ -208,6 +208,7 @@ export const ProfileScreen: React.FC = () => {
             <span className="text-xs text-slate-500 font-medium block">متابعين</span>
           </div>
 
+          <button type="button" onClick={()=>setActiveSubScreen('friends')} className="cursor-pointer"><span className="block text-xl font-black text-slate-900 font-mono">{user.friendsCount||0}</span><span className="text-xs text-slate-500">الأصدقاء</span></button>
           {/* Column 3: متابعة */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('friends')}
@@ -225,20 +226,18 @@ export const ProfileScreen: React.FC = () => {
       <div className="px-5 mt-2">
         <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setActiveSubScreen('vip')}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#17161b] via-[#211e26] to-[#141318] p-3 text-white flex items-center justify-between shadow-md cursor-pointer hover:shadow-lg transition-all border border-amber-500/20"
-          style={{
-            backgroundImage: `radial-gradient(ellipse at 80% 50%, rgba(245, 158, 11, 0.15), transparent 70%), linear-gradient(135deg, #111015 0%, #1e1b24 50%, #111015 100%)`,
-          }}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-100 p-5 text-amber-950 flex items-center justify-between shadow-md cursor-pointer hover:shadow-lg transition-all border border-amber-500/20"
+
         >
-          {/* Left: check now link */}
-          <div className="flex items-center gap-1 text-[11px] text-[#e6ca95] font-semibold hover:text-amber-300">
+          {/* Left: عرض المزايا link */}
+          <div className="flex items-center gap-1 text-[11px] text-amber-800 font-semibold hover:text-amber-300">
             <ChevronLeft size={14} className="stroke-[2.5]" />
-            <span className="tracking-wide">check now</span>
+            <span className="tracking-wide">عرض المزايا</span>
           </div>
 
           {/* Right: VIP Diamond */}
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-amber-300 tracking-wider">
+            <span className="text-xl font-black text-amber-900 tracking-wider">
               {user.vipLevel && user.vipLevel > 0 ? `VIP ${user.vipLevel}` : 'VIP'}
             </span>
             <span className="text-lg">💎</span>

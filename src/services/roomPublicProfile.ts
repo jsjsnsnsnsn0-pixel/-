@@ -49,8 +49,9 @@ export async function loadRoomPublicProfile(targetId: string, viewerId: string):
   if (!publicId(viewerId)) return profile;
   // Both RPCs scope membership/relationships to auth.uid(). Failure hides the
   // optional section; it must not replace the target or break the room.
-  const [couples, agency] = await Promise.allSettled([
+  const [couples, agency, cp] = await Promise.allSettled([
     rpc<{relations: Relation[]}>('couple_state'), rpc<AgencyState>('agency_state'),
+    rpc<{partner:Record<string,unknown>;days:number}|null>('profile_cp',{p_public_id:Number(id)}),
   ]);
   if (agency.status === 'fulfilled' && agency.value?.agency &&
       (id === viewerId || (Array.isArray(agency.value.members) ? agency.value.members : []).some(member => publicId(member.public_id) === id))) {
@@ -75,5 +76,6 @@ export async function loadRoomPublicProfile(targetId: string, viewerId: string):
       }
     }
   }
+  if(cp.status==='fulfilled'&&cp.value?.partner){const partner=publicProfileCard(cp.value.partner);if(partner.id)profile.couple={partner,days:cp.value.days};}
   return profile;
 }
