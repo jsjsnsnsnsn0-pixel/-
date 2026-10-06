@@ -25,6 +25,7 @@ const friendlyAudioError = (error: unknown) => {
   if (/ROOM_BANNED/i.test(message)) return 'لا يمكنك الاتصال بصوت هذه الغرفة لأنك محظور منها.';
   if (/ROOM_MEMBERSHIP_REQUIRED/i.test(message)) return 'انضم إلى الغرفة أولاً قبل تشغيل الصوت.';
   if (/ROOM_NOT_AVAILABLE/i.test(message)) return 'الغرفة غير متاحة للصوت حالياً.';
+  if (/MIC_PUBLISH_NOT_ALLOWED/i.test(message)) return 'المقعد أو صلاحية المايك لم تتزامن بعد. حاول مرة أخرى.';
   if (/NotAllowedError|Permission|denied/i.test(message)) return 'تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.';
   return 'تعذر إعداد الصوت الحقيقي. تحقق من الاتصال وحاول مجدداً.';
 };
@@ -42,6 +43,7 @@ function useLiveKitRoomAudio(
   const clientRef = useRef<any>(null);
   const generation = useRef(0);
   const pendingEnable = useRef(false);
+  const playbackWarningShown = useRef(false);
   const speakerRef = useRef(speaker); speakerRef.current = speaker;
   const mutedRef = useRef(muted); mutedRef.current = muted;
   const noiseRef = useRef(noiseSuppression); noiseRef.current = noiseSuppression;
@@ -71,6 +73,22 @@ function useLiveKitRoomAudio(
     for (const key of [...remoteAudio.current.keys()]) removeRemoteAudio(key);
   }, [removeRemoteAudio]);
 
+  const resumePlayback = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) return;
+    try { await client.startAudio?.(); } catch {}
+    if (!speakerRef.current) return;
+    let blocked = false;
+    for (const element of remoteAudio.current.values()) {
+      element.muted = false;
+      try { await element.play(); } catch { blocked = true; }
+    }
+    if (blocked && !playbackWarningShown.current) {
+      playbackWarningShown.current = true;
+      onError('تعذر تشغيل صوت الغرفة تلقائياً. اضغط زر السماعة داخل الغرفة مرة واحدة.');
+    }
+  }, [onError]);
+
   useEffect(() => {
     if (!roomId || !authId) return;
     const SDK = liveKit();
@@ -83,6 +101,7 @@ function useLiveKitRoomAudio(
 
     const currentGeneration = ++generation.current;
     let disposed = false;
+    playbackWarningShown.current = false;
     const client = new RoomCtor();
     clientRef.current = client;
 
@@ -95,11 +114,12 @@ function useLiveKitRoomAudio(
       if (!element) return;
       element.autoplay = true;
       element.muted = !speakerRef.current;
+      element.setAttribute('playsinline', 'true');
       element.setAttribute('data-totichat-livekit-audio', participant?.identity || 'remote');
       element.style.display = 'none';
       document.body.appendChild(element);
       remoteAudio.current.set(key, element);
-      void element.play().catch(() => {});
+      if (speakerRef.current) void resumePlayback();
     };
     const onTrackUnsubscribed = (track: any, publication: any, participant: any) => {
       const key = keyFor(publication, participant);
@@ -110,13 +130,15 @@ function useLiveKitRoomAudio(
       setSpeakingIds((participants || []).map(p => String(p.identity || '')).filter(Boolean));
     };
     const onDisconnected = () => {
-      if (!disposed) {
-        setConnected(false);
-        setSpeakingIds([]);
-      }
+      if (!disposed) { setConnected(false); setSpeakingIds([]); }
     };
     const onReconnecting = () => { if (!disposed) setConnected(false); };
-    const onReconnected = () => { if (!disposed) setConnected(true); };
+    const onReconnected = () => {
+      if (disposed) return;
+      setConnected(true);
+      void invokeAudio('sync-permissions').catch(() => {});
+      void resumePlayback();
+    };
 
     if (Events.TrackSubscribed) client.on(Events.TrackSubscribed, onTrackSubscribed);
     if (Events.TrackUnsubscribed) client.on(Events.TrackUnsubscribed, onTrackUnsubscribed);
@@ -136,13 +158,10 @@ function useLiveKitRoomAudio(
           return;
         }
         setConnected(true);
-        void client.startAudio?.().catch?.(() => {});
-        void invokeAudio('sync-permissions').catch(() => {});
+        await resumePlayback();
+        await invokeAudio('sync-permissions').catch(() => undefined);
       } catch (error) {
-        if (!disposed) {
-          setConnected(false);
-          onError(friendlyAudioError(error));
-        }
+        if (!disposed) { setConnected(false); onError(friendlyAudioError(error)); }
       }
     })();
 
@@ -150,27 +169,24 @@ function useLiveKitRoomAudio(
       disposed = true;
       generation.current++;
       pendingEnable.current = false;
+      playbackWarningShown.current = false;
       setConnected(false);
       setSpeakingIds([]);
       clearRemoteAudio();
       if (clientRef.current === client) clientRef.current = null;
       try { void client.disconnect?.(); } catch {}
     };
-  }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError]);
+  }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError, resumePlayback]);
 
   useEffect(() => {
-    for (const element of remoteAudio.current.values()) {
-      element.muted = !speaker;
-      if (speaker) void element.play().catch(() => {});
-    }
-    if (speaker) void clientRef.current?.startAudio?.().catch?.(() => {});
-  }, [speaker]);
+    for (const element of remoteAudio.current.values()) element.muted = !speaker;
+    if (speaker) { playbackWarningShown.current = false; void resumePlayback(); }
+  }, [speaker, resumePlayback]);
 
   useEffect(() => {
     const client = clientRef.current;
     if (!connected || !client || !roomId || !authId) return;
     let cancelled = false;
-
     void (async () => {
       try {
         const permission = await invokeAudio('sync-permissions');
@@ -182,20 +198,16 @@ function useLiveKitRoomAudio(
           return;
         }
         if (pendingEnable.current) {
-          await client.localParticipant?.setMicrophoneEnabled?.(true, {
-            echoCancellation: true,
-            noiseSuppression: noiseRef.current,
-          });
+          await client.localParticipant?.setMicrophoneEnabled?.(true, { echoCancellation: true, noiseSuppression: noiseRef.current });
           pendingEnable.current = false;
-          void client.startAudio?.().catch?.(() => {});
+          await resumePlayback();
         }
       } catch (error) {
         if (!cancelled) onError(friendlyAudioError(error));
       }
     })();
-
     return () => { cancelled = true; };
-  }, [connected, roomId, authId, hasSeat, muted, invokeAudio, onError]);
+  }, [connected, roomId, authId, hasSeat, muted, invokeAudio, onError, resumePlayback]);
 
   useEffect(() => {
     const client = clientRef.current;
@@ -204,11 +216,27 @@ function useLiveKitRoomAudio(
     if (!publications) return;
     for (const publication of publications.values?.() || []) {
       const mediaTrack = publication?.track?.mediaStreamTrack;
-      if (mediaTrack?.applyConstraints) {
-        void mediaTrack.applyConstraints({ echoCancellation: true, noiseSuppression }).catch(() => {});
-      }
+      if (mediaTrack?.applyConstraints) void mediaTrack.applyConstraints({ echoCancellation: true, noiseSuppression }).catch(() => {});
     }
   }, [noiseSuppression, connected]);
+
+  useEffect(() => {
+    if (!connected) return;
+    const resume = () => {
+      if (document.visibilityState !== 'visible') return;
+      void resumePlayback();
+      void invokeAudio('sync-permissions').then(async permission => {
+        const client = clientRef.current;
+        if (!client || !hasSeat || mutedRef.current || permission.canPublish === false) return;
+        const publications = client.localParticipant?.audioTrackPublications;
+        const hasLiveTrack = publications && [...(publications.values?.() || [])].some((p:any) => p?.track?.mediaStreamTrack?.readyState === 'live');
+        if (!hasLiveTrack) await client.localParticipant?.setMicrophoneEnabled?.(true, {echoCancellation:true, noiseSuppression:noiseRef.current});
+      }).catch(() => {});
+    };
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('focus', resume);
+    return () => { document.removeEventListener('visibilitychange', resume); window.removeEventListener('focus', resume); };
+  }, [connected, hasSeat, invokeAudio, resumePlayback]);
 
   const enableMicrophone = useCallback(async () => {
     if (!roomId || !authId) throw new Error('ادخل الغرفة أولاً.');
@@ -216,32 +244,22 @@ function useLiveKitRoomAudio(
     if (!connected || !clientRef.current) throw new Error('تعذر الاتصال بخدمة الصوت. حاول بعد لحظة.');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
 
-    const preview = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: noiseRef.current },
-      video: false,
-    });
+    const preview = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: noiseRef.current }, video: false });
     preview.getTracks().forEach(track => track.stop());
     pendingEnable.current = true;
-    void clientRef.current?.startAudio?.().catch?.(() => {});
+    await resumePlayback();
 
     if (!mutedRef.current) {
       const permission = await invokeAudio('sync-permissions');
       if (permission.canPublish === false) throw new Error('MIC_PUBLISH_NOT_ALLOWED');
-      await clientRef.current.localParticipant?.setMicrophoneEnabled?.(true, {
-        echoCancellation: true,
-        noiseSuppression: noiseRef.current,
-      });
+      await clientRef.current.localParticipant?.setMicrophoneEnabled?.(true, { echoCancellation: true, noiseSuppression: noiseRef.current });
       pendingEnable.current = false;
     }
-  }, [roomId, authId, hasSeat, connected, invokeAudio]);
+  }, [roomId, authId, hasSeat, connected, invokeAudio, resumePlayback]);
 
   return { connected, enableMicrophone, speakingIds };
 }
 
-// index.html loads the pinned LiveKit SDK before the app module. Browser automation keeps
-// the existing custom WebRTC engine so transport-independent UI/lifecycle checks remain
-// deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
-// prefer LiveKit whenever the SDK loaded successfully.
 const automatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
 const useLiveKitAtModuleLoad = !automatedBrowser && Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
 export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;
