@@ -34,9 +34,9 @@ P0/P1 code stabilization passed 20 units and 45 Chromium cases in run 3740778148
 - Checks before commit: TypeScript, ESLint and 20 unit/DOM cases passed. Browser suite will run through CI; local Chromium remains unavailable.
 - Device checks pending: keyboard/insets, actual touch and native Back.
 
-## Remaining batches
+## Implementation scope
 
-Home/cards → voice room/sheets/profile card → full profile/messages/search/rankings → Wallet/Agency/forms/states → responsive/RTL/screenshots. Report each commit and its checks below. Existing functional roadmap remains active; UI polish must not silently implement or replace unfinished features.
+The UI batches below cover Home/cards, voice room/sheets/profile card, full profile/messages/search/rankings, Wallet/Agency/forms/states, and responsive/RTL screenshots. Existing functional roadmap remains active; UI polish does not silently implement or replace unfinished features.
 
 APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 
@@ -83,3 +83,28 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 - Physical-device verification remains: microphone/audio permissions and routing, Android Back/minimize/restore, Arabic IME, Bluetooth/background audio, performance on low-end phones. APK/AAB: NOT REQUESTED — skipped by owner instruction.
 
 - Screenshot review additionally found a low-contrast non-VIP ID on dark full profile. Shared ID supports dark-surface text while retaining VIP gradients; copy action gains keyboard access and a 44px target.
+
+## Commit and verification ledger
+
+| Batch | Commit | Browser verification |
+|---|---|---|
+| Global controls/tokens | ca17cff82d7dc71553264c07f670b000ddd79131 | Run 37409278581: 45 passed |
+| Home/cards | 70778ee914391e91b54fd34579b18de7a6dfeb5a | Run 37409625354: 45 passed |
+| Room/sheets/Back | 4d884c8d41d67f37e646f8d1918eba7b4bc56af4 | Run 37409729169: 48 passed |
+| Social/search/rankings | f2950993fcb664a951c1ff8b31020939d2ff46f4 | Run 37409953985: 48 passed |
+| Wallet/Agency/forms | 39b906c666cfa6d1d3c98443185fde51ed47904c | Run 37410289419: 49 passed, three duplicate-entry failures corrected below |
+| Responsive controls/records correction | 464a616a4d97d9f23171658419207b91e21ece56 | Run 37410621702: 53 passed |
+| ID contrast/keyboard copy | 6db9e40d34c039ee76a78b7e3044dbdd047ac817 | Run 37410740229: 50 passed, three color-serialization assertions corrected below |
+| Browser-format independent brightness check | 4282a95683c7b6d12e24f235e51146b5c56be9ae | Run 37410920157: 53 passed |
+
+Visual review inspected Home, ten-seat Room, Profile, Full Profile, Messages, Search including short viewport, Wealth ranking, Wallet, Agency and Create Room screenshots at 320px; browser assertions also cover 360px and 430px, Arabic long text, touch targets and overflow. Existing artwork and identities remain; all underlying actions stay available. Screenshot artifacts belong to the CI runs.
+
+Checks not executed locally: Chromium browser suite (browser unavailable), native/device tests, physical Arabic IME and keyboard insets, audio hardware/transport/performance. Browser coverage uses deterministic API fixtures and does not prove live-device or production behavior. No database changes, new economic model, profile total mutations or realtime subscriptions were introduced in this UI phase. Dependency audit is not a substitute for the prior RLS/accounting audit.
+
+Remaining functional work: real-device audio/Back/session verification; Followed Rooms source and actual Home filter behavior; full recharge-request records; Luck Games and game-result records. These need their own source/requirements-backed increments. No fake records or new thresholds were introduced.
+
+## Final acceptance for this UI increment
+
+Final source snapshot: 4282a95683c7b6d12e24f235e51146b5c56be9ae. CI run [37410920157](https://github.com/jsjsnsnsnsn0-pixel/TotiChat/actions/runs/37410920157) passed TypeScript/ESLint, asset checks, 23 unit/DOM cases, web build and 53 Chromium cases. Dependency audit reported zero vulnerabilities. Android job skipped; no APK/AAB was built. Documentation-only follow-up does not change the tested source snapshot.
+
+UI acceptance is bounded by fixture-driven browser checks and visual review. Physical-device verification and the functional backlog above remain open. All previous functional requirements remain active; this report does not replace Master Prompt v4.
