@@ -140,7 +140,7 @@ test('new authenticated accounts complete server profile without local rewards',
 test('home create action opens a real screen rather than a blank page', async ({page})=>{
   const {errors}=await setup(page); await page.goto('/');
   await page.getByTitle('إنشاء غرفة').click();
-  await expect(page.getByText('إنشاء غرفة صوتية جديدة',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'أنشئ غرفة',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -150,7 +150,7 @@ test('room seats are rendered from the database and recharge opens while joined'
   await expect(page.getByText('إشعار الغرفة',{exact:true})).toBeVisible();
   await expect(page.getByText('مقعد 4',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
-  await page.getByRole('button',{name:'شحن',exact:true}).click();
+  await page.getByTitle('شحن رصيد',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -500,7 +500,7 @@ test('room settings preserve disabled server flags and refresh the announcement 
   await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
   await expect(page.getByText('تم حفظ إعدادات الغرفة',{exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'اسم جديد',exact:true})).toBeVisible();
-  await expect(page.getByText('ترحيب جديد',{exact:true})).toBeVisible();
+  await expect(page.locator('p').filter({hasText:/^ترحيب جديد$/})).toBeVisible();
   const save=requests.find(r=>r.path.endsWith('/update_room_settings'));
   expect(save?.body).toMatchObject({p_room_id:roomId,p_chat_enabled:false,p_gift_effects_enabled:false,p_vehicle_effects_enabled:false,p_entrance_effects_enabled:false});
   expect(errors).toEqual([]);

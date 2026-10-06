@@ -58,3 +58,8 @@ Starting point: `5841de39ce2e715529aa6323a19587c871e4509b`.
 - The existing GitHub validation/APK workflow now also runs on pushes to stabilization-room-core, enabling the full browser suite and conditional APK pipeline on the working branch with its existing public configuration. No store publication or main merge is introduced. The remote run's actual result must be checked separately.
 
 No database migration, production record mutation, new finance behavior or fabricated member data is introduced by this follow-up.
+
+
+### Remote validation follow-up
+
+GitHub run `37404597168` on `389d49cd7d59cbcc7fa14dffa6f949f145486fee` executed Chromium successfully: 38/41 browser scenarios passed. Three failures were test locators: the former create-screen title, the renamed gift recharge button, and a welcome-text locator matching both the announcement and editor textarea. Corrected these specific selectors to the current heading, recharge title and announcement paragraph. No test was removed, skipped or weakened to accept an error. The APK job correctly stayed blocked while validation failed. A subsequent run is required to confirm the full suite and APK result.
