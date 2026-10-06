@@ -7,7 +7,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [main, stabilization-room-core, livekit-audio-test]
+    branches: [main, stabilization-room-core, livekit-audio-test, build/android-audit-2026-10-06]
   pull_request:
     branches: [main, stabilization-room-core]
 permissions:
@@ -49,8 +49,8 @@ jobs:
           name: playwright-report
           path: playwright-report/
   build-apk:
-    # NOT REQUESTED — skipped by owner instruction unless explicitly dispatched.
-    if: github.event_name == 'workflow_dispatch' && inputs.build_android == true
+    # Owner requested an APK on 2026-10-06; this isolated build branch is authorized.
+    if: (github.event_name == 'workflow_dispatch' && inputs.build_android == true) || (github.event_name == 'push' && github.ref == 'refs/heads/build/android-audit-2026-10-06')
     needs: validate
     runs-on: ubuntu-latest
     env:
@@ -74,7 +74,7 @@ jobs:
       - run: npx cap doctor android
       - name: Build Android debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug lintDebug --no-daemon
       - name: Hash debug APK
         run: sha256sum android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
