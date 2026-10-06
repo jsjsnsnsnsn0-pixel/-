@@ -1,0 +1,28 @@
+name: Vendor LiveKit dependency
+on:
+  push:
+    branches: [deadline-vendor-livekit]
+permissions:
+  contents: write
+jobs:
+  vendor:
+    if: ${{ !contains(github.event.head_commit.message, '[livekit-vendored]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: deadline-vendor-livekit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install livekit-client@2.22.3 --save-exact
+      - run: npm run lint
+      - run: npm run build
+      - name: Commit dependency lockfile
+        run: |
+          git config user.name "jsjsnsnsnsn0-pixel"
+          git config user.email "jsjsnsnsnsn0@gmail.com"
+          git add package.json package-lock.json
+          git commit -m "build: vendor livekit-client 2.22.3 [livekit-vendored]"
+          git push origin HEAD:deadline-vendor-livekit
