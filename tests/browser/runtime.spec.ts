@@ -505,7 +505,7 @@ test('room settings preserve disabled server flags and refresh the announcement 
   await page.getByRole('button',{name:'إغلاق إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'معلومات الغرفة',exact:true}).click();
   await expect(page.getByRole('heading',{name:'اسم جديد',exact:true})).toBeVisible();
-  await expect(page.locator('p').filter({hasText:/^ترحيب جديد$/})).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'معلومات الغرفة والموجودون',exact:true}).getByText('ترحيب جديد',{exact:true})).toBeVisible();
   const save=requests.find(r=>r.path.endsWith('/update_room_settings'));
   expect(save?.body).toMatchObject({p_room_id:roomId,p_chat_enabled:false,p_gift_effects_enabled:false,p_vehicle_effects_enabled:false,p_entrance_effects_enabled:false});
   expect(errors).toEqual([]);
