@@ -63,3 +63,19 @@ No database migration, production record mutation, new finance behavior or fabri
 ### Remote validation follow-up
 
 GitHub run `37404597168` on `389d49cd7d59cbcc7fa14dffa6f949f145486fee` executed Chromium successfully: 38/41 browser scenarios passed. Three failures were test locators: the former create-screen title, the renamed gift recharge button, and a welcome-text locator matching both the announcement and editor textarea. Corrected these specific selectors to the current heading, recharge title and announcement paragraph. No test was removed, skipped or weakened to accept an error. The APK job correctly stayed blocked while validation failed. A subsequent run is required to confirm the full suite and APK result.
+
+### Confirmed remote result
+
+Run: https://github.com/jsjsnsnsnsn0-pixel/TotiChat/actions/runs/37404866338
+
+Tested and built code commit: `fc962339d6c88c45221816b1cf69e92ef5affbf6`.
+
+- Validation job succeeded: public configuration, npm ci, audit (0 vulnerabilities), TypeScript/ESLint, assets, 17 unit/DOM tests, production bundling and all 41 Chromium browser tests.
+- Android job succeeded: Capacitor setup/sync/doctor and Gradle debug APK build (`BUILD SUCCESSFUL`).
+- Uploaded artifact: `TotiChat-APK`, ID `11386613968`, ZIP size 109,385,074 bytes; retained until 2026-10-20.
+- Artifact: https://github.com/jsjsnsnsnsn0-pixel/TotiChat/actions/runs/37404866338/artifacts/11386613968
+- APK SHA256: `2732c3f1faa5c03e2c50a5c99c9834b61dc4cc4c928ccb531b6c312f6c96d132`.
+
+This resolves the browser execution and APK build blockers recorded above. The first failed run remains recorded for traceability; its three selector failures were corrected and the entire suite was rerun, with no skips. This final report-only commit does not alter the built application and skips an unnecessary repeat CI build.
+
+The APK is a debug test package, not a store release. Real Google OAuth on Android, two-device audio, background/resume, TURN requirements and the earlier administration/infrastructure roadmap remain separate verification or development tasks; automated fixtures do not prove those external integrations.
