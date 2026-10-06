@@ -34,7 +34,7 @@ The eight records have no seed/test-origin marker, so their origin cannot be rel
 - Asset check and Vite web build: passed. This is not an Android build.
 - SQL regression: `tests/sql/room-gift-accounting.sql` copies the inspected backend gift/ranking function bodies into temporary objects, replaces auth/access helpers only for its isolated fixture, and ends with rollback. Covers zero baseline, matching sender/receiver value, duplicate and conflicting retry, unavailable gift failure, outside-room failure, self gift rejection, recharge/admin exclusion, stable backend refetch, ordering changes and insufficient-balance atomicity. Passed against Postgres; no production rows changed. It does not replace real RLS role tests or concurrent-device testing.
 - Read-only security checks: authenticated clients have no INSERT privilege on gift events and no UPDATE/INSERT on protected gold/sent/received/level columns. Editable profile also excludes them. Security advisors reported existing room SECURITY DEFINER warnings and disabled leaked-password protection, unrelated to this change; no auth configuration changed.
-- Browser suite: 45 cases collected. Local execution blocked by missing Playwright Chromium; CI validation is required before final acceptance.
+- Browser suite: **45 passed (43.9s)** in GitHub Actions run [37407781484](https://github.com/jsjsnsnsnsn0-pixel/TotiChat/actions/runs/37407781484), testing code commit `05038ed4a39647558a732d893df8b7a58a311870`. CI also passed TypeScript, ESLint, 20 unit tests, audit and web build. Local execution was blocked by missing Playwright Chromium; remote CI resolved that environment limitation. Android job conclusion: **skipped**.
 
 ## Updated priority and remaining work
 
