@@ -145,7 +145,8 @@ export const RechargeScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubScreen('wallet')}
-          className="w-8 h-8 flex items-center justify-center text-slate-800 hover:opacity-80 active:scale-95 transition-transform cursor-pointer"
+          className="ui-icon-button flex items-center justify-center text-slate-800 hover:opacity-80 active:scale-95 transition-transform cursor-pointer"
+          aria-label="سجل العمليات"
           title="سجل العمليات"
         >
           <svg viewBox="0 0 24 24" className="w-[20px] h-[20px] fill-none stroke-slate-800 stroke-[2]">
@@ -172,7 +173,6 @@ export const RechargeScreen: React.FC = () => {
         </button>
       </header>
 
-      <div className="px-4 pt-3 flex justify-end"><button type="button" onClick={()=>setActiveSubScreen("wallet")} className="ui-control px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold">سجل العمليات</button></div>
       <p className="text-center text-xs text-slate-600 mt-3">الشحن للـCoins 🪙 فقط — عملة الشحن والإنفاق. Diamonds 💎 أرباح الهدايا.</p>
       {/* ============================================================== */}
       {/* 2. CAPSULE SWITCHER: [ أرباح الهدايا  |  عملات معدنية ]               */}

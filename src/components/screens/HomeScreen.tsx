@@ -81,7 +81,9 @@ export const HomeScreen: React.FC = () => {
 
   // Auto-scroll banners smoothly every 3.5 seconds
   useEffect(() => {
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
     const timer = setInterval(() => {
+      if(document.hidden)return;
       setActiveBannerIndex((prev) => (prev + 1) % banners.length);
     }, 3500);
     return () => clearInterval(timer);
@@ -190,12 +192,12 @@ export const HomeScreen: React.FC = () => {
         </div>
 
         {/* Left: Search Glass & Palace with Plus */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           {/* Magnifying Glass Search */}
           <button
             type="button"
             onClick={() => setActiveSubScreen('search')}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+            className="ui-icon-button rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             title="بحث"
           >
             <div className={`w-7 h-7 rounded-full flex items-center justify-center shadow-xs border ${
@@ -211,7 +213,7 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+            className="ui-icon-button relative rounded-xl flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title="إنشاء غرفة"
           >
             <span className="text-2xl">🕌</span>
@@ -361,7 +363,7 @@ export const HomeScreen: React.FC = () => {
           </button>
 
           {/* Slide Indicator Dots at bottom-left */}
-          <div className="absolute bottom-1.5 left-3 flex items-center gap-1 z-10">
+          <div className="absolute bottom-0 inset-x-2 flex justify-center items-center z-10">
             {banners.map((_, idx) => (
               <button
                 key={idx}
@@ -370,13 +372,9 @@ export const HomeScreen: React.FC = () => {
                   e.stopPropagation();
                   setActiveBannerIndex(idx);
                 }}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  activeBannerIndex === idx
-                    ? 'w-4 h-1.5 bg-amber-300 shadow-xs'
-                    : 'w-1.5 h-1.5 bg-white/60 hover:bg-white'
-                }`}
+                className="ui-icon-button cursor-pointer" aria-pressed={activeBannerIndex===idx}
                 aria-label={`الشريحة ${idx + 1}`}
-              />
+              ><span aria-hidden="true" className={`h-1.5 rounded-full transition-all duration-150 ${activeBannerIndex===idx?"w-4 bg-amber-300":"w-1.5 bg-white/60"}`} /></button>
             ))}
           </div>
         </div>

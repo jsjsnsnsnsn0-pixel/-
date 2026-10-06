@@ -1,3 +1,4 @@
+import {LevelBadge} from '../common/LevelBadge';
 import {InlineLoading,ErrorState} from '../common/UIState';
 import React, {useCallback, useState} from 'react';
 import {useApp} from '../../context/AppContext';
@@ -31,7 +32,7 @@ export const UserDetailProfileScreen: React.FC = () => {
   };
   return <div dir="rtl" className="min-h-screen bg-[#0b0c16] text-white p-4 pb-28">
     <button onClick={() => setActiveSubScreen(null)} className="ui-control mb-4 px-3 rounded-xl bg-white/5">الرجوع</button>
-    <section className="rounded-3xl bg-emerald-950 p-6 text-center"><UserAvatar user={user} size="lg" /><h1 className="text-xl font-bold mt-3 break-words"><ShimmeringAccountName tone="dark" name={user.name} styleKey={user.nameShimmerStyle} /></h1><VIPBadge level={user.vipLevel} /><div className="mt-3"><RoyalAccountId id={user.id} vipLevel={user.vipLevel} /></div><p className="whitespace-pre-wrap break-words mt-4">{user.bio}</p></section>
+    <section className="rounded-3xl bg-emerald-950 p-6 text-center"><UserAvatar user={user} size="lg" /><h1 className="text-xl font-bold mt-3 break-words"><ShimmeringAccountName tone="dark" name={user.name} styleKey={user.nameShimmerStyle} /></h1><div className="flex flex-wrap justify-center items-center gap-2 mt-2"><VIPBadge level={user.vipLevel} />{user.hasPublicLevel!==false&&<LevelBadge level={user.level} size="sm" />}{user.countryCode&&<span className="text-xs text-slate-300">{user.countryFlag} {user.countryCode}</span>}{user.gender&&<span className="text-xs text-slate-300">{user.gender==='female'?'أنثى':'ذكر'}</span>}</div><div className="mt-3"><RoyalAccountId id={user.id} vipLevel={user.vipLevel} /></div><p className="whitespace-pre-wrap break-words mt-4">{user.bio}</p></section>
     {loading && <InlineLoading>جارٍ تحميل الملف…</InlineLoading>}{error && <ErrorState message={error} onRetry={()=>void reload()}/>}{notice && <p role="status" className="p-3">{notice}</p>}
     <div className="grid grid-cols-3 text-center gap-2 my-4 rounded-2xl p-4 bg-white/5 text-sm leading-7"><p>{user.friendsCount}<br/>أصدقاء</p><p>{user.followersCount}<br/>متابعون</p><p>{user.followingCount}<br/>أتابعهم</p></div>
     {user.equipment && <section className="p-4 bg-white/10 rounded-2xl my-4"><h2 className="text-sm font-bold">المنتجات المجهزة</h2>{Object.values(user.equipment).map(item => item && <p key={item.id} className="my-2">{item.icon} {item.name}</p>)}</section>}

@@ -70,7 +70,14 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 
 - Screens: Wallet, Recharge, Agency, Create Room, Edit Profile, profile bootstrap, Help; existing Login/VIP/Badge/name-theme overlays receive the same dismissal behavior without changing their functional logic.
 - Fixes: Coins/Diamonds hierarchy retained, transaction amounts isolated LTR with original currency/sign, dates and UUIDs wrap independently, filtered transaction empty state, source-load retry, selected-record tabs, Agency headers/IDs/actions unified, destructive agency actions distinct, real pending-applications empty state, required create-name hint and busy progress, clear form field focus/text size, keyboard-operable form rows, named and dismissable recharge/edit/bootstrap sheets.
-- Existing Wallet transaction screen was available in routing but had no visible entry from Recharge. Added “سجل العمليات” to expose that existing screen; navigation architecture unchanged.
+- Existing Recharge records shortcut is retained with an accessible name and 44px touch target. Final review removed an unnecessary duplicate added in this batch; navigation architecture unchanged.
 - Preserved: balances/source calculations, conversion quotes/idempotency, recharge requests/agent-only payment, agency membership/permissions, profile saves, authentication and all previous actions. No database/RLS/economy/realtime changes.
 - Games/Luck Games and full recharge-request records are still functional-roadmap items: current transaction model has no game-result type; no fake Games records or fabricated empty totals were added. Existing ledger records remain separate from pending recharge requests.
 - Checks before commit: TypeScript/ESLint, 23 unit/DOM and web build passed. Batch 4 Chromium passed 48 tests; Android skipped. Added cross-screen screenshot/overflow review at 320/360/430px, long Arabic profile name and 320×480 short viewport; 52 browser cases now collected. Genuine Arabic IME/native Back and live audio require a device.
+
+## Batch 6 — Responsive review and interaction polish
+
+- Screens/components: Home banner/search/create controls, full profile badges, Recharge records shortcut, shared disabled controls.
+- Banner indicators keep small decorative dots inside 44px buttons; automatic rotation respects reduced motion and hidden tabs. Long profile names retain actual level/country/gender badges. No fabricated data or business logic changes.
+- Batch 5 CI: 23 unit cases and 49 browser cases passed; three cross-screen cases exposed duplicate records navigation. Removed the redundant entry and kept the original action. Final cross-screen and visual checks are rerun, including 320/360/430px, ten mic seats and short viewport.
+- Physical-device verification remains: microphone/audio permissions and routing, Android Back/minimize/restore, Arabic IME, Bluetooth/background audio, performance on low-end phones. APK/AAB: NOT REQUESTED — skipped by owner instruction.

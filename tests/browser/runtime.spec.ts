@@ -622,13 +622,14 @@ for(const width of [320,360,430]) test(`room controls and sheets retain actions 
 for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${width}px`,async({page})=>{
  const {errors}=await setup(page,true,{longText:true});await page.setViewportSize({width,height:780});await page.emulateMedia({reducedMotion:'reduce'});
  const capture=async(name:string)=>{await page.evaluate(()=>document.fonts.ready);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),name).toBe(true);await page.screenshot({path:`test-results/ui-review/${name}-${width}.png`,fullPage:true});};
- await page.goto('/');await expect(page.getByTitle('بحث',{exact:true})).toBeVisible();await capture('home');
+ await page.goto('/');await expect(page.getByTitle('بحث',{exact:true})).toBeVisible();for(const name of ['بحث','إنشاء غرفة']){const b=await page.getByTitle(name,{exact:true}).boundingBox();expect(b!.width).toBeGreaterThanOrEqual(44);expect(b!.height).toBeGreaterThanOrEqual(44);}
+ await capture('home');
  await page.getByTitle('الرسائل',{exact:true}).click();await expect(page.getByText('لا توجد محادثات بعد',{exact:true})).toBeVisible();await capture('messages');
  await page.getByTitle('أنا',{exact:true}).click();await expect(page.getByTitle('اسم الحساب')).toBeVisible();await capture('profile');
  await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByRole('button',{name:'تعديل الملف',exact:true})).toBeVisible();await capture('full-profile');
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
- await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByRole('button',{name:'سجل العمليات',exact:true}).click();await expect(page.getByText('لا توجد عمليات في هذه القائمة',{exact:true})).toBeVisible();await capture('wallet');
+ await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد عمليات في هذه القائمة',{exact:true})).toBeVisible();await capture('wallet');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('وكالة',{exact:true}).click();await expect(page.getByText('بوابة الوكالات',{exact:true})).toBeVisible();await capture('agency');
  await page.goto('/');await page.getByTitle('إنشاء غرفة',{exact:true}).click();await expect(page.getByRole('button',{name:'إنشاء غرفة',exact:true})).toBeDisabled();await capture('create');expect(errors).toEqual([]);
 });
@@ -637,4 +638,10 @@ test('edit profile sheet dismisses first and search remains usable in a short ke
  const {errors}=await setup(page);await page.setViewportSize({width:320,height:480});await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByTitle('تعديل الملف الشخصي والصورة والاسم').click();
  await page.getByText('اسم الكنية',{exact:true}).click();await expect(page.getByRole('dialog',{name:'تعديل بيانات الملف'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'تعديل بيانات الملف'})).toHaveCount(0);
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();const input=page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...');await input.fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();const box=await input.boundingBox();expect(box!.y+box!.height).toBeLessThanOrEqual(480);await page.screenshot({path:'test-results/ui-review/search-short-viewport.png',fullPage:true});expect(errors).toEqual([]);
+});
+
+test('banner indicators retain small visual dots inside full touch targets',async({page})=>{
+ await setup(page);await page.setViewportSize({width:320,height:780});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');
+ const indicator=page.getByRole('button',{name:'الشريحة 2',exact:true});await expect(indicator).toBeVisible();const box=await indicator.boundingBox();expect(box!.width).toBeGreaterThanOrEqual(44);expect(box!.height).toBeGreaterThanOrEqual(44);
+ const dot=await indicator.locator('span').boundingBox();expect(dot!.height).toBeLessThan(10);await indicator.click();await expect(indicator).toHaveAttribute('aria-pressed','true');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

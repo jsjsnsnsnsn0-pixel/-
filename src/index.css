@@ -20,7 +20,7 @@
 .ui-page button { min-block-size: var(--toti-touch); }
 .ui-page input:not([type="file"]):not([type="checkbox"]), .ui-page select { min-block-size: var(--toti-touch); }
 .ui-page :is(input,textarea,select) { scroll-margin-block: 5rem; }
-.ui-page button:disabled { cursor: not-allowed; }
+.ui-page button:disabled { cursor: not-allowed; opacity: .5; }
 .ui-page :is(button,[role="button"],a,input,textarea,select):focus-visible { outline: 2px solid #22d3ee; outline-offset: 3px; }
 .ui-field { border-radius: var(--toti-radius-card); transition: border-color var(--toti-motion), box-shadow var(--toti-motion); }
 .ui-sheet { border-start-start-radius: var(--toti-radius-sheet); border-start-end-radius: var(--toti-radius-sheet); max-block-size: 85dvh; overscroll-behavior: contain; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
