@@ -1,0 +1,42 @@
+-- Exercise production wrappers/permission checks and durable membership events.
+begin;
+do $$
+declare owner_uuid uuid:=gen_random_uuid(); guest uuid:=gen_random_uuid(); room_uuid uuid; n bigint; old_revision bigint; latest_revision bigint;
+begin
+ insert into auth.users(id,aud,role,email) values(owner_uuid,'authenticated','authenticated',owner_uuid::text||'@test.invalid'),(guest,'authenticated','authenticated',guest::text||'@test.invalid');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_uuid,'role','authenticated')::text,true);
+ perform set_config('role','authenticated',true);
+ room_uuid:=public.create_room('Management wrapper regression');
+ perform public.update_room_settings(room_uuid,'Updated test room','Test welcome');
+ select count(*) into n from public.get_room_management_members(room_uuid);
+ if n<>1 then raise exception 'owner member listing broken'; end if;
+ perform public.get_room_bans(room_uuid);
+ perform public.close_room(room_uuid);
+ if exists(select 1 from public.rooms where id=room_uuid and is_active) then raise exception 'close room broken'; end if;
+ perform public.reopen_room(room_uuid);
+ if not exists(select 1 from public.rooms where id=room_uuid and is_active) then raise exception 'reopen room broken'; end if;
+ select count(*) into n from public.play_fun_game('dice');
+ if n<>1 then raise exception 'game wrapper broken'; end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',guest,'role','authenticated')::text,true);
+ begin perform public.close_room(room_uuid);raise exception 'outsider close accepted';exception when raise_exception then if sqlerrm<>'owner permission required' then raise;end if;end;
+ begin perform public.reopen_room(room_uuid);raise exception 'outsider reopen accepted';exception when raise_exception then if sqlerrm<>'owner permission required' then raise;end if;end;
+ begin perform public.update_room_settings(room_uuid,'Unauthorized');raise exception 'outsider settings accepted';exception when raise_exception then if sqlerrm<>'owner permission required' then raise;end if;end;
+ begin perform public.get_room_management_members(room_uuid);raise exception 'outsider list accepted';exception when raise_exception then if sqlerrm<>'moderator permission required' then raise;end if;end;
+ begin perform public.get_room_bans(room_uuid);raise exception 'outsider bans accepted';exception when raise_exception then if sqlerrm<>'moderator permission required' then raise;end if;end;
+ perform set_config('role','postgres',true);
+ if not exists(select 1 from private.livekit_reconcile_queue where room_id=room_uuid and owner_uuid=any(identities)) then raise exception 'membership insert not queued'; end if;
+ select revision into old_revision from private.livekit_reconcile_queue where room_id=room_uuid;
+ update public.room_members set seat_number=1,is_muted=false where room_id=room_uuid and user_id=owner_uuid;
+ select revision into latest_revision from private.livekit_reconcile_queue where room_id=room_uuid;
+ if latest_revision<=old_revision then raise exception 'seat/unmute not queued'; end if;
+ old_revision:=latest_revision;
+ update public.room_members set last_seen_at=now() where room_id=room_uuid and user_id=owner_uuid;
+ if (select revision from private.livekit_reconcile_queue where room_id=room_uuid)<>old_revision then raise exception 'heartbeat unnecessarily queued'; end if;
+ update public.room_members set is_muted=true where room_id=room_uuid and user_id=owner_uuid;
+ if (select revision from private.livekit_reconcile_queue where room_id=room_uuid)<=old_revision then raise exception 'mute not queued'; end if;
+ delete from public.room_members where room_id=room_uuid and user_id=owner_uuid;
+ if not exists(select 1 from private.livekit_reconcile_queue where room_id=room_uuid and owner_uuid=any(identities)) then raise exception 'departed identity lost'; end if;
+ if exists(select 1 from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname='public' and p.prosecdef and p.proname in ('close_room','reopen_room','update_room_settings','get_room_bans','get_room_management_members','play_fun_game')) then raise exception 'privileged implementation remains public'; end if;
+end $$;
+rollback;
+select 'PASS: owner management, outsider denial, game wrapper, real membership event delivery, heartbeat filtering and private implementations; fixtures rolled back' as regression;
