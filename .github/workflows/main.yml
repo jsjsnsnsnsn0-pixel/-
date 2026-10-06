@@ -7,7 +7,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [main, stabilization-room-core, livekit-audio-test]
+    branches: [main, stabilization-room-core, livekit-audio-test, deadline-completion]
   pull_request:
     branches: [main]
 permissions:
