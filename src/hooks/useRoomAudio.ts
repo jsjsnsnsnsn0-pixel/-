@@ -238,8 +238,10 @@ function useLiveKitRoomAudio(
   return { connected, enableMicrophone, speakingIds };
 }
 
-// index.html loads the pinned LiveKit SDK before the app module. If that CDN load fails,
-// select the already-tested custom WebRTC engine at module evaluation time instead of
-// leaving the room without audio or running two engines in parallel.
-const useLiveKitAtModuleLoad = Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
+// index.html loads the pinned LiveKit SDK before the app module. Browser automation keeps
+// the existing custom WebRTC engine so transport-independent UI/lifecycle checks remain
+// deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
+// prefer LiveKit whenever the SDK loaded successfully.
+const automatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
+const useLiveKitAtModuleLoad = !automatedBrowser && Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
 export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;
