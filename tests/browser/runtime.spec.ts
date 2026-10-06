@@ -521,6 +521,7 @@ test('failed room settings save keeps the confirmed room name and shows no succe
   await page.getByRole('button',{name:'حفظ الإعدادات',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('تعذر حفظ إعدادات الغرفة');
   await expect(page.getByText('تم حفظ إعدادات الغرفة',{exact:true})).toHaveCount(0);
+  await page.getByRole('alert').getByRole('button',{name:'إغلاق',exact:true}).click();
   await page.getByRole('button',{name:'إغلاق إدارة الغرفة',exact:true}).click();
   await page.getByRole('button',{name:'معلومات الغرفة',exact:true}).click();
   await expect(page.getByRole('heading',{name:'غرفة الاختبار',exact:true})).toBeVisible();
