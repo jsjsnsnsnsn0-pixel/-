@@ -9,7 +9,7 @@ on:
   push:
     branches: [main, stabilization-room-core, livekit-audio-test]
   pull_request:
-    branches: [main]
+    branches: [main, stabilization-room-core]
 permissions:
   contents: read
 jobs:
