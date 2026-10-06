@@ -44,7 +44,7 @@ npm audit
 2. **Google OAuth** مفعّل. أضف أصل موقعك إلى Redirect URLs. لـAndroid أضف `com.totichat.app://auth/callback`؛ التطبيق يستخدم PKCE ومتصفح النظام وعودة التطبيق.
 3. **الشحن**: تحقق Integration بتاريخ 2026-10-05 من حساب المالك الموجود **TR72 / 451305** ووكيل **TotiChat Official Recharge / Iraq / IQ** النشط والمرتبط به. `create_recharge_request` يعيد `contact_info.channel=in_app` و`public_id`؛ زر التواصل يفتح الحساب الفعلي من `search_public_profiles` ويرسل عبر `direct_messages`. لا يوجد هاتف أو WhatsApp لهذا الوكيل، ولا تُنشأ حسابات أو صلاحيات تلقائياً. اعتماد الدفع الفعلي يحتاج اختباراً تشغيلياً من الإدارة.
 4. فعّل [حماية كلمات المرور المسرّبة](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) إذا كان إعدادها متاحاً في خطة المشروع. هذا هو تحذير Security Advisor المتبقي؛ الأدوات المتاحة في الجلسة لا تعدّل إعداد Auth هذا.
-5. الصوت يستخدم WebRTC وSTUN. يلزم اختباره بين أجهزة وشبكات فعلية؛ قد تتطلب الشبكات المقيدة مزود TURN ببيانات قصيرة الصلاحية. لا تضع أسرار TURN الدائمة في Vite.
+5. الصوت في النسخة الحالية يستخدم LiveKit بمحرك مضمّن ومثبت الإصدار، مع وظيفة `livekit-room` للتحقق من العضوية وإصدار الرموز. يوجد مسار WebRTC قديم للاختبارات والرجوع. يلزم اختبار الصوت بين أجهزة وشبكات فعلية. مفاتيح LiveKit السرية تبقى على الخادم ولا توضع في Vite.
 
 ## الميزات التي لم تُفعّل
 

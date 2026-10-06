@@ -6,10 +6,17 @@ type RequestBody = {
   action?: 'token' | 'sync-permissions';
 };
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
+      ...corsHeaders,
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
     },
@@ -50,6 +57,7 @@ const toServerApiUrl = (url: string) =>
 
 export default {
   async fetch(req: Request): Promise<Response> {
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
     if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' });
 
     const authorization = req.headers.get('authorization');
@@ -57,7 +65,12 @@ export default {
 
     let body: RequestBody;
     try {
-      body = await req.json();
+      const value = await req.json();
+      if (!value || typeof value !== 'object' || Array.isArray(value) ||
+          (value.roomId !== undefined && typeof value.roomId !== 'string')) {
+        return json(400, { error: 'INVALID_BODY' });
+      }
+      body = value;
     } catch {
       return json(400, { error: 'INVALID_JSON' });
     }

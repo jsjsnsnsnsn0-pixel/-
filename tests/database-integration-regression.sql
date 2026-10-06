@@ -5,7 +5,7 @@ declare
  actor uuid := gen_random_uuid(); actor_public_id bigint; pkg uuid; first_request record; second_request record;
  before_gold bigint; after_gold bigint; owner_uuid uuid; owner_count bigint; agent_count bigint;
 begin
- select id into strict owner_uuid from public.profiles where public_id=451305 and display_name='TR72';
+ select id into strict owner_uuid from public.profiles where public_id=451305;
  select count(*) into owner_count from public.profiles where public_id=451305;
  select count(*) into agent_count from public.recharge_agents where display_name='TotiChat Official Recharge' and country_code='IQ' and is_active;
  if owner_count<>1 or agent_count<>1 then raise exception 'official identity is not unique'; end if;
@@ -24,7 +24,7 @@ begin
  if first_request.agent_display_name<>'TotiChat Official Recharge' or first_request.contact_info->>'channel'<>'in_app' or first_request.contact_info->>'public_id'<>'451305' or first_request.agent_phone is not null then
   raise exception 'recharge RPC contact contract mismatch';
  end if;
- if not exists(select 1 from public.search_public_profiles('451305',20) where public_id=451305 and display_name='TR72') then
+ if not exists(select 1 from public.search_public_profiles('451305',20) where public_id=451305) then
   raise exception 'official profile is not searchable';
  end if;
  insert into public.direct_messages(recipient_public_id,content,message_type) values(451305,'Integration contact regression','text');

@@ -29,7 +29,7 @@ const friendlyAudioError = (error: unknown) => {
   return 'تعذر إعداد الصوت الحقيقي. تحقق من الاتصال وحاول مجدداً.';
 };
 
-function useLiveKitRoomAudio(
+export function useLiveKitRoomAudio(
   room: Room | null,
   authId: string | undefined,
   muted: boolean,
@@ -48,6 +48,7 @@ function useLiveKitRoomAudio(
   const remoteAudio = useRef(new Map<string, HTMLMediaElement>());
   const roomId = room?.id;
   const hasSeat = Boolean(authId && room?.seats.some(seat => seat.user?.authId === authId));
+  const hasSeatRef = useRef(hasSeat); hasSeatRef.current = hasSeat;
 
   const invokeAudio = useCallback(async (action: 'token' | 'sync-permissions'): Promise<TokenResponse> => {
     if (!roomId) throw new Error('ROOM_MEMBERSHIP_REQUIRED');
@@ -88,7 +89,7 @@ function useLiveKitRoomAudio(
 
     const keyFor = (publication: any, participant: any) => String(publication?.trackSid || `${participant?.identity || 'remote'}:${Date.now()}`);
     const onTrackSubscribed = (track: any, publication: any, participant: any) => {
-      if (track?.kind !== 'audio') return;
+      if (disposed || track?.kind !== 'audio') return;
       const key = keyFor(publication, participant);
       removeRemoteAudio(key);
       const element = track.attach?.() as HTMLMediaElement | undefined;
@@ -107,6 +108,7 @@ function useLiveKitRoomAudio(
       removeRemoteAudio(key);
     };
     const onActiveSpeakers = (participants: any[]) => {
+      if (disposed) return;
       setSpeakingIds((participants || []).map(p => String(p.identity || '')).filter(Boolean));
     };
     const onDisconnected = () => {
@@ -171,11 +173,17 @@ function useLiveKitRoomAudio(
     if (!connected || !client || !roomId || !authId) return;
     let cancelled = false;
 
+    // Stop locally immediately; a failed permission request must not leave capture running.
+    if (!hasSeat || muted) {
+      pendingEnable.current = false;
+      void client.localParticipant?.setMicrophoneEnabled?.(false).catch?.(() => {});
+    }
+
     void (async () => {
       try {
         const permission = await invokeAudio('sync-permissions');
         if (cancelled || client !== clientRef.current) return;
-        const allowed = hasSeat && !muted && permission.canPublish !== false;
+        const allowed = hasSeat && !muted && permission.canPublish === true;
         if (!allowed) {
           pendingEnable.current = false;
           await client.localParticipant?.setMicrophoneEnabled?.(false);
@@ -186,6 +194,9 @@ function useLiveKitRoomAudio(
             echoCancellation: true,
             noiseSuppression: noiseRef.current,
           });
+          if (cancelled || client !== clientRef.current || mutedRef.current || !hasSeatRef.current) {
+            await client.localParticipant?.setMicrophoneEnabled?.(false);
+          }
           pendingEnable.current = false;
           void client.startAudio?.().catch?.(() => {});
         }
@@ -215,22 +226,28 @@ function useLiveKitRoomAudio(
     if (!hasSeat) throw new Error('اختر مقعداً أولاً لتشغيل المايكروفون.');
     if (!connected || !clientRef.current) throw new Error('تعذر الاتصال بخدمة الصوت. حاول بعد لحظة.');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('يحتاج المايكروفون متصفحاً يدعم الصوت واتصال HTTPS.');
+    const client = clientRef.current;
+    const currentGeneration = generation.current;
+    const stillCurrent = () => client === clientRef.current && currentGeneration === generation.current && hasSeatRef.current;
 
     const preview = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: noiseRef.current },
       video: false,
     });
     preview.getTracks().forEach(track => track.stop());
+    if (!stillCurrent()) throw new Error('ROOM_SESSION_ENDED');
     pendingEnable.current = true;
-    void clientRef.current?.startAudio?.().catch?.(() => {});
+    void client.startAudio?.().catch?.(() => {});
 
     if (!mutedRef.current) {
       const permission = await invokeAudio('sync-permissions');
-      if (permission.canPublish === false) throw new Error('MIC_PUBLISH_NOT_ALLOWED');
-      await clientRef.current.localParticipant?.setMicrophoneEnabled?.(true, {
+      if (!stillCurrent() || mutedRef.current) { pendingEnable.current = false; return; }
+      if (permission.canPublish !== true) { pendingEnable.current = false; throw new Error('MIC_PUBLISH_NOT_ALLOWED'); }
+      await client.localParticipant?.setMicrophoneEnabled?.(true, {
         echoCancellation: true,
         noiseSuppression: noiseRef.current,
       });
+      if (!stillCurrent() || mutedRef.current) await client.localParticipant?.setMicrophoneEnabled?.(false);
       pendingEnable.current = false;
     }
   }, [roomId, authId, hasSeat, connected, invokeAudio]);
@@ -238,7 +255,7 @@ function useLiveKitRoomAudio(
   return { connected, enableMicrophone, speakingIds };
 }
 
-// index.html loads the pinned LiveKit SDK before the app module. Browser automation keeps
+// main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps
 // the existing custom WebRTC engine so transport-independent UI/lifecycle checks remain
 // deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
 // prefer LiveKit whenever the SDK loaded successfully.
