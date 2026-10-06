@@ -1,3 +1,4 @@
+import {EmptyState} from '../common/UIState';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
@@ -161,7 +162,7 @@ export const CharmRankingScreen: React.FC = () => {
 
             {/* Name below avatar */}
             <div className="mt-3.5 text-center w-full px-1">
-              <div className="text-xs font-black text-rose-200 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+              <div className="min-w-0 text-sm font-bold text-rose-200 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                 {top3 ? top3.name : 'شاغر'}
               </div>
               {/* Value below name */}
@@ -174,6 +175,7 @@ export const CharmRankingScreen: React.FC = () => {
         </div>
       </div>
 
+      {!charmRankings.length && <div className="relative z-10 px-4 mt-4 text-slate-200"><EmptyState title="لا توجد عمليات مؤهلة في هذه الفترة" /></div>}
       {/* 4. LEADERBOARD LIST (TOP 4 TO 10 - Sleek Glass Rows directly over the wallpaper) */}
       <div className="relative z-10 max-w-md mx-auto px-4 mt-6 flex flex-col gap-2">
         <div className="flex items-center justify-between px-2 text-[11px] font-black text-rose-300/90 drop-shadow">
@@ -181,9 +183,8 @@ export const CharmRankingScreen: React.FC = () => {
           <span>نقاط الجاذبية ✨</span>
         </div>
 
-        {Array.from({ length: 7 }).map((_, i) => {
+        {otherRanks.map((entry, i) => {
           const rankNum = i + 4;
-          const entry = otherRanks[i];
           const isSilver = rankNum % 2 !== 0;
 
           return (
@@ -233,7 +234,7 @@ export const CharmRankingScreen: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="ui-id text-xs text-zinc-400">
                     {entry ? `ID: ${entry.idNumber}` : 'استلم دعم لتتصدر'}
                   </span>
                 </div>

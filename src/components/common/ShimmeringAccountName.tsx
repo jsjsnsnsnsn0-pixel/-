@@ -87,6 +87,7 @@ export const SHIMMER_THEMES: ShimmerTheme[] = [
 interface ShimmeringAccountNameProps {
   name: string;
   vipLevel?: number;
+  tone?: 'light' | 'dark';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   styleKey?: ShimmerStyleKey;
   showSparkles?: boolean;
@@ -112,6 +113,7 @@ export const ShimmeringAccountName: React.FC<ShimmeringAccountNameProps> = ({
   name,
   vipLevel,
   size = 'md',
+  tone = 'light',
   styleKey,
   showSparkles = true,
   showPaletteButton = false,
@@ -150,10 +152,11 @@ export const ShimmeringAccountName: React.FC<ShimmeringAccountNameProps> = ({
   // Pure, clean solid black color without any sparkles or special gradients
   if (!hasVip || !activeTheme) {
     return (
-      <div className={`relative inline-flex items-center ${className}`}>
+      <div className={`min-w-0 max-w-full relative inline-flex items-center ${className}`}>
         <span
           onClick={onClick}
-          className={`${sizeClasses} text-black font-black tracking-tight select-none cursor-pointer transition-transform hover:opacity-85 inline-block`}
+          role={onClick?"button":undefined} tabIndex={onClick?0:undefined} onKeyDown={event=>{if(onClick&&(event.key==="Enter"||event.key===" ")){event.preventDefault();onClick();}}}
+          className={`${sizeClasses} min-w-0 break-words ${tone === "dark" ? "text-slate-100" : "text-black"} font-black tracking-tight select-none cursor-pointer transition-transform hover:opacity-85 inline-block`}
           dir="auto"
         >
           {name}
@@ -166,7 +169,7 @@ export const ShimmeringAccountName: React.FC<ShimmeringAccountNameProps> = ({
   // Radiant animated shimmer theme matching their VIP tier with sparkles
   return (
     <>
-      <div className={`relative inline-flex items-center gap-1.5 ${className}`}>
+      <div className={`min-w-0 max-w-full relative inline-flex items-center gap-1.5 ${className}`}>
         {/* Left Twinkling Star Sparkle */}
         {showSparkles && (
           <span
@@ -183,7 +186,8 @@ export const ShimmeringAccountName: React.FC<ShimmeringAccountNameProps> = ({
         {/* The Animated Text with Continuous Color Shimmer */}
         <span
           onClick={onClick}
-          className={`${sizeClasses} ${activeTheme.className} tracking-tight select-none cursor-pointer transition-transform hover:scale-[1.02] inline-block`}
+          role={onClick?"button":undefined} tabIndex={onClick?0:undefined} onKeyDown={event=>{if(onClick&&(event.key==="Enter"||event.key===" ")){event.preventDefault();onClick();}}}
+          className={`${sizeClasses} min-w-0 break-words ${activeTheme.className} tracking-tight select-none cursor-pointer transition-transform hover:scale-[1.02] inline-block`}
           dir="auto"
         >
           {name}

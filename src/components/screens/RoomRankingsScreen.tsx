@@ -1,3 +1,4 @@
+import {EmptyState} from '../common/UIState';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
@@ -176,7 +177,7 @@ export const RoomRankingsScreen: React.FC = () => {
 
             {/* Room Name below avatar */}
             <div className="mt-3.5 text-center w-full px-1">
-              <div className="text-xs font-black text-amber-200 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+              <div className="min-w-0 text-sm font-bold text-amber-200 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
                 {top3 ? top3.roomName : 'شاغر'}
               </div>
               {/* Value below name */}
@@ -189,6 +190,7 @@ export const RoomRankingsScreen: React.FC = () => {
         </div>
       </div>
 
+      {!roomRankings.length && <div className="relative z-10 px-4 mt-4 text-slate-200"><EmptyState title="لا توجد عمليات مؤهلة في هذه الفترة" /></div>}
       {/* 4. LEADERBOARD LIST (TOP 4 TO 10 - Sleek Glass Rows directly over the wallpaper) */}
       <div className="relative z-10 max-w-md mx-auto px-4 mt-6 flex flex-col gap-2">
         <div className="flex items-center justify-between px-2 text-[11px] font-black text-amber-300/90 drop-shadow">
@@ -196,9 +198,8 @@ export const RoomRankingsScreen: React.FC = () => {
           <span>نقاط كأس الغرفة 💎</span>
         </div>
 
-        {Array.from({ length: 7 }).map((_, i) => {
+        {otherRanks.map((entry, i) => {
           const rankNum = i + 4;
-          const entry = otherRanks[i];
           const isSilver = rankNum % 2 !== 0;
 
           return (
@@ -241,7 +242,7 @@ export const RoomRankingsScreen: React.FC = () => {
                   <span className="text-xs font-bold text-amber-100 max-w-[130px] truncate drop-shadow">
                     {entry ? entry.roomName : 'غرفة شاغرة'}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="ui-id text-xs text-zinc-400">
                     {entry ? `المضيف: ${entry.hostName}` : 'ادعم غرفتك لتتصدر'}
                   </span>
                 </div>

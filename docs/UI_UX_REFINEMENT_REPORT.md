@@ -56,3 +56,12 @@ APK/AAB: **NOT REQUESTED — skipped by owner instruction.**
 - Fixes: consistent 44px mic/speaker/gift/hand/leave-seat targets, explicit pressed/busy state, keyboard-accessible empty/locked seats, readable truncated seat names, contained room UUID, wrapped announcement, safe sheet padding, labelled close buttons, member-list empty state, shortened profile-card sheet metrics. Existing decorations remain.
 - Preserved: permission flow, capture/signaling/speaking-energy logic, mic moderation rules, gift requests/idempotency, seat actions, profile fields and all event/reward actions. No economy/RLS/auth changes.
 - Tests: TypeScript/ESLint, 23 unit/DOM and web build passed before commit. Tests include top-overlay cleanup, Back destinations and Escape without leave. Added browser checks at 320/360/430px with ten seats, 44px controls and gift/options Escape; CI screenshots are uploaded separately. Real native Back/device keyboard/audio still need hardware verification.
+
+## Batch 4 — profiles, messages, search and rankings
+
+- Screens/components: existing Profile and full-profile view, ShimmeringAccountName, Friends list, Messages, Chat Detail, Search and Wealth/Charm/Room rankings.
+- Fixes: readable plain names on dark surfaces (VIP artwork unchanged), long names constrained/wrapped, profile row keyboard actions, country/gender displayed only when present, clearer stats/actions, inline profile/relationship loading and retry, readable message previews/unread badges, conversation empty state, accessible official/system rows, chat empty state and input label.
+- Search results are one native row action, with actual IDs wrapping, counts/host metadata readable and inline search/empty guidance. No new search API or extra initial requests.
+- Ranking lower rows render only actual backend entries; seven invented empty numbered users/rooms are gone. Empty periods have an explicit state. Actual totals/period selection and podium artwork remain.
+- All old social/couple/friend/message/search actions remain; no financial or audio logic changed. The chat no longer claims every user is online when `isOnline` is false.
+- Checks before commit: TypeScript/ESLint and 23 unit/DOM cases passed. Batch 3 Chromium CI succeeded (48 tests, ten-seat widths 320/360/430px), Android skipped. Additional cross-screen screenshots and long-text checks follow in the final batch. Real keyboard/native interaction remains pending.

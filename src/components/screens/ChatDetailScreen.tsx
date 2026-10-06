@@ -1,3 +1,4 @@
+import {EmptyState} from '../common/UIState';
 import { officialSupportPublicId } from '../../hooks/usePublicChat';
 import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect, useRef } from 'react';
@@ -121,7 +122,7 @@ export const ChatDetailScreen: React.FC = () => {
               )}
             </div>
             <span className="text-[11px] text-emerald-600 font-bold block -mt-0.5">
-              {isOfficial ? 'الدعم الرسمي · التواصل داخل التطبيق' : isSystem ? 'نظام معتمد' : 'متصل الآن'}
+              {isOfficial ? 'الدعم الرسمي · التواصل داخل التطبيق' : isSystem ? 'نظام معتمد' : selectedChatUser.isOnline ? 'متصل الآن' : 'محادثة خاصة'}
             </span>
           </div>
         </div>
@@ -169,13 +170,13 @@ export const ChatDetailScreen: React.FC = () => {
 
       {/* Messages Feed */}
       <div ref={feedRef} className="flex-1 min-h-0 p-4 overflow-y-auto space-y-3">
-        {allMessages.map((msg) => (
+        {!allMessages.length && <div className="text-slate-600 py-6"><EmptyState title={isSystem?"لا توجد إشعارات حالياً":"ابدأ المحادثة برسالة"} /></div>}{allMessages.map((msg) => (
           <div
             key={msg.id}
             className={`flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}
           >
             {!msg.isMe && (
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-sm font-bold shadow-2xs overflow-hidden">
+              <div className="ui-icon-button rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-sm font-bold shadow-2xs overflow-hidden">
                 {isOfficial ? '👑' : isSystem ? '⚡️' : <UserAvatar user={selectedChatUser} size="xs" />}
               </div>
             )}
@@ -232,7 +233,7 @@ export const ChatDetailScreen: React.FC = () => {
             type="button"
             onClick={handleVoiceRecord}
             disabled={isRecording}
-            className="w-10 h-10 shrink-0 rounded-full bg-slate-100 text-slate-600 hover:text-cyan-700 hover:bg-slate-200 flex items-center justify-center active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+            className="ui-icon-button shrink-0 rounded-full bg-slate-100 text-slate-600 hover:text-cyan-700 hover:bg-slate-200 flex items-center justify-center active:scale-95 transition-all cursor-pointer disabled:opacity-40"
             title="تسجيل صوتي"
           >
             <Mic size={18} />
@@ -241,6 +242,7 @@ export const ChatDetailScreen: React.FC = () => {
           {/* Text Input */}
           <input
             type="text"
+            aria-label="نص الرسالة"
             maxLength={1000}
             disabled={sending || isSystem}
             dir="rtl"
@@ -257,7 +259,7 @@ export const ChatDetailScreen: React.FC = () => {
           <button
             type="submit"
             disabled={!inputText.trim() || sending || isSystem}
-            className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-40 shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer"
+            className="ui-icon-button shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-40 shadow-xs hover:brightness-105 active:scale-95 transition-all cursor-pointer"
             title="إرسال"
           >
             <Send size={16} className="-rotate-90 ml-0.5" />

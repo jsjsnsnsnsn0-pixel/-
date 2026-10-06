@@ -119,7 +119,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           </div>}
 
           {/* Username: plain black if no VIP, radiant shimmer if VIP */}
-          <ShimmeringAccountName
+          <ShimmeringAccountName tone="dark"
             name={displayUser.name || 'مستخدم جديد'}
             vipLevel={displayUser.vipLevel}
             size="lg"

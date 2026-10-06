@@ -76,19 +76,19 @@ export const ProfileScreen: React.FC = () => {
       {/* Main Profile Info Section (Avatar on the Right, Info on the Left) */}
       <div className="px-5 pt-1 pb-4 flex items-center justify-between gap-4">
         {/* Left Info Column */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {/* Row 1: Name, Gender & Detail Profile Chevron */}
           <div className="flex items-center justify-between">
             <button
               onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
-              className="w-7 h-7 rounded-lg bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+              className="ui-icon-button rounded-lg bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
               title="عرض الملف الشخصي الكامل والشارات"
             >
               <ChevronLeft size={18} className="stroke-[2.5]" />
             </button>
 
             <div
-              className="flex items-center gap-2 cursor-pointer group"
+              className="min-w-0 flex items-center gap-2 cursor-pointer group"
               title="اسم الحساب"
             >
               <ShimmeringAccountName
@@ -99,20 +99,20 @@ export const ProfileScreen: React.FC = () => {
                 onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
               />
               {/* Gender Badge */}
-              <div
+              {user.gender && <div
                 className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-[11px] font-bold shadow-xs shrink-0 ${
                   user.gender === 'female' ? 'bg-[#ec4899]' : 'bg-[#5b96f7]'
                 }`}
               >
                 {user.gender === 'female' ? '♀' : '♂'}
-              </div>
+              </div>}
             </div>
           </div>
 
           {/* Row 2: Account ID and Country Flag */}
           <div className="flex items-center justify-end gap-2 mt-1.5">
             <span className="text-xs font-bold text-slate-500 font-mono">
-              {user.countryCode || 'IQ'} {user.countryFlag || '🇮🇶'}
+              {user.countryCode} {user.countryFlag}
             </span>
             <RoyalAccountId id={user.id} vipLevel={user.vipLevel} size="md" />
           </div>
@@ -149,7 +149,7 @@ export const ProfileScreen: React.FC = () => {
         </div>
 
         {/* Right Avatar with Circular Frame */}
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
           className="relative shrink-0 cursor-pointer group"
           title="عرض الملف الشخصي"
@@ -169,7 +169,7 @@ export const ProfileScreen: React.FC = () => {
       <div className="px-6 py-3">
         <div className="grid grid-cols-3 text-center">
           {/* Column 1: زائر */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => {
               markVisitorsAsSeen();
               setActiveSubScreen('visitors');
@@ -188,7 +188,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* Column 2: متابعين */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => {
               markFollowersAsSeen();
               setActiveSubScreen('friends');
@@ -209,7 +209,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* Column 3: متابعة */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('friends')}
             className="cursor-pointer"
           >
@@ -223,7 +223,7 @@ export const ProfileScreen: React.FC = () => {
 
       {/* VIP Luxury Card Banner */}
       <div className="px-5 mt-2">
-        <div
+        <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setActiveSubScreen('vip')}
           className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#17161b] via-[#211e26] to-[#141318] p-3 text-white flex items-center justify-between shadow-md cursor-pointer hover:shadow-lg transition-all border border-amber-500/20"
           style={{
@@ -250,7 +250,7 @@ export const ProfileScreen: React.FC = () => {
       <div className="px-5 mt-4">
         <div className="grid grid-cols-4 gap-2 text-center">
           {/* 1. محفظة / شحن */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('recharge')}
             className="flex flex-col items-center cursor-pointer group"
           >
@@ -261,7 +261,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 2. غرفتي */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={handleOpenMyRoom}
             className="flex flex-col items-center cursor-pointer group"
           >
@@ -273,7 +273,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 3. المتجر */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('store')}
             className="flex flex-col items-center cursor-pointer group"
           >
@@ -284,7 +284,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 4. وكالة */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('agency')}
             className="flex flex-col items-center cursor-pointer group"
           >
@@ -300,7 +300,7 @@ export const ProfileScreen: React.FC = () => {
       <div className="px-5 mt-5">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xs divide-y divide-slate-50 overflow-hidden">
           {/* 1. شارة */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('badges')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
           >
@@ -315,7 +315,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 2. السحر/ الثروة */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('charm_wealth')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
           >
@@ -330,7 +330,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 3. اكسب عملات فضية */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('silver_coins')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
           >
@@ -350,7 +350,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 4. مركز المساعدة */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('help_center')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
           >
@@ -365,7 +365,7 @@ export const ProfileScreen: React.FC = () => {
           </div>
 
           {/* 5. اعدادات */}
-          <div
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('settings')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
           >

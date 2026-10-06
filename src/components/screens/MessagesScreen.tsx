@@ -1,3 +1,4 @@
+import {EmptyState} from '../common/UIState';
 import { usePublicChat } from '../../hooks/usePublicChat';
 import { emptyUser } from '../../services/profile';
 import React from 'react';
@@ -39,13 +40,14 @@ export const MessagesScreen: React.FC = () => {
       </header>
 
       {/* Fixed three-column message matrix: meta | text | avatar */}
-      <div className="px-5 pt-1 space-y-4">
+      <div className="px-5 pt-1 space-y-3">
         <div
+          role="button" tabIndex={0} aria-label="فتح رسائل النظام" onKeyDown={event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();handleOpenSystemChat();}}}
           onClick={handleOpenSystemChat}
-          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 cursor-pointer group active:opacity-85 transition-opacity"
+          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3 py-2 cursor-pointer group active:opacity-85 transition-opacity"
         >
           <div className="w-[44px] flex flex-col items-center justify-center self-stretch shrink-0">
-            <span className="text-[12px] font-medium text-[#8ea396] whitespace-nowrap">
+            <span className="text-[12px] font-medium text-[#536c5d] whitespace-nowrap">
               {latestSysMsg?.timestamp || ''}
             </span>
             {unreadSystemMessagesCount > 0 && (
@@ -56,10 +58,10 @@ export const MessagesScreen: React.FC = () => {
           </div>
 
           <div className="text-right min-w-0 w-full" dir="rtl">
-            <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug truncate">
+            <h2 className="font-bold text-base text-[#1a251f] leading-snug truncate">
               رسائل النظام
             </h2>
-            <p className="text-[13px] text-[#8ea396] truncate font-normal mt-0.5">
+            <p className="text-[13px] text-[#536c5d] truncate font-normal mt-0.5">
               {latestSysMsg?.description || 'لا توجد رسائل'}
             </p>
           </div>
@@ -75,16 +77,17 @@ export const MessagesScreen: React.FC = () => {
         </div>
 
         <div
+          role="button" tabIndex={opening?-1:0} aria-label="فتح الرسائل الرسمية" aria-disabled={opening} onKeyDown={event=>{if(!opening&&(event.key==="Enter"||event.key===" ")){event.preventDefault();handleOpenOfficialChat();}}}
           onClick={opening ? undefined : handleOpenOfficialChat}
-          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 cursor-pointer group active:opacity-85 transition-opacity"
+          className="grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3 py-2 cursor-pointer group active:opacity-85 transition-opacity"
         >
           <div className="w-[44px]" aria-hidden="true" />
 
           <div className="text-right min-w-0 w-full" dir="rtl">
-            <h2 className="font-bold text-[18px] text-[#1a251f] leading-snug truncate">
+            <h2 className="font-bold text-base text-[#1a251f] leading-snug truncate">
               رسائل رسمية
             </h2>
-            <p dir="ltr" className="text-[13px] text-[#8ea396] font-normal mt-0.5 font-sans truncate text-right">
+            <p dir="ltr" className="text-[13px] text-[#536c5d] font-normal mt-0.5 font-sans truncate text-right">
               {opening ? 'جارٍ فتح المحادثة…' : 'التواصل داخل التطبيق'}
             </p>
           </div>
@@ -98,11 +101,12 @@ export const MessagesScreen: React.FC = () => {
             />
           </div>
         </div>
-        {conversations.map(conversation => <button key={conversation.id} className="w-full grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3.5 py-1 text-right" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
-          <div className="w-[44px] text-center"><span className="text-[10px] text-slate-400">{conversation.timestamp}</span>{conversation.unreadCount > 0 && <span className="block bg-emerald-500 rounded-full text-xs">{conversation.unreadCount}</span>}</div>
-          <div className="min-w-0"><p className="font-bold truncate">{conversation.user.name}</p><p className="text-sm text-slate-400 truncate">{conversation.lastMessage}</p></div>
+        {conversations.map(conversation => <button key={conversation.id} className="w-full grid grid-cols-[44px_minmax(0,1fr)_58px] items-center gap-3 py-2 text-right" onClick={() => {setSelectedChatUser(conversation.user); setActiveSubScreen('chat_detail');}}>
+          <div className="w-[44px] text-center"><span className="text-[11px] text-slate-600">{conversation.timestamp}</span>{conversation.unreadCount > 0 && <span className="inline-flex min-w-5 h-5 items-center justify-center bg-emerald-700 text-white rounded-full text-xs px-1">{conversation.unreadCount}</span>}</div>
+          <div className="min-w-0"><p className="font-bold truncate">{conversation.user.name}</p><p className="text-sm text-slate-600 truncate">{conversation.lastMessage}</p></div>
           <img src={conversation.user.avatar} alt="" className="w-[58px] h-[58px] rounded-full object-cover" />
         </button>)}
+        {!conversations.length && <div className="text-slate-600 pt-3"><EmptyState title="لا توجد محادثات بعد" description="ابحث عن حساب لبدء محادثة." /></div>}
       </div>
     </div>
   );

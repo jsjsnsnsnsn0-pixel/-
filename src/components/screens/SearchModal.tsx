@@ -1,3 +1,4 @@
+import {EmptyState,InlineLoading} from '../common/UIState';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SearchBar } from '../common/SearchBar';
@@ -6,7 +7,7 @@ import { VIPBadge } from '../common/VIPBadge';
 import { supabase } from '../../services/supabase';
 import { profileToUser } from '../../services/profile';
 import { User } from '../../types';
-import { ChevronRight, Radio, Users, Flame, Volume2 } from 'lucide-react';
+import { ChevronRight, Radio, Users } from 'lucide-react';
 
 export const SearchModal: React.FC = () => {
   const { setActiveSubScreen, rooms, joinRoom, setSelectedChatUser, reportError } = useApp();
@@ -44,17 +45,17 @@ export const SearchModal: React.FC = () => {
   }, [normalizedQuery]);
 
   return (
-    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-24">
+    <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-24" dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[#0b0c16]/95 border-b border-purple-500/20 px-4 py-3 backdrop-blur-md flex items-center gap-3">
         <button
           onClick={() => setActiveSubScreen(null)}
-          className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 shrink-0 cursor-pointer"
+          aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 shrink-0 cursor-pointer"
         >
           <ChevronRight size={22} />
         </button>
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <SearchBar
             value={query}
             onChange={setQuery}
@@ -75,6 +76,7 @@ export const SearchModal: React.FC = () => {
         ].map((tab) => (
           <button
             key={tab.id}
+            aria-pressed={activeFilter===tab.id}
             onClick={() => setActiveFilter(tab.id as any)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               activeFilter === tab.id
@@ -87,7 +89,7 @@ export const SearchModal: React.FC = () => {
         ))}
       </div>
 
-      {searching && <p role="status" className="text-center p-2">جارٍ البحث…</p>}
+      {searching && <InlineLoading>جارٍ البحث…</InlineLoading>}
       {/* Results Feed */}
       <div className="p-4 space-y-4">
         {/* ROOMS RESULTS */}
@@ -101,15 +103,15 @@ export const SearchModal: React.FC = () => {
             {matchedRooms.length > 0 ? (
               <div className="space-y-2">
                 {matchedRooms.map((room) => (
-                  <div
+                  <button type="button" aria-label={`دخول غرفة ${room.title}`}
                     key={room.id}
                     onClick={() => {
                       joinRoom(room);
                       setActiveSubScreen(null);
                     }}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
+                    className="w-full text-right min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0 flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-800 shrink-0">
                         <img
                           src={room.coverImage}
@@ -117,26 +119,26 @@ export const SearchModal: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-slate-100">{room.title}</h4>
-                        <div className="flex items-center gap-2 text-[10px] text-purple-300 font-mono mt-0.5">
-                          <span>ID: {room.id}</span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-sm text-slate-100 truncate">{room.title}</h4>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-purple-300 font-mono mt-1">
+                          <span className="ui-id basis-full">ID: {room.id}</span>
                           <span>·</span>
-                          <span>مضيف: {room.owner.name}</span>
+                          <span className="truncate">مضيف: {room.owner.name}</span>
                           <span>·</span>
                           <span className="text-slate-400">{room.usersCount} متواجد</span>
                         </div>
                       </div>
                     </div>
 
-                    <button className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-xs">
+                    <span className="shrink-0 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-xs">
                       دخول
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                 ))}
               </div>
             ) : (
-              <span className="text-xs text-slate-500">لا توجد غرف مطابقة لبحثك</span>
+              <EmptyState title="لا توجد غرف مطابقة لبحثك" />
             )}
           </div>
         )}
@@ -152,24 +154,24 @@ export const SearchModal: React.FC = () => {
             {matchedUsers.length > 0 ? (
               <div className="space-y-2">
                 {matchedUsers.map((itemUser) => (
-                  <div
+                  <button type="button" aria-label={`مراسلة ${itemUser.name}`}
                     key={itemUser.id}
                     onClick={() => {
                       setSelectedChatUser(itemUser);
                       setActiveSubScreen('chat_detail');
                     }}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
+                    className="w-full text-right min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0 flex items-center gap-3">
                       <UserAvatar user={itemUser} size="sm" showOnlineStatus />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-slate-100">
+                          <span className="font-bold text-sm text-slate-100 truncate">
                             {itemUser.name}
                           </span>
                           <VIPBadge level={itemUser.vipLevel} size="sm" />
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono mt-1">
                           <span>@{itemUser.username}</span>
                           <span>·</span>
                           <span>ID: {itemUser.id}</span>
@@ -177,14 +179,14 @@ export const SearchModal: React.FC = () => {
                       </div>
                     </div>
 
-                    <button className="px-3 py-1 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
+                    <span className="shrink-0 px-3 py-2 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
                       مراسلة
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                 ))}
               </div>
             ) : (
-              <span className="text-xs text-slate-500">لا يوجد مستخدمون مطابقون</span>
+              !searching && <EmptyState title={normalizedQuery.length<2?"اكتب حرفين على الأقل للبحث عن حساب":"لا يوجد مستخدمون مطابقون"} />
             )}
           </div>
         )}
