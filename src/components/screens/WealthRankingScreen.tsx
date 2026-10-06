@@ -1,18 +1,12 @@
-import { useTimeouts } from '../../hooks/useTimeouts';
 import { setImageFallback } from '../../utils/imageFallback';
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
-import { ChevronRight, Gift, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Gift } from 'lucide-react';
 
 export const WealthRankingScreen: React.FC = () => {
-  const { setActiveSubScreen, user, rechargeGold } = useApp();
-  const { wealthRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
-  const scheduleTimeout = useTimeouts();
-  const [showQuickSupport, setShowQuickSupport] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState<number>(50000);
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-
+  const { setActiveSubScreen, user } = useApp();
+  const { wealthRankings, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
   // Top 1, Top 2, Top 3
   const top1 = wealthRankings.length > 0 ? wealthRankings[0] : null;
   const top2 = wealthRankings.length > 1 ? wealthRankings[1] : null;
@@ -21,12 +15,6 @@ export const WealthRankingScreen: React.FC = () => {
 
   // Current logged in user ranking in Wealth
   const myEntry = wealthRankings.find((r) => r.id === user.id);
-
-  // Quick Support Action for Testing
-  const handleSupport = (_amount: number) => {
-    setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
-    scheduleTimeout(() => setFeedbackMsg(null), 3500);
-  };
 
   return (
     <div
@@ -62,14 +50,6 @@ export const WealthRankingScreen: React.FC = () => {
         {/* Empty placeholder to balance layout */}
         <div className="w-9" />
       </header>
-
-      {/* Feedback Toast */}
-      {feedbackMsg && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-black font-black text-xs px-4 py-2 rounded-full shadow-2xl border border-white flex items-center gap-1.5 animate-bounce">
-          <CheckCircle2 size={16} />
-          <span>{feedbackMsg}</span>
-        </div>
-      )}
 
       {/* 2. Period Switcher (يومي | أسبوعي | شهري) */}
       <div className="relative z-10 max-w-md mx-auto px-4 mt-2">
@@ -248,7 +228,7 @@ export const WealthRankingScreen: React.FC = () => {
                     <span className="text-xs font-bold text-amber-100 max-w-[130px] truncate drop-shadow">
                       {entry ? entry.name : 'مقعد شاغر'}
                     </span>
-                    {entry && (
+                    {entry?.wealthLevel !== undefined && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500 text-black font-black">
                         Lv.{entry.wealthLevel}
                       </span>
@@ -290,70 +270,18 @@ export const WealthRankingScreen: React.FC = () => {
                 <span className="text-[9px] text-amber-400">(حسابك)</span>
               </div>
               <div className="text-[11px] text-slate-300">
-                مجموع دعمك:{' '}
+                إجمالي دعمك داخل الغرف:{' '}
                 <span className="text-amber-400 font-black">
-                  {myEntry ? myEntry.score.toLocaleString() : '0'} 🪙
+                  {Number(user.sentGiftsCount || 0).toLocaleString()} 🪙
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => handleSupport(selectedAmount)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black font-black text-xs shadow-lg active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-          >
-            <span>ادعم الآن</span>
-            <span>+{selectedAmount.toLocaleString()}</span>
-            <span>🪙</span>
-          </button>
+
         </div>
       </div>
 
-      {/* 6. Quick Support Modal */}
-      {showQuickSupport && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-[#1f1305] via-zinc-950 to-black border border-amber-500/60 rounded-3xl w-full max-w-sm p-4 text-center shadow-2xl">
-            <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 mx-auto mb-2 text-2xl">
-              🎁
-            </div>
-            <h3 className="text-base font-black text-amber-300">إرسال دعم ورفع الترتيب</h3>
-            <p className="text-xs text-amber-100/70 mt-1">
-              اختر قيمة الذهب المراد دعمه ليرتفع حسابك مباشرة من المركز العاشر وصولاً للمركز الأول:
-            </p>
-
-            {/* Preset amounts */}
-            <div className="grid grid-cols-3 gap-2 my-4">
-              {[10000, 50000, 100000, 250000, 500000, 1000000].map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => setSelectedAmount(amt)}
-                  className={`py-2 px-1 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                    selectedAmount === amt
-                      ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-white shadow-lg scale-105'
-                      : 'bg-black/60 text-amber-200 border-amber-500/30 hover:bg-zinc-800'
-                  }`}
-                >
-                  {amt.toLocaleString()} 🪙
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => handleSupport(selectedAmount)}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black font-black text-sm shadow-xl active:scale-95 transition-all cursor-pointer"
-            >
-              تأكيد الدعم وإظهار حسابي في التوب 🚀
-            </button>
-
-            <button
-              onClick={() => setShowQuickSupport(false)}
-              className="mt-3 text-xs text-slate-400 hover:text-white block mx-auto cursor-pointer"
-            >
-              إلغاء
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

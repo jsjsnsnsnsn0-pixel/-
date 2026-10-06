@@ -1,15 +1,11 @@
-import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
-import { ChevronRight, Heart, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Heart } from 'lucide-react';
 
 export const CharmRankingScreen: React.FC = () => {
   const { setActiveSubScreen, user } = useApp();
-  const { charmRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
-  const scheduleTimeout = useTimeouts();
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-
+  const { charmRankings, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
   // Top 1, Top 2, Top 3
   const top1 = charmRankings.length > 0 ? charmRankings[0] : null;
   const top2 = charmRankings.length > 1 ? charmRankings[1] : null;
@@ -18,12 +14,6 @@ export const CharmRankingScreen: React.FC = () => {
 
   // My ranking in Charm
   const myEntry = charmRankings.find((r) => r.id === user.id);
-
-  // Simulate receiving charm support on mic
-  const handleReceiveCharm = (_amount: number) => {
-    setFeedbackMsg('التصنيف يعتمد على الهدايا الفعلية المرسلة داخل الغرف.');
-    scheduleTimeout(() => setFeedbackMsg(null), 3500);
-  };
 
   return (
     <div
@@ -59,14 +49,6 @@ export const CharmRankingScreen: React.FC = () => {
         {/* Empty placeholder to balance layout */}
         <div className="w-9" />
       </header>
-
-      {/* Feedback Toast */}
-      {feedbackMsg && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white font-black text-xs px-4 py-2 rounded-full shadow-2xl border border-white flex items-center gap-1.5 animate-bounce">
-          <CheckCircle2 size={16} />
-          <span>{feedbackMsg}</span>
-        </div>
-      )}
 
       {/* 2. Period Switcher (يومي | أسبوعي | شهري) */}
       <div className="relative z-10 max-w-md mx-auto px-4 mt-2">
@@ -245,7 +227,7 @@ export const CharmRankingScreen: React.FC = () => {
                     <span className="text-xs font-bold text-rose-100 max-w-[130px] truncate drop-shadow">
                       {entry ? entry.name : 'مقعد شاغر'}
                     </span>
-                    {entry && (
+                    {entry?.charmLevel !== undefined && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-black">
                         Lv.{entry.charmLevel}
                       </span>
@@ -287,22 +269,15 @@ export const CharmRankingScreen: React.FC = () => {
                 <span className="text-[9px] text-rose-400">(حسابك)</span>
               </div>
               <div className="text-[11px] text-slate-300">
-                جاذبيتك المستلمة:{' '}
+                إجمالي استلامك داخل الغرف:{' '}
                 <span className="text-pink-400 font-black">
-                  {myEntry ? myEntry.score.toLocaleString() : '0'} ✨
+                  {Number(user.receivedTotal || 0).toLocaleString()} ✨
                 </span>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => handleReceiveCharm(50000)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white font-black text-xs shadow-lg active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-          >
-            <span>استلم دعم</span>
-            <span>+50,000</span>
-            <span>✨</span>
-          </button>
+
         </div>
       </div>
     </div>

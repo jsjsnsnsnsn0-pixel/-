@@ -148,7 +148,13 @@ export function useRoomAudio(room: Room | null, authId: string | undefined, mute
         const track = captured.getAudioTracks()[0];
         if (!track) { captured.getTracks().forEach(t => t.stop()); throw new Error('لم يتم العثور على الميكروفون.'); }
         stream.current = captured; track.enabled = !mutedRef.current;
-        await Promise.all([...peers.current.values()].map(p => p.connection.getSenders().find(s => s.track?.kind === 'audio' || !s.track)?.replaceTrack(track)));
+        try {
+          await Promise.all([...peers.current.values()].map(p => p.connection.getSenders().find(s => s.track?.kind === 'audio' || !s.track)?.replaceTrack(track)));
+        } catch (error) {
+          captured.getTracks().forEach(t => t.stop());
+          if (stream.current === captured) stream.current = null;
+          throw error;
+        }
       })();
       capture.current = pending;
       try { await pending; } finally { if (capture.current === pending) capture.current = null; }

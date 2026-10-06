@@ -24,3 +24,9 @@ test('expired VIP does not display an active privilege and social counters are s
   const user = profileToUser({vip_level:8,vip_expires_at:'2000-01-01T00:00:00Z',friends_count:2,followers_count:0,visitors_count:3});
   assert.equal(user.vipLevel,0);assert.equal(user.friendsCount,2);assert.equal(user.followersCount,0);assert.equal(user.visitorsCount,3);
 });
+
+test('wealth and charm keep the existing gift thresholds rather than unrelated profile level',()=>{
+  const user=profileToUser({level:99,sent_gold:16000,received_gold:20000});
+  assert.equal(user.wealthLevel,17);assert.equal(user.charmLevel,21);
+  const zero=profileToUser({level:99});assert.equal(zero.sentGiftsCount,'0');assert.equal(zero.receivedTotal,'0');assert.equal(zero.wealthLevel,1);assert.equal(zero.charmLevel,1);
+});

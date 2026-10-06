@@ -1,5 +1,4 @@
 import { createContext, useContext } from 'react';
-import { User, Room } from '../types';
 
 export interface LeaderboardEntry {
   id: string;
@@ -34,8 +33,6 @@ export interface RealtimeRankingsContextType {
   wealthRankings: LeaderboardEntry[];
   charmRankings: LeaderboardEntry[];
   roomRankings: RoomLeaderboardEntry[];
-  recordGiftSupport: (sender: User, recipient: User, room: Room | null, amount: number) => void;
-  resetRankings: () => void;
 }
 
 export const RealtimeRankingsContext = createContext<RealtimeRankingsContextType | undefined>(undefined);

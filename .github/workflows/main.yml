@@ -1,6 +1,11 @@
-name: Validate and Build TotiChat APK
+name: Validate TotiChat
 on:
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: Build APK only after an explicit owner request
+        type: boolean
+        default: false
   push:
     branches: [main, stabilization-room-core]
   pull_request:
@@ -38,7 +43,8 @@ jobs:
           name: playwright-report
           path: playwright-report/
   build-apk:
-    if: github.event_name != 'pull_request'
+    # NOT REQUESTED — skipped by owner instruction unless explicitly dispatched.
+    if: github.event_name == 'workflow_dispatch' && inputs.build_android == true
     needs: validate
     runs-on: ubuntu-latest
     env:

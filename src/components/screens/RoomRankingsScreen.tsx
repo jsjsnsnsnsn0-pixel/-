@@ -6,7 +6,7 @@ import { ChevronRight, Trophy, CheckCircle2 } from 'lucide-react';
 
 export const RoomRankingsScreen: React.FC = () => {
   const { setActiveSubScreen, rooms } = useApp();
-  const { roomRankings, recordGiftSupport, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
+  const { roomRankings, period: activePeriod, setPeriod: setActivePeriod } = useRealtimeRankings();
   const scheduleTimeout = useTimeouts();
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 

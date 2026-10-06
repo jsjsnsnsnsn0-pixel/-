@@ -7,11 +7,11 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentRoom = {...room, owner_id:overrides.listener?other:actor, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
-  let current = {...profile, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
+  let current = {...profile, sent_gold:overrides.economy?16000:0,received_gold:overrides.economy?20000:0, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
   let fixed=overrides.currency?100000:60; let lucky=overrides.currency?100000:20; let legacy=overrides.currency?777:10; const redemptions = new Map<string,any>();
@@ -68,7 +68,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/claim_reward')) {const already=rewardClaimed;rewardClaimed=true;if(!already)current={...current,gold:current.gold+300,silver_coins:150};return respond({gold:300,silver:150,already_claimed:already});}
     if (path.endsWith('/submit_support_ticket')) return respond('55555555-5555-4555-8555-555555555555');
-    if (path.endsWith('/get_gift_rankings')) return respond({wealth:[],charm:[],rooms:[]});
+    if (path.endsWith('/get_gift_rankings')) return respond(overrides.economy?{wealth:[{public_id:920003,display_name:'حساب الاختبار',score:16000},{public_id:451305,display_name:'مستخدم آخر',score:1000}],charm:[{public_id:920003,display_name:'حساب الاختبار',score:20000}],rooms:[]}:{wealth:[],charm:[],rooms:[]});
     if (path.endsWith('/search_public_profiles')) return respond([{public_id:451305,display_name:overrides.agent ? 'TR72' : 'مستخدم البحث',username:'other',level:1,vip_level:0}]);
     if (path.endsWith('/wallet_diamond_state')) return respond({fixed_diamonds:fixed,lucky_diamonds:lucky,legacy_diamonds:legacy,diamonds_balance:current.diamonds});
     if (path.endsWith('/preview_diamond_redemption')) {
@@ -578,4 +578,32 @@ test('owner closes then reopens the same room from the closed room list',async({
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await expect(page.getByRole('button',{name:'خيارات الغرفة',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+for(const economy of [false,true]) test(`wealth and charm display persisted server totals without testing actions (${economy})`,async({page})=>{
+  const {errors,requests}=await setup(page,true,{economy});
+  for(const [label,total] of [['الثروة',economy?'16,000':'0'],['الجاذبية',economy?'20,000':'0']]){
+    await page.goto('/');await page.getByText(label,{exact:true}).first().click();
+    await expect(page.getByText(label==='الثروة'?'إجمالي دعمك داخل الغرف:':'إجمالي استلامك داخل الغرف:',{exact:false})).toContainText(total);
+    await expect(page.getByText(/50,000/)).toHaveCount(0);
+    await expect(page.getByRole('button',{name:/ادعم الآن|استلم دعم|تأكيد الدعم/})).toHaveCount(0);
+  }
+  expect(requests.some(r=>r.path.endsWith('/get_gift_rankings'))).toBe(true);expect(errors).toEqual([]);
+});
+
+test('room minimizes to home with membership retained and no full screen loading message',async({page})=>{
+ const {requests,errors}=await setup(page,true,{rooms:true});await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+ await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toBeVisible();
+ await page.getByRole('button',{name:'تصغير الغرفة',exact:true}).click();
+ await expect(page.getByRole('button',{name:'العودة إلى غرفة غرفة الاختبار'})).toBeVisible();
+ await expect(page.getByTitle('الصفحة الرئيسية')).toBeVisible();
+ await expect(page.getByText('جارٍ تحميل الشاشة…',{exact:true})).toHaveCount(0);
+ expect(requests.some(r=>r.path.endsWith('/leave_room'))).toBe(false);
+ await page.getByRole('button',{name:'العودة إلى غرفة غرفة الاختبار'}).click();await expect(page.getByRole('button',{name:'تشغيل المايكروفون',exact:true})).toBeVisible();expect(errors).toEqual([]);
+});
+
+test('denied microphone permission never unmutes the server seat',async({page})=>{
+ const {requests,errors}=await setup(page,true,{rooms:true});await page.addInitScript(()=>{Object.defineProperty(navigator.mediaDevices,'getUserMedia',{value:async()=>{throw new DOMException('denied','NotAllowedError');}})});
+ await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();await page.getByRole('button',{name:'تشغيل المايكروفون',exact:true}).click();
+ await expect(page.getByRole('alert')).toContainText('تم رفض إذن المايكروفون');expect(requests.some(r=>r.path.endsWith('/set_my_room_muted'))).toBe(false);expect(errors).toEqual([]);
 });

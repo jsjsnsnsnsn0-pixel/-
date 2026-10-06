@@ -22,7 +22,7 @@ export function profileToUser(row: Record<string, any>): User {
     gender: row.gender, region: row.region || '', country: row.country_name || '',
     countryCode: row.country_code || '', countryFlag: countryFlag(row.country_code),
     equipment: row.equipment || undefined,
-    level: Number(row.level ?? 1), wealthLevel: Number(row.level ?? 1),
+    level: Number(row.level ?? 1), wealthLevel: Math.min(150, Math.floor(Number(row.sent_gold || 0) / 1000) + 1),
     charmLevel: Math.min(150, Math.floor(Number(row.received_gold || 0) / 1000) + 1),
     vipLevel: row.vip_expires_at && new Date(row.vip_expires_at).getTime() <= Date.now() ? 0 : Number(row.vip_level || 0), vipExpiresAt: row.vip_expires_at, gold: Number(row.gold || 0),
     diamonds: Number(row.diamonds || 0), silverCoins: Number(row.silver_coins || 0),

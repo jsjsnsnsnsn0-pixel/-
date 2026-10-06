@@ -11,9 +11,10 @@ export const BottomNavigation: React.FC = () => {
     hasUnseenVisitors,
     hasUnseenFollowers,
     activeRoom,
+    activeSubScreen,
   } = useApp();
 
-  if (activeRoom) {
+  if (activeRoom && !activeSubScreen) {
     return null;
   }
 

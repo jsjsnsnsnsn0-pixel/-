@@ -1,5 +1,5 @@
 import { walletTitles } from '../services/diamonds';
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
 import { signInWithGoogle, listenForNativeAuth } from '../services/nativeAuth';
 import { supabase } from '../services/supabase';
@@ -328,15 +328,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     }).catch(fail);
   };
 
-  const setActiveSubScreen = (screen: string | null) => {
+  const setActiveSubScreen = (screen: string | null) => startTransition(() => {
     if (screen === 'customer_support') screen = 'help_center';
-    if (screen === 'create' || screen === 'messages') {
+    if (screen === 'home' || screen === 'create' || screen === 'messages') {
+      setActiveTabState(screen);
       if (activeRef.current) setActiveSubScreenState(screen);
       else { setActiveTabState(screen); setActiveSubScreenState(null); }
     }
     else setActiveSubScreenState(screen);
-  };
-  const setActiveTab = (tab: AppContextType['activeTab']) => { setActiveTabState(tab); setActiveSubScreenState(null); };
+  });
+  const setActiveTab = (tab: AppContextType['activeTab']) => startTransition(() => { setActiveTabState(tab); setActiveSubScreenState(activeRef.current ? tab : null); });
   const runRoomRpc = async (name: string, extra: Record<string, unknown> = {}) => {
     const room = activeRef.current; if (!room) return false;
     try {
