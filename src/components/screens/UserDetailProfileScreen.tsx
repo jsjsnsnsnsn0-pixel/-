@@ -1,11 +1,12 @@
 import {ProfileHero} from '../common/ProfileHero';
 import {loadRoomPublicProfile,RoomPublicProfile} from '../../services/roomPublicProfile';
 import {InlineLoading,ErrorState} from '../common/UIState';
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useApp} from '../../context/AppContext';
 import {useServerData} from '../../hooks/useServerData';
 import {rpc, backendMessage} from '../../services/backend';
 import {profileToUser} from '../../services/profile';
+import {supabase} from '../../services/supabase';
 interface Social extends Record<string, unknown> {is_following: boolean; is_blocked: boolean; friend_status: string}
 interface Couple {partner: {public_id: number}; requested_by: string; accepted_at: string | null}
 export const UserDetailProfileScreen: React.FC = () => {
@@ -21,6 +22,23 @@ export const UserDetailProfileScreen: React.FC = () => {
     return {social,couples,publicProfile};
   }, [target.id,me.authId,mine]);
   const {data,loading,error,reload} = useServerData(load, null);
+  useEffect(()=>{
+    if(!mine||!me.authId)return;
+    const refresh=()=>{if(document.visibilityState!=='hidden')void reload();};
+    window.addEventListener('focus',refresh);
+    document.addEventListener('visibilitychange',refresh);
+    const membership=supabase.channel(`profile-agency-membership:${me.authId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'agency_members',filter:`user_id=eq.${me.authId}`},()=>void reload())
+      .subscribe();
+    return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);void supabase.removeChannel(membership);};
+  },[mine,me.authId,reload]);
+  useEffect(()=>{
+    if(!mine||!data?.publicProfile?.agency?.id)return;
+    const channel=supabase.channel(`profile-agency:${data.publicProfile.agency.id}`)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'agencies',filter:`id=eq.${data.publicProfile.agency.id}`},()=>void reload())
+      .subscribe();
+    return()=>{void supabase.removeChannel(channel);};
+  },[mine,data?.publicProfile?.agency?.id,reload]);
   const social = data?.social;
   const user = social ? profileToUser(social) : target;
   const relationship = data?.couples?.relations?.find(c => c.partner.public_id === Number(target.id));
