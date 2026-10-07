@@ -1,6 +1,6 @@
 import {useDismissableLayer} from '../../../hooks/useDismissableLayer';
 import React, {useEffect, useRef, useState} from 'react';
-import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, X} from 'lucide-react';
+import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, Wifi, WifiOff, X} from 'lucide-react';
 import './room-ui.css';
 
 export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean; created_at?: string}
@@ -8,7 +8,7 @@ interface Props {
   title: string; cover: string; thumbnail?:string; count: number; welcome: string; seats: React.ReactNode;
   onDeleteMessage?:(id:string)=>void;
   messages: RoomChatMessage[]; chatEnabled: boolean; text: string; sending: boolean;
-  muted: boolean; micBusy: boolean; seated: boolean; speaker: boolean; handRaised: boolean; canModerate: boolean;
+  muted: boolean; micBusy: boolean; seated: boolean; speaker: boolean; handRaised: boolean; canModerate: boolean; audioConnected: boolean;
   onText: (value: string) => void; onSend: (event: React.FormEvent) => void;
   onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
   onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
@@ -34,6 +34,7 @@ export function RoomStage(props: Props) {
     <header className="room-header">
       <button type="button" aria-label="معلومات الغرفة" onClick={props.onInfo} className="room-thumbnail"><img src={props.thumbnail||props.cover} alt={props.title}/></button>
       <div className="room-header-spacer"/>
+      <span role="status" aria-label={props.audioConnected?'الصوت متصل':'الصوت يعيد الاتصال'} className={`room-presence ${props.audioConnected?'text-emerald-300':'text-amber-300'}`}>{props.audioConnected?<Wifi size={14}/>:<WifiOff size={14}/>}<span>{props.audioConnected?'متصل':'اتصال'}</span></span>
       <button type="button" aria-label="الموجودون في الغرفة" onClick={props.onUsers} className="room-presence"><Users size={17}/><span>USR {props.count}</span></button>
       <button type="button" aria-label="خيارات الغرفة" onClick={props.onExit} className="room-icon"><Power/></button>
     </header>
@@ -55,7 +56,7 @@ export function RoomStage(props: Props) {
     <footer className="room-footer">
       <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
       <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>
-      <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
+      <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy||!props.audioConnected} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
       {props.onMusic&&<button type="button" aria-label="موسيقى الهاتف" className="room-icon" onClick={()=>fileRef.current?.click()}><Music size={20}/></button>}
       <button type="button" aria-label="أدوات الغرفة" aria-expanded={tools} onClick={()=>setTools(value=>!value)} className="room-icon"><Settings/></button>
     </footer>
