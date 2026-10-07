@@ -7,6 +7,7 @@ import {rpc, backendMessage} from '../../services/backend';
 import {supabase} from '../../services/supabase';
 
 interface Agency {id: number; name: string; owner_id: string}
+interface DirectoryAgency {id:number;name:string;logo_url?:string|null;owner_name?:string|null;members_count?:number;requested?:boolean}
 interface Member {public_id: number; display_name: string}
 interface State {agency: Agency | null; available: Agency[]; members: Member[]; applications: Member[]}
 interface RegistrationState {
@@ -36,12 +37,15 @@ export const AgencyScreen: React.FC = () => {
   const [agentNumber,setAgentNumber] = useState('');
   const [fullName,setFullName] = useState('');
   const [countryCode,setCountryCode] = useState((user.countryCode || '').toUpperCase());
+  const [agencySearch,setAgencySearch] = useState('');
   const [files,setFiles] = useState<RegistrationFiles>({logo:null,identity:null,portrait:null});
 
   const load = useCallback(() => rpc<State>('agency_state'), [user.authId]);
   const registrationLoad = useCallback(() => rpc<RegistrationState>('agency_registration_state'), [user.authId]);
+  const directoryLoad = useCallback(() => rpc<DirectoryAgency[]>('agency_directory'), [user.authId]);
   const {data,loading,error,reload} = useServerData(load, {agency:null,available:[],members:[],applications:[]});
   const registration = useServerData(registrationLoad, {application:null,can_apply:false});
+  const directory = useServerData(directoryLoad, []);
 
   const act = async (id: number, action: string, target?: number) => {
     if (busy) return; setBusy(true); setNotice('');
@@ -101,6 +105,8 @@ export const AgencyScreen: React.FC = () => {
   const agency = data?.agency;
   const isOwner = agency?.owner_id === user.authId;
   const application=registration.data?.application;
+  const normalizedAgencySearch=agencySearch.trim().toLowerCase();
+  const visibleAgencies=(directory.data||[]).filter(item=>!normalizedAgencySearch||item.name.toLowerCase().includes(normalizedAgencySearch)||String(item.id).includes(normalizedAgencySearch));
 
   return <div dir="rtl" className="min-h-screen bg-[#0b0c16] text-white p-4 pb-28">
     <header className="flex items-center gap-3 mb-4"><button className="ui-control px-3 rounded-xl bg-white/5" onClick={() => {if(!agency&&portalMode!=='home'){setPortalMode('home');setShowRegistration(false);}else setActiveSubScreen(null);}}>الرجوع</button><h1 className="text-base font-bold">بوابة الوكالات</h1></header>
@@ -126,9 +132,16 @@ export const AgencyScreen: React.FC = () => {
       </section>}
 
       {portalMode === 'host' && <section>
-        <div className="flex items-center justify-between mb-3"><h2 className="font-bold">الوكالات المتاحة</h2><span className="text-xs text-slate-400">{data?.available.length || 0} وكالة</span></div>
-        {(data?.available || []).map(a => <div key={a.id} className="flex items-center gap-3 justify-between p-3 bg-white/10 rounded-xl mb-2"><span className="flex-1 min-w-0"><span className="block text-sm truncate">{a.name}</span><span className="ui-id text-xs text-slate-400">ID: {a.id}</span></span><button className="ui-control shrink-0 px-3 rounded-xl bg-purple-600 text-white text-xs" disabled={busy} onClick={() => void act(a.id,'request')}>طلب الانضمام كمضيف</button></div>)}
-        {!data?.available.length && <EmptyState title="لا توجد وكالات متاحة حالياً." />}
+        <div className="flex items-center justify-between mb-3"><h2 className="font-bold">الوكالات المتاحة</h2><span className="text-xs text-slate-400">{directory.data?.length || 0} وكالة</span></div>
+        <label className="block mb-3"><span className="sr-only">بحث الوكالات</span><input value={agencySearch} onChange={event=>setAgencySearch(event.target.value)} placeholder="ابحث باسم الوكالة أو ID" className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-purple-400/50" /></label>
+        {directory.loading&&<InlineLoading>جارٍ تحميل قائمة الوكالات…</InlineLoading>}
+        {directory.error&&<ErrorState message={directory.error} onRetry={()=>void directory.reload()}/>}
+        {!directory.loading&&!directory.error&&visibleAgencies.map(a => <div key={a.id} className="flex items-center gap-3 p-3 bg-white/10 rounded-xl mb-2">
+          {a.logo_url?<img src={a.logo_url} alt="" loading="lazy" className="w-11 h-11 rounded-xl object-cover shrink-0"/>:<span className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0" aria-hidden="true">🏛️</span>}
+          <span className="flex-1 min-w-0"><span className="block text-sm font-bold truncate">{a.name}</span><span className="ui-id text-xs text-slate-400">ID: {a.id}</span>{a.owner_name&&<span className="block text-[10px] text-slate-400 truncate">الوكيل: {a.owner_name}</span>}{typeof a.members_count==='number'&&<span className="block text-[10px] text-slate-500">{a.members_count} عضو</span>}</span>
+          <button className="ui-control shrink-0 px-3 rounded-xl bg-purple-600 text-white text-xs disabled:opacity-50" disabled={busy||a.requested} onClick={() => void act(a.id,'request')}>{a.requested?'قيد المراجعة':'طلب الانضمام كمضيف'}</button>
+        </div>)}
+        {!directory.loading&&!directory.error&&!visibleAgencies.length&&<EmptyState title={normalizedAgencySearch?"لا توجد وكالة مطابقة للبحث.":"لا توجد وكالات متاحة حالياً."} />}
       </section>}
 
       {portalMode === 'agent' && <section className="rounded-2xl border border-amber-400/20 bg-amber-500/5 p-4">
