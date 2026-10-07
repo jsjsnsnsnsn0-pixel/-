@@ -29,10 +29,20 @@ jobs:
           const browser=await chromium.launch({headless:true});
           const page=await browser.newPage({viewport:{width:390,height:844}});
           const errors=[];
-          page.on('pageerror',error=>errors.push(error.message));
+          page.on('pageerror',error=>errors.push('pageerror: '+error.message));
+          page.on('console',msg=>{if(msg.type()==='error')errors.push('console: '+msg.text());});
+          page.on('requestfailed',req=>errors.push('network: '+req.url()+' '+req.failure()?.errorText));
           const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
           if(!response||response.status()!==200)throw new Error('Admin page HTTP '+response?.status());
-          await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:45000});
+          try{
+            await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:18000});
+          }catch(error){
+            console.error('DIAG: URL='+page.url());
+            console.error('DIAG: app text='+(await page.locator('#app').innerText()).slice(0,1200));
+            console.error('DIAG: errors='+JSON.stringify(errors.slice(0,15)));
+            await page.screenshot({path:'admin-login-smoke.png'});
+            throw error;
+          }
           await page.getByText('اسم المستخدم أو البريد الإلكتروني').waitFor();
           await page.getByText('كلمة المرور').waitFor();
           await page.getByRole('button',{name:'تسجيل الدخول'}).waitFor();
