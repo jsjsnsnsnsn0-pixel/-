@@ -7,7 +7,7 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; giftShop?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; giftShop?: boolean; purchaseError?: boolean; admin?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = !overrides.startUnmuted;
@@ -21,13 +21,29 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     {id:'fixed-received',transaction_type:'fixed_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
     {id:'lucky-received',transaction_type:'lucky_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
   ] : [];
-  let followed=false; let friendStatus='none'; const purchased:string[]=[]; let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
+  let followed=false; let friendStatus='none'; const purchased:string[]=[]; const adminAdjustments=new Map<string,any>(); let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
     const body=route.request().postDataJSON(); if (method !== 'GET') requests.push({path,body});
     const headers={'access-control-allow-origin':'*','content-type':'application/json'};
     const respond=(value: any,status=200)=>route.fulfill({status,headers,body:JSON.stringify(value)});
     if (method==='OPTIONS') return route.fulfill({status:204,headers:{...headers,'access-control-allow-headers':'*','access-control-allow-methods':'*'}});
+    if (path.endsWith('/dashboard_session'))return respond(overrides.admin?{allowed:true,owner:true,role:'owner',permissions:['dashboard.view','users.view','wallet.view','wallet.credit','wallet.debit','wallet.history','roles.view','roles.manage','roles.assign','agencies.view','audit.view','system.settings']}:{allowed:false,permissions:[]});
+    if (path.endsWith('/dashboard_overview'))return respond({users:1,active_users:1,active_rooms:overrides.rooms?1:0,gifts_today:0,coins_in_circulation:current.gold,agencies:0,hosts:0,pending_agency_registrations:0});
+    if (path.endsWith('/dashboard_users'))return respond([{id:actor,public_id:920003,username:'test_user',display_name:'حساب الاختبار',gold:current.gold,diamonds:current.diamonds,vip_level:1,level:1,country_code:'IQ',avatar_url:null,email:null,created_at:new Date().toISOString()}]);
+    if (path.endsWith('/dashboard_wallet_history'))return respond([...adminAdjustments.values()]);
+    if (path.endsWith('/dashboard_agency_registrations'))return respond([]);
+    if (path.endsWith('/dashboard_audit_history'))return respond([]);
+    if (path.endsWith('/dashboard_roles_state'))return respond({roles:[{id:'owner',label:'Owner',permissions:[],built_in:true},{id:'support',label:'Support',permissions:[],built_in:true}],permissions:['dashboard.view','wallet.credit']});
+    if (path.endsWith('/beta_flags_state'))return respond({music_enabled:false,cp_store_enabled:true});
+    if (path.endsWith('/dashboard_wallet_adjust')) {
+      if (!overrides.admin)return respond({message:'dashboard permission denied'},403);
+      if (adminAdjustments.has(body.p_request_id))return respond({...adminAdjustments.get(body.p_request_id),already_processed:true});
+      if (body.p_public_id!==920003 || current.gold+body.p_delta<0)return respond({message:'insufficient or overflowing coins'},400);
+      const before=current.gold;current={...current,gold:before+body.p_delta};
+      const record={id:body.p_request_id,request_id:body.p_request_id,operator_name:'مالك الاختبار',public_id:920003,target_public_id:920003,previous_balance:before,new_balance:current.gold,delta:body.p_delta,reason:body.p_reason,created_at:new Date().toISOString()};
+      adminAdjustments.set(body.p_request_id,record);return respond(record);
+    }
     if (path.includes('/auth/v1/user')) return respond(authUser);
     if (path.includes('/auth/v1/otp')) return respond({message:'SMS is disabled'},400);
     if (path.includes('/auth/v1/verify')) return respond({message:'Invalid OTP'},400);
@@ -950,4 +966,33 @@ test('banner indicators retain small visual dots inside full touch targets',asyn
  await setup(page);await page.setViewportSize({width:320,height:780});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');
  const indicator=page.getByRole('button',{name:'الشريحة 2',exact:true});await expect(indicator).toBeVisible();const box=await indicator.boundingBox();expect(box!.width).toBeGreaterThanOrEqual(44);expect(box!.height).toBeGreaterThanOrEqual(44);
  const dot=await indicator.locator('span').boundingBox();expect(dot!.height).toBeLessThan(10);await indicator.click();await expect(indicator).toHaveAttribute('aria-pressed','true');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+
+test('dashboard URL requires a real backend authorization response',async({page})=>{
+  const {requests,errors}=await setup(page,true,{admin:false});
+  await page.goto('/admin');
+  await expect(page.getByText('الدخول محمي',{exact:true})).toBeVisible();
+  await expect(page.getByTestId('secure-admin-dashboard')).toHaveCount(0);
+  expect(requests.some(r=>r.path.endsWith('/dashboard_wallet_adjust'))).toBe(false);
+  expect(errors).toEqual([]);
+});
+test('owner dashboard uses one authenticated RPC to credit Coins with ledger result',async({page})=>{
+  const {requests,errors}=await setup(page,true,{admin:true});
+  await page.goto('/admin');
+  await expect(page.getByTestId('secure-admin-dashboard')).toBeVisible();
+  await expect(page.getByText('نظرة عامة مباشرة',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'إدارة العملات'}).click();
+  await page.getByLabel('User ID',{exact:true}).fill('920003');
+  await page.getByLabel('التعديل — موجب للإضافة، سالب للخصم').fill('100000');
+  await page.getByLabel('السبب — إلزامي').fill('منحة اختبار مصرح بها');
+  await page.getByRole('button',{name:'تأكيد العملية المالية'}).click();
+  await expect(page.getByText('تم حفظ العملية وتأكيدها من الخادم.')).toBeVisible();
+  await expect(page.getByText(/100٬000|100,000/).first()).toBeVisible();
+  const calls=requests.filter(r=>r.path.endsWith('/dashboard_wallet_adjust'));
+  expect(calls).toHaveLength(1);
+  expect(calls[0].body).toMatchObject({p_public_id:920003,p_delta:100000,p_reason:'منحة اختبار مصرح بها'});
+  expect(calls[0].body.p_request_id).toMatch(/^[\\da-f-]{36}$/);
+  expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
+  expect(errors).toEqual([]);
 });
