@@ -427,14 +427,13 @@ test('ordinary room user B has no VIP8, invented ranks, CP, medals, agency or Ir
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306&&r.body.p_visit===false)).toBe(true);expect(errors).toEqual([]);
 });
 test('room profile header is standard without VIP and dynamic when VIP is active',async({page})=>{
-  let result=await openOtherRoomProfile(page);
+  const result=await openOtherRoomProfile(page);
   await expect(result.card.getByTestId('standard-profile-header')).toBeVisible();
   await expect(result.card.getByTestId('vip-profile-header')).toHaveCount(0);
   await result.card.getByRole('button',{name:'إغلاق البطاقة'}).click();
-  await page.close();
 });
 
-test('self room profile exposes real seat controls for muted and active microphone states',async({page})=>{
+test('self room profile exposes real seat controls while microphone is muted',async({page})=>{
   const first=await setup(page,true,{rooms:true});await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByTestId('occupied-seat').first().click();
   let card=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
@@ -443,6 +442,15 @@ test('self room profile exposes real seat controls for muted and active micropho
   await expect(card.getByRole('button',{name:'إدارة الغرفة',exact:true})).toBeVisible();
   await card.getByRole('button',{name:'إغلاق البطاقة'}).click();
   expect(first.errors).toEqual([]);
+});
+
+test('self room profile reflects an active microphone state',async({page})=>{
+  const result=await setup(page,true,{rooms:true,startUnmuted:true});await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByTestId('occupied-seat').first().click();
+  const card=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
+  await expect(card.getByRole('button',{name:'كتم المايك',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'النزول من المايك',exact:true})).toBeVisible();
+  expect(result.errors).toEqual([]);
 });
 
 test('room public data and authorized CP/agency show actual values without private identifiers',async({page})=>{
