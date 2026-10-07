@@ -8,8 +8,8 @@ import {DiamondRedeemModal} from '../modals/DiamondRedeemModal';
 import {EmptyState, ErrorState, InlineLoading} from '../common/UIState';
 
 type Tab = 'recharge' | 'sent' | 'received' | 'conversion' | 'games' | 'monthly';
-type MonthlyHost = {settlement_month:string;diamonds_earned:number;diamonds_manually_redeemed:number;diamonds_auto_converted:number;coins_credited:number;host_target:number;host_salary_iqd:number;payment_status:string};
-type MonthlyAgency = {settlement_month:string;agency_id:number;target_diamonds:number;hosts_salary_iqd:number;agent_commission_iqd:number;payment_status:string};
+type MonthlyHost = {month_start:string;diamonds_earned:number;diamonds_manually_redeemed:number;diamonds_remaining:number;coins_generated:number;monthly_gift_count:number;host_salary:number|null;status:string};
+type MonthlyAgency = {settlement_id:string;agency_id:number;agency_target:number;gift_count:number;agent_commission:number|null};
 type RechargeRequest = {id:string; amount_iqd:number|null; gold_amount:number; status:string; note:string|null; price_usd:number|null; created_at:string; updated_at:string};
 type GameRow = {id:string; game_type:string; outcome:string; score:number; details:Record<string,unknown>; created_at:string};
 
@@ -44,13 +44,13 @@ export const WalletScreen: React.FC = () => {
   const games = useServerData(loadGames, [] as GameRow[]);
   const loadSettlements = useCallback(async () => {
     const [hosts, agencies] = await Promise.all([
-      supabase.from('monthly_host_settlements').select('settlement_month,diamonds_earned,diamonds_manually_redeemed,diamonds_auto_converted,coins_credited,host_target,host_salary_iqd,payment_status').order('settlement_month',{ascending:false}).limit(24),
-      supabase.from('monthly_agency_settlements').select('settlement_month,agency_id,target_diamonds,hosts_salary_iqd,agent_commission_iqd,payment_status').order('settlement_month',{ascending:false}).limit(24),
+      supabase.from('monthly_settlements').select('month_start,diamonds_earned,diamonds_manually_redeemed,diamonds_remaining,coins_generated,monthly_gift_count,host_salary,status').eq('user_id',user.authId).order('month_start',{ascending:false}).limit(24),
+      supabase.from('monthly_settlement_agencies').select('settlement_id,agency_id,agency_target,gift_count,agent_commission').eq('agency_owner_id',user.authId).limit(24),
     ]);
     if (hosts.error) throw hosts.error;
     if (agencies.error) throw agencies.error;
     return {hosts:(hosts.data||[]) as MonthlyHost[],agencies:(agencies.data||[]) as MonthlyAgency[]};
-  },[]);
+  },[user.authId]);
   const settlements = useServerData(loadSettlements, {hosts:[] as MonthlyHost[],agencies:[] as MonthlyAgency[]});
 
   const sent = useMemo(() => transactions.filter(t => t.type === 'gift_sent'), [transactions]);
@@ -105,20 +105,19 @@ export const WalletScreen: React.FC = () => {
         {settlements.error && <ErrorState message={settlements.error} onRetry={()=>void settlements.reload()}/>}
         {!settlements.loading&&!settlements.error&&!settlements.data.hosts.length&&!settlements.data.agencies.length&&
           <EmptyState title="لا توجد تسوية مغلقة" description="سيظهر هنا التقرير بمجرد إغلاق الشهر واعتماد المستحقات في الخادم."/>}
-        {settlements.data.hosts.map(row=><article key={row.settlement_month} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-xs space-y-2">
-          <div className="flex items-center justify-between"><strong className="text-cyan-200">تقرير المضيف · {row.settlement_month}</strong><span className="text-amber-300">{row.payment_status==='paid'?'مدفوع':'مستحق غير مدفوع'}</span></div>
+        {settlements.data.hosts.map(row=><article key={row.month_start} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-xs space-y-2">
+          <div className="flex items-center justify-between"><strong className="text-cyan-200">تقرير المضيف · {row.month_start}</strong><span className="text-amber-300">{row.status==='settled'?'تم إغلاق الماس':'بانتظار الإغلاق'}</span></div>
           <div>الماس المكتسب: <strong>{Number(row.diamonds_earned).toLocaleString()}</strong></div>
           <div>الماس المفكوك يدوياً: <strong>{Number(row.diamonds_manually_redeemed).toLocaleString()}</strong></div>
-          <div>الماس المحوّل تلقائياً: <strong>{Number(row.diamonds_auto_converted).toLocaleString()}</strong></div>
-          <div>Coins المُرحّلة: <strong>{Number(row.coins_credited).toLocaleString()} 🪙</strong></div>
-          <div>Target المضيف: <strong>{Number(row.host_target).toLocaleString()} 💎</strong></div>
-          <div className="text-emerald-200 font-bold">الراتب المستحق: {Number(row.host_salary_iqd).toLocaleString()} د.ع</div>
+          <div>الماس المحوّل تلقائياً: <strong>{Number(row.status==='settled'?row.diamonds_remaining:0).toLocaleString()}</strong></div>
+          <div>Coins المُرحّلة: <strong>{Number(row.coins_generated).toLocaleString()} 🪙</strong></div>
+          <div>Target المضيف: <strong>{Number(row.diamonds_earned).toLocaleString()} 💎</strong></div>
+          <div className="text-emerald-200 font-bold">الراتب المستحق: {row.host_salary===null?'بانتظار تحديد الراتب':Number(row.host_salary).toLocaleString()+' د.ع'}</div>
         </article>)}
-        {settlements.data.agencies.map(row=><article key={row.settlement_month+':'+row.agency_id} className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs space-y-2">
-          <div className="flex items-center justify-between"><strong className="text-amber-200">الوكالة #{row.agency_id} · {row.settlement_month}</strong><span>{row.payment_status==='paid'?'مدفوع':'مستحق غير مدفوع'}</span></div>
-          <div>Target الوكالة: <strong>{Number(row.target_diamonds).toLocaleString()} 💎</strong></div>
-          <div>إجمالي رواتب المضيفين: <strong>{Number(row.hosts_salary_iqd).toLocaleString()} د.ع</strong></div>
-          <div className="text-emerald-200 font-bold">عمولة الوكيل: {Number(row.agent_commission_iqd).toLocaleString()} د.ع</div>
+        {settlements.data.agencies.map(row=><article key={row.settlement_id+':'+row.agency_id} className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs space-y-2">
+          <div className="flex items-center justify-between"><strong className="text-amber-200">الوكالة #{row.agency_id}</strong><span>{row.agent_commission===null?'بانتظار اعتماد العمولة':'العمولة محفوظة'}</span></div>
+          <div>Target الوكالة: <strong>{Number(row.agency_target).toLocaleString()} 💎</strong></div>
+          <div className="text-emerald-200 font-bold">عمولة الوكيل: {row.agent_commission===null?'قيد الاعتماد':Number(row.agent_commission).toLocaleString()+' د.ع'}</div>
         </article>)}
       </section>}
 
