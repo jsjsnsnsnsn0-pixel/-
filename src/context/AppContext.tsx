@@ -24,6 +24,7 @@ interface AppContextType {
   toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
   sendGiftInRoom: (gift: Gift, recipient: User, quantity?: number, seat?: number, requestId?: string) => Promise<boolean>;
+  sendSavedGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
   rechargeGold: (amount: number, title?: string) => void;
   createNewRoom: (room: Partial<Room>) => Promise<Room | null>;
   lockSeat: (seat: number) => Promise<boolean>; unlockSeat: (seat: number) => Promise<boolean>;
@@ -464,6 +465,24 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       return true;
     } catch (e) { fail(e); return false; }
   };
+  const sendSavedGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string): Promise<boolean> => {
+    const room = activeRef.current; if (!room) return false;
+    try {
+      const {error} = await supabase.rpc('send_inventory_room_gift', {
+        p_room_id: room.id,
+        p_recipient_public_id: Number(recipient.id),
+        p_gift_id: gift.id,
+        p_request_id: requestId || crypto.randomUUID()
+      });
+      if (error) throw error;
+      await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
+      if (overlayTimer.current) clearTimeout(overlayTimer.current);
+      setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat, quantity: 1});
+      overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
+      return true;
+    } catch (e) { fail(e); return false; }
+  };
+
   const sendMessageToConversation = async (recipient: string, content: string, type: 'text' | 'voice' | 'gift' = 'text') => {
     if (!/^\d+$/.test(recipient) || type !== 'text' || !content.trim() || content.trim().length > 1000) {
       setError('اختر حساباً فعلياً وأرسل رسالة نصية لا تتجاوز 1000 حرف.'); return false;
@@ -507,7 +526,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     markVisitorsAsSeen: () => setHasUnseenVisitors(false), markFollowersAsSeen: () => setHasUnseenFollowers(false),
     setUser, setActiveTab, setActiveSubScreen, setSelectedChatUser, joinRoom, leaveRoom, reopenRoom,
     toggleMyMic, toggleRaiseHand, toggleSpeaker: () => {setIsSpeakerOn(!isSpeakerOn); saveAudioPreference(!isSpeakerOn, noiseSuppression);}, takeSeat, leaveSeat,
-    sendGiftInRoom, rechargeGold: () => setActiveSubScreenState('recharge'), createNewRoom,
+    sendGiftInRoom, sendSavedGiftInRoom, rechargeGold: () => setActiveSubScreenState('recharge'), createNewRoom,
     lockSeat, unlockSeat, muteSeatUser, kickSeatUser, sendMessageToConversation,
     markNotificationAsRead: id => { void markNotificationAsRead(id); },
     isAuthenticated: Boolean(authId), authLoading: authLoading || Boolean(authId && !profileReady),
