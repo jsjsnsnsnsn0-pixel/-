@@ -17,10 +17,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base='https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin-preview'
+          base='https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin'
           curl --fail --silent --show-error --retry 3 --max-time 30 "$base" -o /tmp/totichat-admin-index.html
           grep -F 'TotiChat' /tmp/totichat-admin-index.html
-          grep -F '/functions/v1/totichat-admin-preview/app.js' /tmp/totichat-admin-index.html
+          grep -F '/functions/v1/totichat-admin/app.js' /tmp/totichat-admin-index.html
+          grep -F 'id="app"' /tmp/totichat-admin-index.html
           for path in app.js styles.css ui.js context.js config.js pages-core.js pages-wallet.js pages-roles.js pages-finance.js; do
             curl --fail --silent --show-error --retry 3 --max-time 30 "$base/$path" -o "/tmp/admin-$path"
             test -s "/tmp/admin-$path"
