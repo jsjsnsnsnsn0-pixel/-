@@ -1,0 +1,23 @@
+name: Check Supabase HTML Rendering
+on:
+  push:
+    branches: [feature/standalone-admin-dashboard-20261008]
+    paths: ['.github/workflows/admin-mime-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect content types
+        run: |
+          set -e
+          base='https://bfadhdnudmsggylunhlh.supabase.co/functions/v1'
+          for path in totichat-admin totichat-admin-render-test; do
+            echo "CHECKING $path"
+            curl --fail -sS -D "/tmp/$path.headers" -o "/tmp/$path.body" "$base/$path"
+            grep -iE '^(HTTP/|content-type:|content-length:)' "/tmp/$path.headers" || true
+            head -c 180 "/tmp/$path.body" | tr '\n' ' '
+            echo
+          done
