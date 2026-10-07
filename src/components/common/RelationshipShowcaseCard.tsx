@@ -41,14 +41,18 @@ export const RelationshipShowcaseCard: React.FC<RelationshipShowcaseCardProps> =
   const label=relation.typeLabel||'CP';
   const ownerLevel=owner.level;
   const partnerLevel=relation.partner.level;
+  const relationshipLevel=relation.level??0;
+  const tierGlow=relationshipLevel>=6?'0 0 36px rgba(244,114,182,.28)':relationshipLevel>=3?'0 0 26px rgba(168,85,247,.22)':'0 10px 30px rgba(0,0,0,.24)';
+  const tierOrnaments=relationshipLevel>=6?6:relationshipLevel>=3?4:relationshipLevel>=1?2:0;
 
   if(compact){
     return <div
       data-testid="relationship-showcase-compact"
-      className={`relative overflow-hidden rounded-[22px] border px-3 py-3 shadow-[0_10px_30px_rgba(0,0,0,.24)] ${className}`}
+      className={`relative overflow-hidden rounded-[22px] border px-3 py-3 ${className}`}
       style={{
         borderColor:`${accent}66`,
         background:`linear-gradient(105deg,${background}ee,#1b0b20 48%,${background}ee)`,
+        boxShadow:tierGlow,
       }}
     >
       <div className="absolute inset-x-10 top-0 h-px opacity-80" style={{background:`linear-gradient(90deg,transparent,${accent},transparent)`}}/>
@@ -62,7 +66,7 @@ export const RelationshipShowcaseCard: React.FC<RelationshipShowcaseCardProps> =
         <div className="min-w-0 flex-1 text-center">
           <div className="mx-auto w-12 h-12 rounded-full border border-white/10 bg-white/[0.06] flex items-center justify-center text-2xl shadow-inner">{icon}</div>
           <p className="mt-1 text-[11px] font-black" style={{color:accent}}>{label}</p>
-          <p className="text-[10px] text-slate-300">{relation.days??0} يوم{relation.level? ` · CP LV.${relation.level}`:''}</p>
+          <p className="text-[10px] text-slate-300">{typeof relation.days==='number'?<>{relation.days} يوم</>:null}{relation.level? ` · CP LV.${relation.level}`:''}</p>
           {relation.experience!==undefined&&<div className="mt-1.5">
             <div className="h-1.5 rounded-full overflow-hidden bg-white/10"><div className="h-full rounded-full" style={{width:`${progress}%`,background:`linear-gradient(90deg,${accent},#fbbf24)`}}/></div>
           </div>}
@@ -79,13 +83,15 @@ export const RelationshipShowcaseCard: React.FC<RelationshipShowcaseCardProps> =
 
   return <article
     data-testid="relationship-showcase"
-    className={`relative overflow-hidden rounded-[26px] border shadow-[0_14px_38px_rgba(0,0,0,.3)] ${className}`}
+    className={`relative overflow-hidden rounded-[26px] border ${className}`}
     style={{
       borderColor:`${accent}70`,
       background:`radial-gradient(circle at 50% 25%,${accent}2b,transparent 30%),linear-gradient(110deg,${background}f5,#270c24 48%,${background}f5)`,
+      boxShadow:tierGlow,
     }}
   >
     <div className="absolute inset-x-6 top-0 h-px" style={{background:`linear-gradient(90deg,transparent,${accent},#fde68a,${accent},transparent)`}}/>
+    {Array.from({length:tierOrnaments}).map((_,index)=><span key={index} aria-hidden="true" className="absolute text-[9px] animate-pulse" style={{color:accent,left:`${12+index*15}%`,top:`${16+(index%2)*18}%`,opacity:.45}}>✦</span>)}
     <div className="px-4 pt-3 flex items-center justify-between">
       <span className="text-[11px] text-white/55">العلاقة</span>
       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/15 px-3 py-1 text-xs font-black" style={{color:accent}}>
@@ -108,9 +114,9 @@ export const RelationshipShowcaseCard: React.FC<RelationshipShowcaseCardProps> =
           <div className="relative mx-auto w-[86px] h-[72px] flex items-center justify-center">
             <div className="absolute inset-0 rounded-full blur-2xl opacity-35" style={{background:accent}}/>
             <Heart size={60} className="relative drop-shadow-[0_6px_14px_rgba(0,0,0,.35)]" style={{color:accent,fill:accent}}/>
-            <span className="absolute text-lg font-black text-white">{relation.days??0}</span>
+            {typeof relation.days==='number'&&<span className="absolute text-lg font-black text-white">{relation.days}</span>}
           </div>
-          <p className="text-[10px] text-white/60 -mt-1">يوم</p>
+          {typeof relation.days==='number'&&<p className="text-[10px] text-white/60 -mt-1">يوم</p>}
           <p className="mt-1 text-sm font-black" style={{color:accent}}>{relation.level? `CP LV.${relation.level}`:'CP'}</p>
         </div>
 
