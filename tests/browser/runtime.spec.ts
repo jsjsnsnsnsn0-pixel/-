@@ -988,11 +988,11 @@ test('owner dashboard uses one authenticated RPC to credit Coins with ledger res
   await page.getByLabel('السبب — إلزامي').fill('منحة اختبار مصرح بها');
   await page.getByRole('button',{name:'تأكيد العملية المالية'}).click();
   await expect(page.getByText('تم حفظ العملية وتأكيدها من الخادم.')).toBeVisible();
-  await expect(page.getByText(/100٬000|100,000/).first()).toBeVisible();
+  await expect(page.getByText('منحة اختبار مصرح بها',{exact:true})).toBeVisible();
   const calls=requests.filter(r=>r.path.endsWith('/dashboard_wallet_adjust'));
   expect(calls).toHaveLength(1);
   expect(calls[0].body).toMatchObject({p_public_id:920003,p_delta:100000,p_reason:'منحة اختبار مصرح بها'});
-  expect(calls[0].body.p_request_id).toMatch(/^[\\da-f-]{36}$/);
+  expect(calls[0].body.p_request_id).toMatch(/^[0-9a-f-]{36}$/);
   expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
   expect(errors).toEqual([]);
 });
