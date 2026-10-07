@@ -154,30 +154,49 @@ export const StoreScreen: React.FC = () => {
       {!loading && !error && !filteredItems.length && <div className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400"><ShoppingBag size={24} className="mx-auto text-slate-600"/><p className="mt-2 text-sm font-bold">{query?'لا توجد نتائج مطابقة':'لا توجد منتجات متاحة حالياً في هذا القسم'}</p>{activeTab==='cards'&&<p className="mt-1 text-[10px] text-pink-200/60">أي منتج CP فعلي يضاف للكتالوج سيظهر هنا تلقائياً.</p>}</div>}
 
       <div className="p-4 grid grid-cols-2 gap-3">
-        {filteredItems.map(item => (
-          <article key={item.id} className="rounded-3xl p-3 border border-white/10 bg-white/[0.045] flex flex-col justify-between min-h-56">
-            <div>
-              <div className="h-28 rounded-2xl bg-black/20 flex items-center justify-center text-4xl mb-3 border border-emerald-300/10 overflow-hidden">
-                {item.previewUrl ? <img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/> : <span aria-hidden="true">{item.image}</span>}
+        {filteredItems.map(item=>(
+          <article key={item.id} className="rounded-[24px] overflow-hidden border border-white/10 bg-gradient-to-b from-white/[.06] to-white/[.025] shadow-[0_12px_30px_rgba(0,0,0,.18)]">
+            <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="w-full text-right">
+              <div className="relative aspect-square bg-black/20 flex items-center justify-center text-5xl overflow-hidden">
+                {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/>:<span aria-hidden="true">{item.image}</span>}
+                {item.isOwned&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">مملوك</span>}
+                <span className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center"><Play size={12} fill="currentColor"/></span>
               </div>
-              <h3 className="font-bold text-sm text-white mb-1 break-words">{item.name}</h3>
-              <p className="text-[11px] text-slate-400 leading-5 line-clamp-2">{item.description}</p>
-              <div className="flex flex-wrap gap-1 mt-2">
-                <span className="text-[10px] text-emerald-200 bg-emerald-400/10 px-2 py-1 rounded-full">صلاحية {item.duration}</span>
-                {item.category==='cards'&&item.relationshipTypeId&&<span className="text-[10px] text-pink-200 bg-pink-400/10 px-2 py-1 rounded-full">CP: {item.relationshipTypeId}</span>}
-                {item.isOwned&&<span className="text-[10px] text-cyan-200 bg-cyan-400/10 px-2 py-1 rounded-full">مملوك</span>}
+              <div className="p-3">
+                <h3 className="font-black text-sm truncate">{item.name}</h3>
+                <div className="mt-2 flex items-center justify-between gap-1 text-[10px]"><span className="text-amber-200 font-black" dir="ltr">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-IQ')}</span><span className="text-slate-500">{item.duration}</span></div>
               </div>
-            </div>
-            <div className="pt-3 mt-3 border-t border-white/8 flex items-center justify-between gap-2">
-              <span className="font-bold text-xs text-amber-200">{item.currency === 'gold' ? '🪙' : '🥈'} {item.price.toLocaleString('ar-SA')}</span>
-              <button disabled={busy || loading} onClick={() => void handleBuy(item)}
-                className="min-h-10 px-3 bg-emerald-500 text-emerald-950 text-[11px] font-black rounded-xl disabled:opacity-50">
-                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? (item.category==='cards'?'الحقيبة':'تجهيز') : 'شراء'}
-              </button>
-            </div>
+            </button>
           </article>
         ))}
       </div>
+
+      {selected&&<div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center" onClick={()=>{if(!busy)setSelected(null)}}>
+        <section role="dialog" aria-modal="true" aria-label={`تفاصيل ${selected.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-[32px] border border-white/10 bg-[#0b1712] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl">
+          <button type="button" onClick={()=>{if(!busy)setSelected(null)}} aria-label="إغلاق" className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"><X size={18}/></button>
+          <button type="button" onClick={()=>setPreview(selected)} aria-label={`معاينة ${selected.name}`} className="relative w-full aspect-[4/3] rounded-[26px] bg-black/25 border border-white/8 overflow-hidden flex items-center justify-center text-7xl">
+            {selected.previewUrl?<img src={selected.previewUrl} alt={selected.name} className="w-full h-full object-contain"/>:<span>{selected.image}</span>}
+            <span className="absolute inset-0 flex items-center justify-center"><span className="w-14 h-14 rounded-full bg-black/55 border border-white/15 flex items-center justify-center"><Play size={22} fill="currentColor"/></span></span>
+          </button>
+          <div className="mt-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">{selected.name}</h2><p className="mt-1 text-xs leading-6 text-slate-400">{selected.description||'عنصر تجميلي من متجر TotiChat.'}</p></div>{selected.isOwned&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">مملوك</span>}</div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">السعر</span><strong className="block mt-1 text-sm text-amber-200" dir="ltr">{selected.currency==='gold'?'🪙':'🥈'} {selected.price.toLocaleString('ar-IQ')}</strong></div>
+            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">المدة</span><strong className="block mt-1 text-sm">{selected.duration}</strong></div>
+          </div>
+          {selected.category==='cards'&&selected.relationshipTypeId&&<p className="mt-3 rounded-xl bg-pink-500/10 border border-pink-300/10 px-3 py-2 text-[10px] text-pink-200">نوع العلاقة المطلوب: {selected.relationshipTypeId}</p>}
+          {selected.category==='vip'&&<p className="mt-3 rounded-xl bg-amber-500/10 border border-amber-300/10 px-3 py-2 text-[10px] text-amber-200">امتياز VIP يُفعّل فقط وفق بيانات المنتج وقواعد الخادم.</p>}
+          <button type="button" disabled={busy||loading||(selected.isOwned&&!equipableCategories.has(selected.category)&&selected.category!=='cards')} onClick={()=>void handleBuy(selected)} className="mt-5 w-full min-h-[50px] rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#042019] text-sm font-black disabled:opacity-45">{busy?'جارٍ التنفيذ…':actionLabel(selected)}</button>
+          {!selected.isOwned&&<p className="mt-2 text-center text-[10px] text-slate-500">الخصم وإضافة الملكية ينفذهما Backend في عملية واحدة موثقة.</p>}
+        </section>
+      </div>}
+
+      {preview&&<div className="fixed inset-0 z-[60] bg-[#060b09]/94 backdrop-blur-xl flex items-center justify-center p-5" onClick={()=>setPreview(null)}>
+        <div role="dialog" aria-modal="true" aria-label={`معاينة ${preview.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-sm text-center">
+          <button type="button" aria-label="إغلاق المعاينة" onClick={()=>setPreview(null)} className="absolute -top-12 left-0 w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
+          <div className="aspect-square rounded-[34px] bg-[radial-gradient(circle,rgba(52,211,153,.15),transparent_62%)] border border-white/8 flex items-center justify-center overflow-hidden text-8xl">{preview.previewUrl?<img src={preview.previewUrl} alt={preview.name} className="w-full h-full object-contain"/>:<span className="animate-pulse">{preview.image}</span>}</div>
+          <h2 className="mt-5 text-lg font-black">{preview.name}</h2><p className="mt-2 text-[11px] text-slate-500">Preview فقط — لا شراء ولا تفعيل من هذه الشاشة.</p>
+        </div>
+      </div>}
     </div>
   );
 };
