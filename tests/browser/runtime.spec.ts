@@ -369,9 +369,12 @@ test('store exposes server-backed entrance and CP card tabs and inventory stays 
   const {errors}=await setup(page,true,{commerce:true});await page.goto('/');
   await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'متجر TotiChat',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'بطاقات CP',exact:true}).click();
+  await page.getByRole('button',{name:'CP',exact:true}).click();
   await expect(page.getByText('بطاقة حب الخادم',{exact:true})).toBeVisible();
-  await expect(page.getByText('CP: love',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'عرض بطاقة حب الخادم',exact:true}).click();
+  const cpDetail=page.getByRole('dialog',{name:'تفاصيل بطاقة حب الخادم',exact:true});
+  await expect(cpDetail).toContainText('نوع العلاقة المطلوب: love');
+  await cpDetail.getByRole('button',{name:'إغلاق',exact:true}).click();
   await page.getByRole('button',{name:'مؤثر الدخول',exact:true}).click();
   await expect(page.getByText('دخول الخادم',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
@@ -488,19 +491,38 @@ test('remaining profile navigation and agency support stay usable on a narrow mo
 test('store reads server prices, confirms purchase and equips only owned products', async ({page})=>{
   const {requests,errors}=await setup(page,true,{commerce:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
   await expect(page.getByText('إطار الخادم',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'شراء',exact:true}).click();
+  await page.getByRole('button',{name:'عرض إطار الخادم',exact:true}).click();
+  await page.getByRole('dialog',{name:'تفاصيل إطار الخادم',exact:true}).getByRole('button',{name:'شراء',exact:true}).click();
   await expect(page.getByText('تم اعتماد الشراء من الخادم.',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'تجهيز',exact:true}).click();
+  await page.getByRole('button',{name:'عرض إطار الخادم',exact:true}).click();
+  await page.getByRole('dialog',{name:'تفاصيل إطار الخادم',exact:true}).getByRole('button',{name:'استخدام',exact:true}).click();
   await expect(page.getByText('تم اعتماد تجهيز المنتج.',{exact:true})).toBeVisible();
   const purchase=requests.find(r=>r.path.endsWith('/purchase_store_item'))!;
   expect(purchase.body.p_item_id).toBe('server-frame');expect(purchase.body.p_request_id).toMatch(/^[\da-f-]{36}$/);
   expect(purchase.body.price).toBeUndefined();expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
   expect(requests.some(r=>r.path.endsWith('/equip_store_item'))).toBe(true);expect(errors).toEqual([]);
 });
+test('CP store purchase reaches the real inventory without fabricating relationship ownership',async({page})=>{
+  const {requests,errors}=await setup(page,true,{commerce:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
+  await page.getByRole('button',{name:'CP',exact:true}).click();
+  await page.getByRole('button',{name:'عرض بطاقة حب الخادم',exact:true}).click();
+  const detail=page.getByRole('dialog',{name:'تفاصيل بطاقة حب الخادم',exact:true});
+  await detail.getByRole('button',{name:'شراء',exact:true}).click();
+  await expect(page.getByText('تم اعتماد الشراء من الخادم.',{exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/purchase_store_item')&&r.body.p_item_id==='server-card')).toBe(true);
+  await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
+  await expect(page.getByText('بطاقة حب الخادم',{exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('failed store purchase retains retry identifier and never displays success', async ({page})=>{
   const {requests,errors}=await setup(page,true,{commerce:true,purchaseError:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
-  await page.getByRole('button',{name:'شراء',exact:true}).click();await expect(page.getByText('رصيد الذهب غير كافٍ.',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'إغلاق',exact:true}).click();await page.getByRole('button',{name:'شراء',exact:true}).click();
+  await page.getByRole('button',{name:'عرض إطار الخادم',exact:true}).click();
+  const detail=page.getByRole('dialog',{name:'تفاصيل إطار الخادم',exact:true});
+  await detail.getByRole('button',{name:'شراء',exact:true}).click();await expect(page.getByText('رصيد الذهب غير كافٍ.',{exact:true})).toBeVisible();
+  await page.getByRole('alert').getByRole('button',{name:'إغلاق',exact:true}).click();
+  await detail.getByRole('button',{name:'شراء',exact:true}).click();
   await expect(page.getByText('رصيد الذهب غير كافٍ.',{exact:true})).toBeVisible();
   const attempts=requests.filter(r=>r.path.endsWith('/purchase_store_item'));expect(attempts).toHaveLength(2);expect(attempts[0].body.p_request_id).toBe(attempts[1].body.p_request_id);
   await expect(page.getByText('تم اعتماد الشراء من الخادم.',{exact:true})).toHaveCount(0);expect(errors).toEqual([]);
