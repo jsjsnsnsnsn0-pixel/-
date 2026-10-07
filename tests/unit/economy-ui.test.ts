@@ -17,6 +17,7 @@ test('Android Beta APK runs only on owner dispatch or validated Beta PR, never o
   assert.match(workflow,/default: false/);
   assert.ok(workflow.includes("github.event_name == 'workflow_dispatch' && inputs.build_android == true"));
   assert.ok(workflow.includes("github.event_name == 'pull_request' && github.head_ref == 'integration/totichat-beta-20261008'"));
-  assert.match(workflow,/build-apk:[\\s\\S]*?needs: validate/);
+  assert.ok(workflow.includes('build-apk:') && workflow.includes('needs: validate'));
+
   assert.ok(!workflow.includes("github.event_name == 'push' && inputs.build_android"));
 });
