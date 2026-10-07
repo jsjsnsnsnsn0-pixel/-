@@ -16,7 +16,7 @@ export interface User {
   countryCode?: string;
   countryFlag?: string;
   avatarFrame?: string;
-  equipment?: Partial<Record<'frames' | 'cars' | 'bubbles' | 'badges', {id: string; name: string; icon: string}>>;
+  equipment?: Partial<Record<'frames' | 'cars' | 'bubbles' | 'badges' | 'entrances', {id: string; name: string; icon: string}>>;
   isOnline: boolean;
   gold: number;
   diamonds: number;

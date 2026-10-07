@@ -12,6 +12,9 @@ export interface CatalogItem {
   id: string; name: string; category: string; price: number;
   currency: 'gold' | 'silver'; icon: string; description: string;
   duration_days: number | null; vip_level: number | null;
+  relationship_type_id?: string | null;
+  preview_url?: string | null;
+  presentation?: Record<string, unknown> | null;
 }
 
 export async function catalog(): Promise<CatalogItem[]> {
