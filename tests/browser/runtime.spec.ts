@@ -65,7 +65,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       return respond({
         self,
         social:{follow:!self,message:!self,gift:true,mention:!self,is_following:followed},
-        moderation:owner&&!self?['mute','down','kick','ban']:[],
+        moderation:owner&&!self?['unmute','down','kick','ban']:[],
         manage_moderators:owner&&!self
       });
     }
