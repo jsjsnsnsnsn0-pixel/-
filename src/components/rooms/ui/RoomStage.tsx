@@ -1,6 +1,6 @@
 import {useDismissableLayer} from '../../../hooks/useDismissableLayer';
 import React, {useEffect, useRef, useState} from 'react';
-import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, Wifi, WifiOff, X} from 'lucide-react';
+import {Gift, Hand, MessageCircle, Mic, MicOff, Pause, Play, Power, Send, Settings, Music, Users, Volume2, VolumeX, Wifi, WifiOff, X} from 'lucide-react';
 import './room-ui.css';
 
 export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean; created_at?: string}
@@ -12,7 +12,7 @@ interface Props {
   onText: (value: string) => void; onSend: (event: React.FormEvent) => void;
   onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
   onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
-  musicName?: string; onMusic?: (file:File) => void; onStopMusic?:()=>void;
+  musicName?: string; musicPaused?: boolean; onMusic?: (file:File) => void; onStopMusic?:()=>void; onPauseMusic?:()=>void; onResumeMusic?:()=>void;
   onManage: () => void; onMessages: () => void;
 }
 
@@ -52,7 +52,7 @@ export function RoomStage(props: Props) {
       </form>
     </section>
     <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)props.onMusic?.(file)}}/>
-    {props.musicName&&<div className="px-4 flex justify-between gap-2 text-xs text-cyan-200"><span className="truncate">♫ {props.musicName}</span><button type="button" onClick={props.onStopMusic}>إيقاف</button></div>}
+    {props.musicName&&<div className="px-4 flex items-center justify-between gap-2 text-xs text-cyan-200"><span className="truncate">♫ {props.musicName}</span><div className="flex items-center gap-2"><button type="button" aria-label={props.musicPaused?'استئناف الموسيقى':'إيقاف الموسيقى مؤقتاً'} onClick={props.musicPaused?props.onResumeMusic:props.onPauseMusic} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10">{props.musicPaused?<><Play size={13}/>متابعة</>:<><Pause size={13}/>إيقاف مؤقت</>}</button><button type="button" onClick={props.onStopMusic} className="px-2 py-1 rounded-lg bg-white/10">إيقاف</button></div></div>}
     <footer className="room-footer">
       <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
       <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>

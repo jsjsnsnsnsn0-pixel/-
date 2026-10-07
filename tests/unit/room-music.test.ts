@@ -24,3 +24,32 @@ test('music disposal cancels pending publication and cannot start playback after
     URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
   }
 });
+
+
+test('music pauses and resumes without touching the published voice session',async()=>{
+  let played=0,paused=0,unpublished=0;const names:string[]=[];
+  const savedAudio=Object.getOwnPropertyDescriptor(globalThis,'Audio');
+  const savedContext=Object.getOwnPropertyDescriptor(globalThis,'AudioContext');
+  const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
+  Object.defineProperty(globalThis,'Audio',{configurable:true,value:class{onended:unknown;onerror:unknown;src='';preload='';paused=true;pause(){paused++;this.paused=true}removeAttribute(){}async play(){played++;this.paused=false}}});
+  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{destination={};createMediaElementSource(){return {connect(){},disconnect(){}}}createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){}}]}}}async resume(){}async close(){}}});
+  URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
+  try {
+    const music=new RoomMusicPublisher(name=>names.push(name));
+    await music.start(new File(['song'],'phone.mp3',{type:'audio/mpeg'}),{publishTrack:async()=>{},unpublishTrack:async()=>{unpublished++}},()=>true);
+    assert.equal(played,1);
+    assert.equal(music.pause(),true);
+    assert.equal(paused,1);
+    assert.equal(unpublished,0);
+    assert.equal(await music.resume(),true);
+    assert.equal(played,2);
+    assert.equal(unpublished,0);
+    music.stop();
+    assert.equal(unpublished,1);
+    assert.equal(names.at(-1),'');
+  } finally {
+    if(savedAudio)Object.defineProperty(globalThis,'Audio',savedAudio);else delete(globalThis as any).Audio;
+    if(savedContext)Object.defineProperty(globalThis,'AudioContext',savedContext);else delete(globalThis as any).AudioContext;
+    URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
+  }
+});
