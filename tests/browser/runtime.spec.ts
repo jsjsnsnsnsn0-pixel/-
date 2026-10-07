@@ -186,19 +186,25 @@ test('room seats are rendered from the database and recharge opens while joined'
   expect(errors).toEqual([]);
 });
 
-// Reference regression: gift send must not restore the removed center-screen luxury notice.
-test('gift selection waits for Send, supports agreed quantities and blocks rapid duplicates', async ({page})=>{
+// Reference regression: selecting a gift never sends it; quantity is chosen separately.
+test('gift selection waits for Send, uses 1/7/77/777 and blocks rapid duplicates', async ({page})=>{
   const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
+  const send=dialog.getByRole('button',{name:'إرسال الهدية',exact:true});
   await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
+  await expect(send).toBeDisabled();
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
   expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
-  await dialog.getByRole('button',{name:'اختيار كمية 77',exact:true}).click();
-  const send=dialog.getByRole('button',{name:/إرسال الهدية/});
+  await expect(send).toBeEnabled();
+  await dialog.getByRole('button',{name:'اختيار كمية الهدية، الحالية 1',exact:true}).click();
+  for(const value of [1,7,77,777])await expect(dialog.getByRole('menuitem',{name:`اختيار كمية ${value}`,exact:true})).toBeVisible();
+  await expect(dialog.getByRole('menuitem',{name:'اختيار كمية 17',exact:true})).toHaveCount(0);
+  await dialog.getByRole('menuitem',{name:'اختيار كمية 77',exact:true}).click();
+  await expect(dialog.getByText(/×77/).last()).toBeVisible();
   await send.dblclick();
-  await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('تم الإرسال',{exact:true})).toBeVisible();
   await expect(page.getByTestId('room-gift-animation')).toBeVisible();
   const announcement=page.getByTestId('room-gift-announcement');
   await expect(announcement).toBeVisible();
@@ -211,6 +217,19 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   expect(calls[0].body.p_recipient_public_id).toBe(920003);
   expect(calls[0].body.p_gift_id).toBe('g1');
   expect(typeof calls[0].body.p_request_id).toBe('string');
+  expect(errors).toEqual([]);
+});
+
+test('gift send disables when the selected total exceeds the real coin balance',async({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true,zero:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
+  await dialog.getByText('وردة الاختبار',{exact:true}).click();
+  const send=dialog.getByRole('button',{name:'إرسال الهدية',exact:true});
+  await expect(send).toBeDisabled();
+  await expect(dialog.getByText('الرصيد غير كافٍ — شحن Coins',{exact:true})).toBeVisible();
+  expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
   expect(errors).toEqual([]);
 });
 
