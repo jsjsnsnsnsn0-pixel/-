@@ -71,9 +71,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    void supabase.rpc('gift_quantity_choices').then(({data, error}) => {
-      if (!cancelled) setQuantityOptions(error ? [...DEFAULT_GIFT_QUANTITIES] : normalizeGiftQuantities(data));
-    }).catch(() => {if (!cancelled) setQuantityOptions([...DEFAULT_GIFT_QUANTITIES]);});
+    void (async () => {
+      try {
+        const {data, error} = await supabase.rpc('gift_quantity_choices');
+        if (!cancelled) setQuantityOptions(error ? [...DEFAULT_GIFT_QUANTITIES] : normalizeGiftQuantities(data));
+      } catch {
+        if (!cancelled) setQuantityOptions([...DEFAULT_GIFT_QUANTITIES]);
+      }
+    })();
     return () => {cancelled = true;};
   }, [isOpen]);
 
