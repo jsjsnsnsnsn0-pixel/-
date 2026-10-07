@@ -2,6 +2,7 @@ import {ConnectionBanner} from './components/common/ConnectionBanner';
 import {NativeBackNavigation} from './components/common/NativeBackNavigation';
 import {GlobalGiftBanner} from './components/common/GlobalGiftBanner';
 import React, {lazy, Suspense} from 'react';
+import {motion} from 'motion/react';
 import { RoomAudioProvider } from './context/RoomAudioContext';
 import { isSupabaseConfigured } from './services/supabase';
 import { AppProvider, useApp } from './context/AppContext';
@@ -44,11 +45,11 @@ const subScreens = ['home','rooms','profile','level','vip','wallet','recharge','
 const MinimizedRoomBar: React.FC = () => {
   const {activeRoom, activeSubScreen, setActiveSubScreen} = useApp();
   if (!activeRoom || !activeSubScreen) return null;
-  return <button type="button" dir="rtl" onClick={() => setActiveSubScreen(null)} aria-label={`العودة إلى غرفة ${activeRoom.title}`} className="fixed bottom-24 left-3 z-[40] w-52 max-w-[65vw] rounded-2xl bg-[#17192a]/95 text-white shadow-2xl border border-white/10 p-2 flex items-center gap-2 text-right">
+  return <motion.button type="button" dir="rtl" drag dragMomentum={false} dragConstraints={{left:0,right:160,top:-420,bottom:0}} whileDrag={{scale:1.03}} onClick={() => setActiveSubScreen(null)} aria-label={`العودة إلى غرفة ${activeRoom.title}`} className="fixed bottom-24 left-3 z-[40] w-52 max-w-[65vw] rounded-2xl bg-[#17192a]/95 text-white shadow-2xl border border-white/10 p-2 flex items-center gap-2 text-right touch-none cursor-grab active:cursor-grabbing">
     <img src={activeRoom.coverImage} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
-    <span className="min-w-0 flex-1"><span className="block text-xs text-emerald-300">أنت داخل الغرفة الآن</span><span className="block font-bold truncate">{activeRoom.title}</span></span>
+    <span className="min-w-0 flex-1"><span className="block text-xs text-emerald-300">أنت داخل الغرفة الآن · اسحبني</span><span className="block font-bold truncate">{activeRoom.title}</span></span>
     <span className="text-xs bg-emerald-500/20 text-emerald-200 rounded-full px-3 py-1.5">عودة</span>
-  </button>;
+  </motion.button>;
 };
 
 const MainLayout: React.FC = () => {
