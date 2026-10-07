@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import {recordBetaEvent} from '../../services/betaTelemetry';
 
 interface Props {
   children: ReactNode;
@@ -20,7 +21,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    recordBetaEvent('app_crash','react_boundary');
+    if(import.meta.env.DEV)console.error('Uncaught error:',error,errorInfo);
   }
 
   public render() {
@@ -32,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h2 className="text-xl font-bold mb-2">حدث خطأ أثناء تحميل الصفحة</h2>
           <p className="text-sm text-slate-300 mb-4 max-w-sm">
-            {this.state.error?.message || 'خطأ غير متوقع'}
+            خطأ غير متوقع. أُرسلت إشارة عامة للتشخيص دون تفاصيل شخصية.
           </p>
           <button
             onClick={() => {
