@@ -7,7 +7,7 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean; lucky?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = !overrides.startUnmuted;
@@ -44,7 +44,10 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       return respond(directMessages);
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
-    if (path.endsWith('/gift_catalog')) return respond([{id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',is_active:true}]);
+    if (path.endsWith('/gift_catalog')) return respond([
+      {id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',category_id:'gift',icon:'🌹',is_active:true},
+      ...(overrides.lucky?[{id:'g11',name:'نرد الحظ الذهبي',price:300,diamond_source_type:'LUCKY_GIFT',category_id:'luck',icon:'🎲',is_active:true}]:[])
+    ]);
     if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:overrides.listener?null:1,role:overrides.listener?'member':'owner',is_muted:currentMuted,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
@@ -126,6 +129,24 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/close_room')) {currentRoom.is_active=false;return respond(null);}
     if (path.endsWith('/create_room')) return respond(roomId);
     if (path.endsWith('/set_my_room_muted')) {if(overrides.muteDelay)await new Promise(resolve=>setTimeout(resolve,650));currentMuted=body.p_muted;return respond(null);}
+    if(path.endsWith('/lucky_result_by_request')&&overrides.lucky)return respond({
+      id:'77777777-7777-4777-8777-777777777777',
+      request_id:body.p_request_id,
+      room_id:roomId,
+      gift_id:'g11',
+      gift_name:'نرد الحظ الذهبي',
+      sender_public_id:920003,
+      sender_name:'حساب الاختبار',
+      recipient_public_id:920003,
+      recipient_name:'حساب الاختبار',
+      quantity:1,
+      reward_tier:'rare',
+      result_label:'Lucky ×77',
+      multiplier:77,
+      lucky_points:77,
+      visual_style:'wheel',
+      created_at:new Date().toISOString()
+    });
     if (path.includes('/rpc/')) return respond(null);
     return respond([]);
   });
@@ -217,6 +238,29 @@ test('gift selection waits for Send, uses 1/7/77/777 and blocks rapid duplicates
   expect(calls[0].body.p_recipient_public_id).toBe(920003);
   expect(calls[0].body.p_gift_id).toBe('g1');
   expect(typeof calls[0].body.p_request_id).toBe('string');
+  expect(errors).toEqual([]);
+});
+
+test('Lucky Gift result is server-backed and shown as non-financial Lucky Points',async({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true,lucky:true});await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
+  await dialog.getByRole('button',{name:'هدايا الحظ',exact:true}).click();
+  await expect(dialog.getByText('نرد الحظ الذهبي',{exact:true})).toBeVisible();
+  await dialog.getByText('نرد الحظ الذهبي',{exact:true}).click();
+  await expect(dialog).toContainText('Bonus الحظ لا يضاعف Diamonds المالية');
+  await dialog.getByRole('button',{name:'إرسال الهدية',exact:true}).click();
+  const banner=page.getByTestId('lucky-result-banner');
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText('×77');
+  await expect(banner).toContainText('77 Lucky Points');
+  await expect(banner).toContainText('مكافأة غير مالية');
+  const giftCalls=requests.filter(r=>r.path.endsWith('/send_room_gift_batch'));
+  expect(giftCalls).toHaveLength(1);
+  expect(giftCalls[0].body.p_gift_id).toBe('g11');
+  expect(giftCalls[0].body.p_quantity).toBe(1);
+  expect(requests.some(r=>r.path.endsWith('/lucky_result_by_request'))).toBe(true);
   expect(errors).toEqual([]);
 });
 
