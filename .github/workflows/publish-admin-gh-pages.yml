@@ -1,0 +1,61 @@
+name: Prepare TotiChat Admin GitHub Pages Branch
+on:
+  push:
+    branches:
+      - feature/standalone-admin-dashboard-20261008
+    paths:
+      - '.github/workflows/publish-admin-gh-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout dashboard source
+        uses: actions/checkout@v4
+      - name: Configure Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read only PUBLIC Supabase browser configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail -sS --retry 3 --max-time 30 \
+            'https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin/config.js' \
+            -o /tmp/totichat-admin-public-config.js
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const js=fs.readFileSync('/tmp/totichat-admin-public-config.js','utf8');
+          const m=js.match(/^window\.TOTICHAT_ADMIN_CONFIG=(\{[^\n]+\});?\s*$/);
+          if(!m)throw Error('Published public config not available');
+          const conf=JSON.parse(m[1]);
+          if(conf.url!=='https://bfadhdnudmsggylunhlh.supabase.co'||!conf.key?.startsWith('sb_publishable_'))throw Error('Invalid public key or project');
+          fs.appendFileSync(process.env.GITHUB_ENV,'VITE_SUPABASE_URL='+conf.url+'\nVITE_SUPABASE_PUBLISHABLE_KEY='+conf.key+'\n');
+          NODE
+      - name: Build standalone admin website
+        working-directory: admin-dashboard
+        run: |
+          set -euo pipefail
+          npm run check
+          npm run build
+          sed -i 's|href="/styles.css"|href="./styles.css"|;s|src="/config.js"|src="./config.js"|;s|src="/app.js"|src="./app.js"|' dist/index.html
+          touch dist/.nojekyll
+          grep -F 'id="app"' dist/index.html
+          if grep -E 'sb_secret_|service_role' dist/config.js; then exit 1; fi
+      - name: Publish compiled site to orphan gh-pages branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd admin-dashboard/dist
+          git init -b gh-pages
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name 'github-actions[bot]'
+          git add -A
+          git commit -m 'Publish independent TotiChat Admin website'
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/gh-pages
+          echo 'Admin site compiled and placed on gh-pages branch.'
