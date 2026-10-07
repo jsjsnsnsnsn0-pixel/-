@@ -5,6 +5,7 @@ import {useApp} from '../../context/AppContext';
 import {rpc,backendMessage} from '../../services/backend';
 import {useServerData} from '../../hooks/useServerData';
 import {EmptyState,ErrorState,InlineLoading} from '../common/UIState';
+import {MonthlySettlementPanel} from './MonthlySettlementPanel';
 
 type Session={allowed:boolean;owner?:boolean;role?:string;permissions?:string[]};
 type Summary={users:number;active_users:number;active_rooms:number;gifts_today:number;coins_in_circulation:number;agencies:number;hosts:number;pending_agency_registrations:number};
@@ -21,6 +22,7 @@ const sections=[
  {id:'wallet',name:'إدارة العملات',perm:'wallet.history',Icon:Coins},
  {id:'roles',name:'الرتب والصلاحيات',perm:'roles.view',Icon:KeyRound},
  {id:'agencies',name:'طلبات الوكالات',perm:'agencies.view',Icon:Building2},
+ {id:'settlements',name:'التسويات الشهرية',perm:'settlements.view',Icon:Coins},
  {id:'audit',name:'سجل الإدارة',perm:'audit.view',Icon:ShieldCheck},
  {id:'health',name:'صحة Beta',perm:'reports.view',Icon:RefreshCw},
  {id:'settings',name:'إعدادات Beta',perm:'system.settings',Icon:Settings2},
@@ -211,6 +213,7 @@ export const DashboardScreen:React.FC=()=>{
       </>}
      </article>)}
    </section>}
+   {active==='settlements'&&<MonthlySettlementPanel owner={Boolean(session.data.owner)}/>}
    {active==='audit'&&<section className="space-y-3"><h2 className="font-black text-lg">سجل الإجراءات الإدارية</h2>
     {audit.loading?<InlineLoading>تحميل السجل…</InlineLoading>:audit.error?<ErrorState message={audit.error} onRetry={()=>void audit.reload()}/>:audit.data.length===0?<EmptyState title="السجل فارغ"/>:audit.data.map(a=><article key={a.id} className="border border-white/10 rounded-xl bg-white/5 p-3 text-sm"><strong>{a.action}</strong><p>{a.operator_name} · {date(a.created_at)}</p><pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap break-all">{JSON.stringify(a.metadata)}</pre></article>)}
    </section>}
