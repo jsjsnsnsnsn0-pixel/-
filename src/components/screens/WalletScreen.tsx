@@ -121,7 +121,7 @@ export const WalletScreen: React.FC = () => {
         </article>)}
       </section>}
 
-      {tab === 'lucky' && <LuckyPointsHistory userId={user.authId}/>}
+      {tab === 'lucky' && <LuckyPointsHistory userId={user.authId||''}/>}
       {tab === 'games' && <section className="space-y-2">
         <div className="rounded-3xl bg-gradient-to-l from-violet-700/25 to-fuchsia-600/10 border border-violet-300/20 p-4 flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-violet-400/15 flex items-center justify-center text-violet-300"><Gamepad2/></div><div className="flex-1"><h2 className="font-black">TotiFun</h2><p className="text-xs text-slate-400">ألعاب ترفيهية بدون خصم Coins.</p></div><button type="button" onClick={()=>setActiveSubScreen('luck_games')} className="rounded-xl bg-white text-violet-950 px-3 py-2 text-xs font-black">العب</button></div>
         {games.loading && <InlineLoading>جارٍ تحميل سجل الألعاب…</InlineLoading>}
