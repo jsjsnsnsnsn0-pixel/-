@@ -79,14 +79,14 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   if (!displayUser) return <div ref={layerRef} role="dialog" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"><div className="w-full max-w-md ui-sheet rounded-t-3xl bg-[#131118] p-6 text-white text-center"><p>لا يوجد مستخدم محدد لعرضه.</p><button onClick={onClose} className="mt-3">إغلاق</button></div></div>;
 
   return (
-    <div ref={layerRef} role="dialog" aria-modal="true" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs select-none animate-fadeIn">
+    <div ref={layerRef} role="dialog" aria-modal="true" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-[4px] select-none animate-fadeIn">
       {/* Tap backdrop to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Main Bottom Sheet Container */}
-      <div className="relative z-10 w-full max-w-md bg-gradient-to-b from-[#100725] via-[#100725] to-[#09051a] ui-sheet rounded-t-3xl pt-1 pb-safe pb-6 px-4 max-h-[90dvh] overflow-y-auto shadow-[0_-12px_40px_rgba(0,0,0,0.85)] border-t border-amber-500/20 text-center animate-slideUp">
+      <div className="relative z-10 w-full max-w-md bg-[radial-gradient(circle_at_80%_0%,rgba(236,72,153,.14),transparent_26%),linear-gradient(165deg,rgba(28,22,52,.97),rgba(9,10,22,.98))] ui-sheet rounded-t-[30px] pt-1 pb-safe pb-6 px-4 max-h-[88dvh] overflow-y-auto shadow-[0_-20px_55px_rgba(0,0,0,.60)] border border-white/10 text-center animate-slideUp backdrop-blur-2xl">
         {/* Subtle drag handle / top glow line */}
-        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto my-2" />
+        <div className="w-14 h-1.5 bg-white/25 rounded-full mx-auto my-2.5" />
 
         {/* Close Button top-left */}
         <button
@@ -218,17 +218,17 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
 
         <div className="grid grid-cols-2 gap-3 mt-5 text-white text-sm">
-          {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
-          {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-2xl bg-white/5">📣 منشن</button>}
-          {onMessage&&permissions?.social?.message!==false&&!permissions?.self&&<button type="button" onClick={onMessage} className="p-4 rounded-2xl bg-white/5">رسالة خاصة</button>}
-          {onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
+          {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
+          {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">📣 منشن</button>}
+          {onMessage&&permissions?.social?.message!==false&&!permissions?.self&&<button type="button" onClick={onMessage} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">رسالة خاصة</button>}
+          {onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">🎁 إرسال هدية</button>}
           {canManage&&<>
-            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
-            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>}
-            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-2xl bg-white/5 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
-            {moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
+            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
+            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>}
+            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
+            {moderation.includes('ban')&&<div className="rounded-[20px] p-2 bg-white/[0.065] border border-white/8 backdrop-blur-xl"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
           </>}
-          {permissions?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-2xl bg-white/5">إدارة المشرفين</button>}
+          {permissions?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">إدارة المشرفين</button>}
 
         </div>
         {/* ========================================================= */}
