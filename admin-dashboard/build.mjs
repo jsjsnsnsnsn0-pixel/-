@@ -14,8 +14,7 @@ const files=[
  'index.html','app.js','styles.css','context.js','ui.js',
  'pages-core.js','pages-wallet.js','pages-monitoring.js',
  'pages-admin.js','pages-roles.js','pages-agencies.js',
- 'pages-catalog.js','pages-moderation.js','pages-finance.js',
- 'gate.js','demo.js'
+ 'pages-catalog.js','pages-moderation.js','pages-finance.js'
 ];
 await mkdir('dist',{recursive:true});
 await Promise.all(files.map(f=>copyFile(f,'dist/'+f)));
