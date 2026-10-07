@@ -45,6 +45,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   useEffect(()=>{if(isOpen&&initialRecipient&&Boolean(initialRecipient.id))setSelectedRecipient(initialRecipient)},[isOpen,initialRecipient?.id]);
   const giftRetry = useRef<{key:string;id:string}|null>(null);
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       setSendSuccess(false);
       setErrorMsg(null);
       setQuantity(1);
+      sendingRef.current=false;
     }
   }, [isOpen]);
 
@@ -92,7 +94,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       : gifts.filter((g) => g.category === selectedCategory);
 
   const handleSend = async () => {
-    if (sending || loading || sendSuccess) return;
+    if (sendingRef.current || sending || loading || sendSuccess) return;
     if (!selectedGift || !selectedRecipient) {
       setErrorMsg('يرجى اختيار المستلم والهدية');
       return;
@@ -104,11 +106,13 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       return;
     }
 
+    sendingRef.current=true;
     setSending(true);
     const key = `${room?.id}:${selectedGift.id}:${selectedRecipient.id}:${quantity}`;
     if(giftRetry.current?.key!==key)giftRetry.current={key,id:crypto.randomUUID()};
     const ok = await sendGiftInRoom(selectedGift, selectedRecipient, quantity, undefined, giftRetry.current.id);
     if(ok)giftRetry.current=null;
+    sendingRef.current=false;
     setSending(false);
     if (ok) {
       setSendSuccess(true);
