@@ -1,16 +1,12 @@
 import React from 'react';
 import {
-  Award,
-  BadgeCheck,
   Copy,
-  Crown,
   Gift,
   Heart,
   MessageCircle,
   MoreHorizontal,
   PackageOpen,
   ShieldCheck,
-  Sparkles,
   UserCheck,
   UserPlus,
 } from 'lucide-react';
