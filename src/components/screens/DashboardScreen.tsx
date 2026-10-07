@@ -58,6 +58,7 @@ export const DashboardScreen:React.FC=()=>{
  const [rolePermissions,setRolePermissions]=useState<string[]>([]);
  const [assignUserId,setAssignUserId]=useState('');
  const [assignRole,setAssignRole]=useState('support');
+ const [agencyReviewNote,setAgencyReviewNote]=useState('');
  const allowed=sections.filter(s=>can(s.perm)||session.data.owner||(s.id==='wallet'&&(can('wallet.credit')||can('wallet.debit')||can('wallet.view'))));
  const active=allowed.some(s=>s.id===section)?section:(allowed[0]?.id||'overview');
  const dashboardEnabled=session.data.allowed;
@@ -182,10 +183,27 @@ export const DashboardScreen:React.FC=()=>{
    {active==='agencies'&&<section className="space-y-3">
     <h2 className="font-black text-lg">مراجعة طلبات الوكالات</h2>
     <p className="text-xs text-slate-400">مستندات الهوية خاصة ولا تظهر كرابط عام. المراجعة والتفعيل تتطلب صلاحية Backend مستقلة.</p>
-    {agencies.loading?<InlineLoading>تحميل الطلبات…</InlineLoading>:agencies.error?<ErrorState message={agencies.error} onRetry={()=>void agencies.reload()}/>:agencies.data.length===0?<EmptyState title="لا توجد طلبات وكالة"/>:agencies.data.map(a=><article key={a.id} className="border border-white/10 bg-white/5 rounded-xl p-4">
+    {agencies.loading?<InlineLoading>تحميل الطلبات…</InlineLoading>:agencies.error?<ErrorState message={agencies.error} onRetry={()=>void agencies.reload()}/>:agencies.data.length===0?<EmptyState title="لا توجد طلبات وكالة"/>:agencies.data.map(a=><article key={a.id} className="border border-white/10 bg-white/5 rounded-xl p-4 space-y-2">
       <strong>{a.agency_name}</strong><p className="text-xs text-slate-300">الطلب: {a.applicant_public_id} · {a.full_name}</p>
       <p className="text-xs text-slate-400">الدولة: {a.country_code} · رقم الوكيل: {a.agent_number}</p>
       <p className="text-xs">الحالة: {a.status} · {date(a.submitted_at)}</p>
+      <div className="flex flex-wrap gap-2">
+        {([['الشعار',a.logo_path],['الهوية',a.identity_path],['الصورة',a.portrait_path]] as [string,string][]).map(([label,path])=><button key={label} type="button" className="rounded-lg bg-white/10 px-3 py-2 text-xs" onClick={()=>void (async()=>{
+          try{
+            const {data,error}=await supabase.storage.from('agency-review').createSignedUrl(path,90);
+            if(error||!data?.signedUrl)throw error||new Error('unable to sign private file');
+            window.open(data.signedUrl,'_blank','noopener,noreferrer');
+          }catch(e){setFailure(backendMessage(e));}
+        })()}>عرض {label} بأمان</button>)}
+      </div>
+      {a.status==='pending'&&(can('agencies.approve')||can('agencies.reject'))&&<>
+        <label className="block text-xs text-slate-400">ملاحظات مراجعة الطلب<textarea className={cls+' mt-1'} value={agencyReviewNote} onChange={e=>setAgencyReviewNote(e.target.value)} maxLength={500} placeholder="اكتب السبب عند الرفض أو طلب التعديل"/></label>
+        <div className="flex flex-wrap gap-2">
+         {can('agencies.approve')&&<button disabled={updating} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs" onClick={()=>void execute(()=>rpc('dashboard_agency_review',{p_application_id:a.id,p_action:'approve',p_note:agencyReviewNote}),()=>agencies.reload())}>قبول وإنشاء الوكالة</button>}
+         {can('agencies.reject')&&<button disabled={updating||agencyReviewNote.trim().length<5} className="rounded-xl bg-rose-600/60 px-3 py-2 text-xs disabled:opacity-40" onClick={()=>void execute(()=>rpc('dashboard_agency_review',{p_application_id:a.id,p_action:'reject',p_note:agencyReviewNote}),()=>agencies.reload())}>رفض الطلب</button>}
+         {can('agencies.reject')&&<button disabled={updating||agencyReviewNote.trim().length<5} className="rounded-xl bg-amber-600/60 px-3 py-2 text-xs disabled:opacity-40" onClick={()=>void execute(()=>rpc('dashboard_agency_review',{p_application_id:a.id,p_action:'request_changes',p_note:agencyReviewNote}),()=>agencies.reload())}>طلب تعديل</button>}
+        </div>
+      </>}
      </article>)}
    </section>}
    {active==='audit'&&<section className="space-y-3"><h2 className="font-black text-lg">سجل الإجراءات الإدارية</h2>

@@ -12,7 +12,7 @@ interface AgencyDetailState {agency:{id:number;name:string;logo_url?:string|null
 interface Member {public_id: number; display_name: string}
 interface State {agency: Agency | null; available: Agency[]; members: Member[]; applications: Member[]}
 interface RegistrationState {
-  application: null | {id:string;status:'pending'|'approved'|'rejected';agency_name:string;submitted_at:string};
+  application: null | {id:string;status:'pending'|'approved'|'rejected'|'changes_requested';agency_name:string;submitted_at:string};
   can_apply: boolean;
 }
 type RegistrationFiles = {logo:File|null;identity:File|null;portrait:File|null};
