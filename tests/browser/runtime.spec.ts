@@ -59,6 +59,17 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/social_profile')) return respond(body.p_public_id===920003 ? {...current,friends_count:0,following_count:followed?1:0,followers_count:0} : {id:other,public_id:body.p_public_id,display_name:body.p_public_id===451306?'مشارك آخر':'مستخدم البحث',level:1,vip_level:0,is_following:followed,is_blocked:false,friend_status:friendStatus});
     if (path.endsWith('/social_list')) return respond(overrides.social ? [{id:other,public_id:451305,display_name:'مستخدم العلاقة',level:1,vip_level:0}] : []);
     if (path.endsWith('/social_action')) {if(body.p_action==='follow') followed=true;if(body.p_action==='request')friendStatus='sent';return respond({public_id:451305,is_following:followed,friend_status:friendStatus});}
+    if (path.endsWith('/room_user_permissions')) {
+      const self=body.p_public_id===920003;
+      const owner=currentRoom.owner_id===actor;
+      return respond({
+        self,
+        social:{follow:!self,message:!self,gift:true,mention:!self,is_following:followed},
+        moderation:owner&&!self?['mute','down','kick','ban']:[],
+        manage_moderators:owner&&!self
+      });
+    }
+    if (path.endsWith('/moderate_room_user')) return respond(null);
     if (path.endsWith('/couple_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({relations:overrides.roomCouple ? [{accepted_at:'2026-01-01T00:00:00Z',ended_at:null,partner:{public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0}}] : [],current:[],previous:[]});}
     if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
@@ -451,6 +462,19 @@ test('self room profile reflects an active microphone state',async({page})=>{
   await expect(card.getByRole('button',{name:'كتم المايك',exact:true})).toBeVisible();
   await expect(card.getByRole('button',{name:'النزول من المايك',exact:true})).toBeVisible();
   expect(result.errors).toEqual([]);
+});
+
+test('other user profile uses social actions and server-backed owner moderation permissions',async({page})=>{
+  const {card,requests,errors}=await openOtherRoomProfile(page);
+  await expect(card.getByRole('button',{name:'متابعة',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'دردشة',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'إرسال هدية',exact:true})).toBeVisible();
+  await expect(card.getByText('إجراءات الإشراف',{exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'فتح صوت العضو',exact:true})).toBeVisible();
+  await card.getByRole('button',{name:'متابعة',exact:true}).click();
+  await expect(card.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='follow')).toBe(true);
+  expect(errors).toEqual([]);
 });
 
 test('room public data and authorized CP/agency show actual values without private identifiers',async({page})=>{
