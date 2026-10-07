@@ -21,7 +21,7 @@ interface AppContextType {
   setActiveSubScreen: (screen: string | null) => void; setSelectedChatUser: (user: User | null) => void;
   reopenRoom: (room: Room) => Promise<boolean>;
   joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
-  toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
+  toggleMyMic: (muted?: boolean) => Promise<boolean>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
   sendGiftInRoom: (gift: Gift, recipient: User, quantity?: number, seat?: number, requestId?: string) => Promise<boolean>;
   sendSavedGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
@@ -411,25 +411,29 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   };
 
   const mySeat = activeRoom?.seats.find(s => s.user?.authId === authId);
-  const [pendingMute,setPendingMute]=useState<string|null>(null);
+  const [pendingMute,setPendingMute]=useState<{roomId:string;muted:boolean}|null>(null);
   const micRequest=useRef(false);
-  const isMyMicMuted = Boolean(activeRoom&&pendingMute===activeRoom.id)||(mySeat?.isMuted ?? true);
+  const isMyMicMuted = activeRoom && pendingMute?.roomId===activeRoom.id ? pendingMute.muted : (mySeat?.isMuted ?? true);
   const takeSeat = async (index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: index + 1}); };
   const leaveSeat = async (_index: number) => { await runRoomRpc('set_my_room_seat', {p_seat_number: null}); };
-  const toggleMyMic = async () => {
+  const toggleMyMic = async (forcedMuted?: boolean): Promise<boolean> => {
     const room=activeRef.current;const account=authRef.current;
-    if(!room||!account||micRequest.current)return;
-    const seat=room.seats.find(item=>item.user?.authId===account);if(!seat)return;
-    const next=!seat.isMuted;micRequest.current=true;
-    // Local capture stops immediately on mute. Unmute waits for server acceptance.
-    if(next)setPendingMute(room.id);
+    if(!room||!account||micRequest.current)return false;
+    const seat=room.seats.find(item=>item.user?.authId===account);if(!seat)return false;
+    const next=typeof forcedMuted==='boolean'?forcedMuted:!seat.isMuted;
+    if(next===seat.isMuted){setPendingMute(null);return true;}
+    micRequest.current=true;
+    // Optimistic UI state: mute stops capture immediately; unmute indicator changes
+    // immediately while the server remains authoritative for actual publish permission.
+    setPendingMute({roomId:room.id,muted:next});
     try {
       const {error}=await supabase.rpc('set_my_room_muted',{p_room_id:room.id,p_muted:next});
       if(error)throw error;
-      if(activeRef.current?.id!==room.id||authRef.current!==account)return;
+      if(activeRef.current?.id!==room.id||authRef.current!==account)return false;
       setActiveRoom(current=>current?.id===room.id?{...current,seats:current.seats.map(item=>item.user?.authId===account?{...item,isMuted:next}:item)}:current);
       void refreshRooms().catch(fail);
-    } catch(error){fail(error)}
+      return true;
+    } catch(error){fail(error);return false;}
     finally{setPendingMute(null);micRequest.current=false;}
   };
   const [isHandRaised, setIsHandRaised] = useState(false);
