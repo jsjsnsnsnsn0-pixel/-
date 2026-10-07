@@ -75,7 +75,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     { id: 'nation', label: 'الأمة' },
     { id: 'gift', label: 'هدية' },
   ];
-  const categories = serverCategories.length ? [{id:'all',label:'الكل'}, ...serverCategories] : fallbackCategories;
+  const categories = serverCategories.length
+    ? [{id:'all',label:'الكل'}, ...serverCategories.map(cat=>cat.id==='luck'?{...cat,label:'هدايا الحظ'}:cat)]
+    : fallbackCategories.map(cat=>cat.id==='luck'?{...cat,label:'هدايا الحظ'}:cat);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -154,7 +156,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const filteredGifts =
     selectedCategory === 'all'
       ? gifts
-      : gifts.filter((g) => g.categoryId === selectedCategory || g.category === selectedCategory);
+      : selectedCategory === 'luck'
+        ? gifts.filter(g=>g.diamondSourceType==='LUCKY_GIFT')
+        : gifts.filter((g) => g.categoryId === selectedCategory || g.category === selectedCategory);
 
   const effectiveQuantity=sendSource==='saved'?1:quantity;
   const totalPrice=selectedGift?selectedGift.price*effectiveQuantity:0;
@@ -186,8 +190,15 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       ? await sendSavedGiftInRoom(selectedGift, selectedRecipient, undefined, giftRetry.current.id)
       : await sendGiftInRoom(selectedGift, selectedRecipient, effectiveQuantity, undefined, giftRetry.current.id);
     if(ok) {
+      const completedRequestId=giftRetry.current.id;
       giftRetry.current=null;
       if (sendSource === 'saved') setInventoryCounts(previous => ({...previous,[selectedGift.id]:Math.max(0,(previous[selectedGift.id]||0)-1)}));
+      if(selectedGift.diamondSourceType==='LUCKY_GIFT'){
+        const result=await supabase.rpc('lucky_result_by_request',{p_request_id:completedRequestId});
+        if(!result.error&&result.data&&typeof window!=='undefined'){
+          window.dispatchEvent(new CustomEvent('totichat:lucky-result',{detail:result.data}));
+        }
+      }
     }
     sendingRef.current=false;
     setSending(false);
@@ -315,8 +326,12 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                   }}
                   className={`relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
                     isSelected
-                      ? 'bg-gradient-to-b from-purple-900/50 to-indigo-950/70 border-amber-400 shadow-md shadow-amber-500/20 ring-1 ring-amber-400 scale-[1.03]'
-                      : 'bg-[#15172b] border-purple-500/15 hover:border-purple-500/30'
+                      ? gift.diamondSourceType==='LUCKY_GIFT'
+                        ? 'bg-gradient-to-b from-amber-900/45 via-fuchsia-950/55 to-indigo-950/70 border-amber-300 shadow-md shadow-amber-500/25 ring-1 ring-amber-300 scale-[1.03]'
+                        : 'bg-gradient-to-b from-purple-900/50 to-indigo-950/70 border-amber-400 shadow-md shadow-amber-500/20 ring-1 ring-amber-400 scale-[1.03]'
+                      : gift.diamondSourceType==='LUCKY_GIFT'
+                        ? 'bg-gradient-to-b from-amber-950/30 to-[#15172b] border-amber-400/25 hover:border-amber-300/50'
+                        : 'bg-[#15172b] border-purple-500/15 hover:border-purple-500/30'
                   }`}
                 >
                   {(inventoryCounts[gift.id] || 0) > 0 && (
@@ -324,8 +339,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                       محفوظ {inventoryCounts[gift.id]}
                     </span>
                   )}
+                  {gift.diamondSourceType==='LUCKY_GIFT'&&<span className="absolute -top-1.5 right-1 px-1.5 rounded-md text-[9px] font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-fuchsia-300 text-slate-950 shadow-md">Lucky</span>}
                   {/* Badge */}
-                  {gift.badge && (
+                  {gift.badge && gift.diamondSourceType!=='LUCKY_GIFT' && (
                     <span className="absolute -top-1.5 right-1 px-1 rounded-md text-[9px] font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-xs">
                       {gift.badge}
                     </span>
@@ -420,6 +436,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             <h4 className="mt-5 text-lg font-black">{previewGift.name}</h4>
             {previewGift.description&&<p className="mt-2 max-w-xs text-xs leading-6 text-slate-400">{previewGift.description}</p>}
             <p className="mt-3 text-sm font-black text-amber-300">🪙 {previewGift.price.toLocaleString('ar-IQ')}</p>
+            {previewGift.diamondSourceType==='LUCKY_GIFT'&&<span className="mt-2 rounded-full border border-amber-300/15 bg-amber-500/10 px-3 py-1 text-[10px] font-black text-amber-200">Lucky Gift · نتيجة Server-side</span>}
             <p className="mt-2 text-[10px] text-slate-500">المعاينة لا ترسل الهدية ولا تخصم أي رصيد.</p>
           </div>}
 
