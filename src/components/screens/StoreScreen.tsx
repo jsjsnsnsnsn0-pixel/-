@@ -4,41 +4,70 @@ import { catalog, rpc, backendMessage } from '../../services/backend';
 import { supabase } from '../../services/supabase';
 import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
-import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen } from 'lucide-react';
 
+type StoreCategory = 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges';
 interface StoreItem {
   id: string;
   name: string;
-  category: 'frames' | 'cars' | 'bubbles' | 'badges';
+  category: StoreCategory;
   price: number;
   currency: 'gold' | 'silver';
   image: string;
+  previewUrl?: string | null;
+  relationshipTypeId?: string | null;
   description: string;
   duration: string;
   isOwned?: boolean;
 }
 
+const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>}> = [
+  { id: 'frames', label: 'الإطارات', icon: Sparkles },
+  { id: 'cars', label: 'المركبات', icon: Car },
+  { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
+  { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
+  { id: 'cards', label: 'بطاقات CP', icon: IdCard },
+  { id: 'badges', label: 'الشارات', icon: Crown },
+];
+
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges'>('frames');
+  const [activeTab, setActiveTab] = useState<StoreCategory>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
-
   const [busy, setBusy] = useState(false);
   const requests = useRef(new Map<string, string>());
+
   const load = useCallback(async (): Promise<StoreItem[]> => {
-    const [entries, owned] = await Promise.all([catalog(), supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId)]);
+    const [entries, owned] = await Promise.all([
+      catalog(),
+      supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId),
+    ]);
     if (owned.error) throw owned.error;
-    return entries.filter(item => ['frames','cars','bubbles','badges'].includes(item.category)).map(item => ({
-      ...item, category: item.category as StoreItem['category'], image: item.icon,
-      duration: item.duration_days ? `${item.duration_days} يوم` : 'دائم',
-      isOwned: (owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
+    return entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
+      id:item.id,
+      name:item.name,
+      category:item.category as StoreCategory,
+      price:item.price,
+      currency:item.currency,
+      image:item.icon,
+      previewUrl:item.preview_url,
+      relationshipTypeId:item.relationship_type_id,
+      description:item.description || '',
+      duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
+      isOwned:(owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
     }));
   }, [user.authId]);
+
   const {data: items, loading, error, reload} = useServerData(load, []);
   const filteredItems = items.filter(item => item.category === activeTab);
+
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
+    if (item.isOwned && item.category === 'cards') {
+      setActiveSubScreen('inventory');
+      return;
+    }
     setBusy(true); setPurchaseSuccess(null);
     try {
       if (item.isOwned) await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
@@ -57,111 +86,72 @@ export const StoreScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-28">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-xs">
+    <div className="min-h-screen bg-[#081510] text-slate-100 pb-28" dir="rtl">
+      <header className="sticky top-0 z-30 bg-[#081510]/95 backdrop-blur-md border-b border-emerald-300/10 px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveSubScreen(null)}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 cursor-pointer"
-          >
+          <button onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 text-slate-100">
             <ChevronRight size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
-              <ShoppingBag size={18} />
-            </div>
-            <h1 className="text-base font-bold text-slate-900">المتجر الفاخر</h1>
+            <div className="w-9 h-9 rounded-full bg-emerald-400/10 text-emerald-300 flex items-center justify-center"><ShoppingBag size={18}/></div>
+            <div><h1 className="text-base font-black">متجر TotiChat</h1><p className="text-[10px] text-emerald-300/70">مقتنيات تجميلية مرتبطة بحسابك</p></div>
           </div>
         </div>
-
-        {/* User Balance Chips */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 px-2 py-1 rounded-full text-xs font-bold text-amber-700">
-            <span>🪙</span>
-            <span>{user.gold.toLocaleString('ar-SA')}</span>
-          </div>
-          <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-full text-xs font-bold text-slate-600">
-            <span>🥈</span>
-            <span>{(user.silverCoins || 0).toLocaleString('ar-SA')}</span>
-          </div>
-        </div>
+        <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-control px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold flex items-center gap-1" aria-label="فتح الحقيبة">
+          <PackageOpen size={16}/>الحقيبة
+        </button>
       </header>
 
-      {/* Purchase Notification */}
-      {purchaseSuccess && (
-        <div className="m-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs animate-fadeIn">
-          <Check size={16} className="text-emerald-600" />
-          <span>{purchaseSuccess}</span>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1 p-3 bg-white border-b border-slate-100 text-xs font-bold">
-        {[
-          { id: 'frames', label: 'إطارات', icon: Sparkles },
-          { id: 'cars', label: 'سيارات الدخول', icon: Car },
-          { id: 'bubbles', label: 'فقاعات الشات', icon: MessageCircle },
-          { id: 'badges', label: 'شارات الشرف', icon: Crown },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 rounded-xl flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-pink-50 text-pink-600 font-black shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+      <div className="px-4 pt-3 flex items-center gap-2 text-xs">
+        <span className="rounded-full bg-amber-400/10 text-amber-200 border border-amber-300/15 px-3 py-1.5">🪙 {user.gold.toLocaleString('ar-SA')}</span>
+        <span className="rounded-full bg-white/5 text-slate-200 border border-white/10 px-3 py-1.5">🥈 {(user.silverCoins || 0).toLocaleString('ar-SA')}</span>
       </div>
 
-      {loading && <p className="p-4 text-center">جارٍ تحميل المتجر…</p>}
-      {error && <button onClick={() => void reload()} className="p-4">{error} — إعادة المحاولة</button>}
-      {!loading && !error && !filteredItems.length && <p className="p-4">لا توجد منتجات متاحة في هذا القسم.</p>}
-      {/* Store Items Grid */}
-      <div className="p-4 grid grid-cols-2 gap-3">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
-          >
-            <div>
-              <div className="h-24 rounded-2xl bg-gradient-to-tr from-slate-50 to-pink-50/40 flex items-center justify-center text-4xl mb-3 border border-pink-100/50">
-                {item.image}
-              </div>
-              <h3 className="font-bold text-xs text-slate-900 mb-1">{item.name}</h3>
-              <p className="text-[10px] text-slate-500 leading-tight line-clamp-2 mb-2">
-                {item.description}
-              </p>
-              <span className="text-[10px] text-pink-600 font-semibold bg-pink-50 px-2 py-0.5 rounded-full inline-block mb-3">
-                صلاحية {item.duration}
-              </span>
-            </div>
+      {purchaseSuccess && <div role="status" className="m-4 p-3 bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 text-xs font-bold rounded-2xl flex items-center gap-2"><Check size={16}/><span>{purchaseSuccess}</span></div>}
 
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>{item.currency === 'gold' ? '🪙' : '🥈'}</span>
-                <span className={item.currency === 'gold' ? 'text-amber-600' : 'text-slate-600'}>
-                  {item.price.toLocaleString('ar-SA')}
-                </span>
+      <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto">
+        <div className="flex gap-2 min-w-max pb-2">
+          {tabs.map(tab => {
+            const Icon=tab.icon; const active=activeTab===tab.id;
+            return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
+              className={`min-h-11 px-3 rounded-xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/15 border-emerald-300/35 text-emerald-200':'bg-white/5 border-white/10 text-slate-400'}`}>
+              <Icon size={15}/><span>{tab.label}</span>
+            </button>;
+          })}
+        </div>
+      </nav>
+
+      {activeTab==='cards'&&<div className="mx-4 mt-2 rounded-2xl border border-pink-300/15 bg-pink-500/8 p-3 text-xs text-pink-100">
+        بطاقات CP مقتنيات تجميلية للعلاقة وليست علاقة جديدة. بعد الشراء فعّل البطاقة من الحقيبة على CP متوافق.
+      </div>}
+
+      {loading && <p role="status" className="p-6 text-center text-slate-400">جارٍ تحميل المتجر…</p>}
+      {error && <div className="p-4"><button onClick={() => void reload()} className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-rose-200">{error} — إعادة المحاولة</button></div>}
+      {!loading && !error && !filteredItems.length && <p className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400">لا توجد عناصر حالياً في هذا القسم.</p>}
+
+      <div className="p-4 grid grid-cols-2 gap-3">
+        {filteredItems.map(item => (
+          <article key={item.id} className="rounded-3xl p-3 border border-white/10 bg-white/[0.045] flex flex-col justify-between min-h-56">
+            <div>
+              <div className="h-28 rounded-2xl bg-black/20 flex items-center justify-center text-4xl mb-3 border border-emerald-300/10 overflow-hidden">
+                {item.previewUrl ? <img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/> : <span aria-hidden="true">{item.image}</span>}
               </div>
-              <button
-                disabled={busy || loading}
-                onClick={() => void handleBuy(item)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-bold rounded-xl shadow-xs hover:from-pink-600 hover:to-rose-600 cursor-pointer active:scale-95 transition-all"
-              >
-                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? 'تجهيز' : 'شراء'}
+              <h3 className="font-bold text-sm text-white mb-1 break-words">{item.name}</h3>
+              <p className="text-[11px] text-slate-400 leading-5 line-clamp-2">{item.description}</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="text-[10px] text-emerald-200 bg-emerald-400/10 px-2 py-1 rounded-full">صلاحية {item.duration}</span>
+                {item.category==='cards'&&item.relationshipTypeId&&<span className="text-[10px] text-pink-200 bg-pink-400/10 px-2 py-1 rounded-full">CP: {item.relationshipTypeId}</span>}
+                {item.isOwned&&<span className="text-[10px] text-cyan-200 bg-cyan-400/10 px-2 py-1 rounded-full">مملوك</span>}
+              </div>
+            </div>
+            <div className="pt-3 mt-3 border-t border-white/8 flex items-center justify-between gap-2">
+              <span className="font-bold text-xs text-amber-200">{item.currency === 'gold' ? '🪙' : '🥈'} {item.price.toLocaleString('ar-SA')}</span>
+              <button disabled={busy || loading} onClick={() => void handleBuy(item)}
+                className="min-h-10 px-3 bg-emerald-500 text-emerald-950 text-[11px] font-black rounded-xl disabled:opacity-50">
+                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? (item.category==='cards'?'الحقيبة':'تجهيز') : 'شراء'}
               </button>
             </div>
-          </div>
+          </article>
         ))}
       </div>
     </div>
