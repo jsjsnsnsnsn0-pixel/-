@@ -678,7 +678,7 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await expect(page.getByText('777',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'فك الماس',exact:true}).click();
  const dialog=page.getByRole('dialog');
- await expect(dialog.getByText('ماس الهدايا الثابتة: 30% · ماس هدايا الحظ: 10%',{exact:true})).toBeVisible();
+ await expect(dialog.getByText('الماس القابل للفك: 30% للهدايا المؤهلة، ومكافآت الحظ التجميلية منفصلة عن الماس المالي.',{exact:true})).toBeVisible();
  await expect(dialog.getByText('Fixed Diamonds: 100,000 💎',{exact:true})).toBeVisible();
  await expect(dialog.getByText('Lucky Diamonds: 100,000 💎',{exact:true})).toBeVisible();
  await expect(dialog.getByText(/777/)).toBeVisible();
