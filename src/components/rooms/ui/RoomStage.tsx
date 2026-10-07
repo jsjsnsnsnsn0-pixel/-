@@ -3,7 +3,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, X} from 'lucide-react';
 import './room-ui.css';
 
-export interface RoomChatMessage {id: string; content: string; sender_display_name?: string}
+export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean}
 interface Props {
   title: string; cover: string; thumbnail?:string; count: number; welcome: string; seats: React.ReactNode;
   onDeleteMessage?:(id:string)=>void;
@@ -42,7 +42,7 @@ export function RoomStage(props: Props) {
     <section className="room-chat-area" aria-label="دردشة الغرفة">
       <div ref={chatRef} className="room-chat" role="log" aria-live="polite" onScroll={event=>{const el=event.currentTarget;atBottom.current=el.scrollHeight-el.scrollTop-el.clientHeight<48;}}>
         {props.welcome&&<p className="room-welcome">{props.welcome}</p>}
-        {props.messages.map(message=><p className="room-message" key={message.id}><b>{message.sender_display_name||'مستخدم'} </b><span>{message.content}</span>{props.onDeleteMessage&&<button type="button" aria-label={`حذف رسالة ${message.sender_display_name||'مستخدم'}`} onClick={()=>props.onDeleteMessage?.(message.id)} className="inline-flex align-middle p-2 opacity-60"><X size={12}/></button>}</p>)}
+        {props.messages.map(message=><p className={`room-message ${message.kind==='gift'?'text-pink-200':''}`} key={message.id}><b>{message.sender_display_name||'مستخدم'} </b><span>{message.kind==='gift'?'🎁 ':''}{message.content}</span>{props.onDeleteMessage&&message.deletable!==false&&<button type="button" aria-label={`حذف رسالة ${message.sender_display_name||'مستخدم'}`} onClick={()=>props.onDeleteMessage?.(message.id)} className="inline-flex align-middle p-2 opacity-60"><X size={12}/></button>}</p>)}
       </div>
       {!props.chatEnabled&&<p role="status" className="room-chat-status">الدردشة العامة متوقفة</p>}
       <form className="room-compose" onSubmit={props.onSend}>
