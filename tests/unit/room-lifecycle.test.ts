@@ -65,7 +65,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     const gift={id:'test-gift',name:'Test gift',category:'roses',price:10,icon:'🌹',animationType:'pulse'};
     await act(async()=>{await context.sendGiftInRoom(gift,context.user);});
     assert.ok(context.activeGiftOverlay);
-    assert.equal(dom.window.document.body.textContent?.includes('هدية فاخرة'),false);
+    assert.equal(dom.window.document.body.textContent?.includes('🌹'),false);
     const button=(name:string)=>[...dom.window.document.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')===name||b.textContent?.trim()===name)!;
     const click=async(name:string)=>{const el=button(name);assert.ok(el,`button ${name} exists`);await act(async()=>el.click());};
     await click('أدوات الغرفة');await click('إدارة الغرفة');await click('الإعدادات');
@@ -86,7 +86,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     assert.equal(context.activeRoom.id,roomId);assert.equal(context.activeRoom.description,'New welcome');
     assert.ok(dom.window.document.body.textContent?.includes('New welcome'));
     row={...row,gift_effects_enabled:true};await act(async()=>{await context.refreshRooms();});
-    assert.ok(dom.window.document.body.textContent?.includes('هدية فاخرة'));
+    assert.ok(dom.window.document.body.textContent?.includes('🌹'));
     await click('تشغيل المايكروفون');assert.equal(captures,1);
     await click('خيارات الغرفة');
     assert.ok(dom.window.document.querySelector('[role=dialog][aria-label="خيارات الغرفة"]'));

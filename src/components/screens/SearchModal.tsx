@@ -154,35 +154,23 @@ export const SearchModal: React.FC = () => {
             {matchedUsers.length > 0 ? (
               <div className="space-y-2">
                 {matchedUsers.map((itemUser) => (
-                  <button type="button" aria-label={`مراسلة ${itemUser.name}`}
-                    key={itemUser.id}
-                    onClick={() => {
-                      setSelectedChatUser(itemUser);
-                      setActiveSubScreen('chat_detail');
-                    }}
-                    className="w-full text-right min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
-                  >
-                    <div className="flex-1 min-w-0 flex items-center gap-3">
+                  <div key={itemUser.id} className="w-full min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 transition-all">
+                    <button type="button" aria-label={`عرض ملف ${itemUser.name}`} onClick={()=>{setSelectedChatUser(itemUser);setActiveSubScreen('user_detail_profile');}} className="flex-1 min-w-0 flex items-center gap-3 text-right">
                       <UserAvatar user={itemUser} size="sm" showOnlineStatus />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-slate-100 truncate">
-                            {itemUser.name}
-                          </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-slate-100 truncate">{itemUser.name}</span>
                           <VIPBadge level={itemUser.vipLevel} size="sm" />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono mt-1">
-                          <span>@{itemUser.username}</span>
-                          <span>·</span>
-                          <span>ID: {itemUser.id}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className="shrink-0 px-3 py-2 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono mt-1">
+                          <span dir="ltr">@{itemUser.username}</span><span>·</span><span className="ui-id">ID: {itemUser.id}</span>
+                        </span>
+                      </span>
+                    </button>
+                    <button type="button" aria-label={`مراسلة ${itemUser.name}`} onClick={()=>{setSelectedChatUser(itemUser);setActiveSubScreen('chat_detail');}} className="shrink-0 px-3 py-2 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
                       مراسلة
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (

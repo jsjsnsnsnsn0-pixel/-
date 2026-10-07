@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { MicrophoneSeat } from '../rooms/MicrophoneSeat';
 import { RoomUserProfileModal } from '../rooms/RoomUserProfileModal';
@@ -13,6 +13,19 @@ import {RoomExitOverlay} from '../rooms/ui/RoomExitOverlay';
 import {SeatActions} from '../rooms/ui/SeatActions';
 import {RoomStage, RoomChatMessage} from '../rooms/ui/RoomStage';
 
+interface LuckyRoomResult {
+  id:string;
+  room_id:string;
+  sender_name:string;
+  recipient_name:string;
+  gift_name:string;
+  quantity:number;
+  result_label:string;
+  multiplier:number;
+  lucky_points:number;
+  visual_style:string;
+}
+
 export const VoiceRoomScreen: React.FC = () => {
   const {activeRoom,user,leaveRoom,takeSeat,leaveSeat,isMyMicMuted,toggleMyMic,toggleRaiseHand,isHandRaised,isSpeakerOn,toggleSpeaker,activeGiftOverlay,setActiveSubScreen,setSelectedChatUser,reportError,lockSeat,unlockSeat}=useApp();
   const [infoOpen,setInfoOpen]=useState(false); const [membersOnly,setMembersOnly]=useState(false);
@@ -21,7 +34,49 @@ export const VoiceRoomScreen: React.FC = () => {
   const [messages,setMessages]=useState<RoomChatMessage[]>([]); const [giftTotals,setGiftTotals]=useState<Record<string,number>>({}); const [text,setText]=useState(''); const [sending,setSending]=useState(false); const [micBusy,setMicBusy]=useState(false);
   const [micUiMuted,setMicUiMuted]=useState(isMyMicMuted);
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
+  const [luckyResult,setLuckyResult]=useState<LuckyRoomResult|null>(null);
+  const luckyResultId=useRef<string|null>(null);
+  const luckyTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const revealLucky=useCallback((raw:Record<string,unknown>)=>{
+    const id=String(raw.lucky_result_id||raw.id||'');
+    if(!id||luckyResultId.current===id)return;
+    luckyResultId.current=id;
+    const result:LuckyRoomResult={
+      id,
+      room_id:String(raw.room_id||''),
+      sender_name:String(raw.sender_name||'مستخدم'),
+      recipient_name:String(raw.recipient_name||'مستخدم'),
+      gift_name:String(raw.gift_name||'هدية الحظ'),
+      quantity:Math.max(1,Number(raw.quantity)||1),
+      result_label:String(raw.result_label||'Lucky Bonus'),
+      multiplier:Math.max(1,Number(raw.multiplier)||1),
+      lucky_points:Math.max(0,Number(raw.lucky_points)||0),
+      visual_style:String(raw.visual_style||'flash'),
+    };
+    setLuckyResult(result);
+    if(luckyTimer.current)clearTimeout(luckyTimer.current);
+    luckyTimer.current=setTimeout(()=>setLuckyResult(null),4200);
+  },[]);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
+  useEffect(()=>{
+    if(!activeRoom||typeof window==='undefined'||!window.sessionStorage)return;
+    const userId=window.sessionStorage.getItem('totichat.pendingGiftRecipient');
+    if(!userId)return;
+    window.sessionStorage.removeItem('totichat.pendingGiftRecipient');
+    const recipient=activeRoom.members?.find(member=>member.id===userId)||activeRoom.seats.find(seat=>seat.user?.id===userId)?.user;
+    if(recipient){setGiftRecipient(recipient);setGiftOpen(true);}
+  },[activeRoom?.id]);
+  useEffect(()=>{
+    if(typeof window==='undefined')return;
+    const receive=(event:Event)=>{
+      const detail=(event as CustomEvent<Record<string,unknown>>).detail;
+      if(!detail||String(detail.room_id||'')!==String(activeRoom?.id||''))return;
+      revealLucky(detail);
+    };
+    window.addEventListener('totichat:lucky-result',receive as EventListener);
+    return()=>window.removeEventListener('totichat:lucky-result',receive as EventListener);
+  },[activeRoom?.id,revealLucky]);
+  useEffect(()=>()=>{if(luckyTimer.current)clearTimeout(luckyTimer.current)},[]);
   const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused}=useRoomAudioContext();
   useEffect(()=>{if(!micBusy)setMicUiMuted(isMyMicMuted)},[isMyMicMuted,micBusy,activeRoom?.id]);
   useEffect(()=>{
@@ -67,10 +122,13 @@ export const VoiceRoomScreen: React.FC = () => {
         if(loading)pendingGifts.push(row);
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
         setGiftTotals(prev=>({...prev,[recipient]:(prev[recipient]||0)+quantity}));
+      })
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_lucky_feed',filter:`room_id=eq.${roomId}`},event=>{
+        if(!disposed)revealLucky(event.new as Record<string,unknown>);
       }).subscribe();
     const timer=setInterval(()=>{void load()},15000);
     return()=>{disposed=true;clearInterval(timer);void supabase.removeChannel(channel)};
-  },[activeRoom?.id]);
+  },[activeRoom?.id,revealLucky]);
   if(!activeRoom)return null;
   const mySeat=activeRoom.seats.find(s=>s.user?.authId===user.authId);
   const handleMic=async()=>{if(micBusy)return;if(!mySeat){reportError('اختر مقعداً أولاً لتشغيل المايكروفون.');return}const targetMuted=!isMyMicMuted;setMicUiMuted(targetMuted);setMicBusy(true);try{if(isMyMicMuted)await enableMicrophone();await toggleMyMic()}catch(error){setMicUiMuted(isMyMicMuted);const name=error&&typeof error==='object'&&'name'in error?String(error.name):'';if(name==='NotAllowedError'||name==='SecurityError')reportError('تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.');else reportError('تعذر تشغيل المايكروفون. تحقق من الإذن والاتصال ثم حاول مجدداً.')}finally{setMicBusy(false)}};
@@ -80,6 +138,14 @@ export const VoiceRoomScreen: React.FC = () => {
   const openInfo=()=>{setMembersOnly(false);setInfoOpen(true)};
   const openMembers=()=>{setMembersOnly(true);setInfoOpen(true)};
   return <>
+    {luckyResult&&<div data-testid="lucky-result-banner" role="status" className={`fixed top-[max(70px,env(safe-area-inset-top))] inset-x-4 z-[80] mx-auto max-w-sm overflow-hidden rounded-[24px] border px-4 py-3 text-center backdrop-blur-2xl shadow-2xl ${luckyResult.multiplier>=77?'border-amber-300/50 bg-gradient-to-r from-amber-950/95 via-fuchsia-950/95 to-indigo-950/95 shadow-amber-500/20':'border-violet-300/30 bg-[#171229]/95'}`}>
+      <div aria-hidden="true" className={`mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-full text-xl ${luckyResult.multiplier>=77?'bg-amber-300/20 animate-pulse':'bg-violet-400/15'}`}>✦</div>
+      <p className="text-[10px] font-black tracking-wide text-amber-300">LUCKY RESULT</p>
+      <p className="mt-1 text-sm font-black text-white">{luckyResult.recipient_name} حصل على <span dir="ltr" className="text-amber-300">×{luckyResult.multiplier}</span> Lucky Bonus</p>
+      <p className="mt-1 text-[11px] text-slate-300">{luckyResult.gift_name}{luckyResult.quantity>1?` ×${luckyResult.quantity}`:''} · {luckyResult.result_label}</p>
+      {luckyResult.lucky_points>0&&<p className="mt-1 text-xs font-black text-cyan-300">+{luckyResult.lucky_points.toLocaleString('ar-IQ')} Lucky Points</p>}
+      <p className="mt-1 text-[9px] text-slate-500">مكافأة غير مالية — لا تدخل تسوية الماس</p>
+    </div>}
     <RoomStage title={activeRoom.title} cover={activeRoom.internalBackground||'/assets/images/room_screen_bg_1790556227206.jpg'} thumbnail={activeRoom.coverImage} count={activeRoom.usersCount}
       welcome={(activeRoom.welcomeMessage ?? activeRoom.description)||'أهلاً وسهلاً بكم ❤️'}
       seats={activeRoom.seats.map(seat=><MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId&&speakingIds.includes(seat.user.authId))&&!seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId===user.authId} isOwner={Boolean(seat.user?.authId&&seat.user.authId===activeRoom.ownerAuthId)} giftCount={seat.user?giftTotals[seat.user.id]||0:0}/>)}
@@ -94,6 +160,6 @@ export const VoiceRoomScreen: React.FC = () => {
     <SeatActions index={emptySeat} locked={emptySeat!==null&&Boolean(activeRoom.seats[emptySeat]?.isLocked)} canLock={user.authId===activeRoom.ownerAuthId&&emptySeat!==0} busy={seatBusy} onClose={()=>setEmptySeat(null)}
       onTake={async()=>{if(emptySeat===null||seatBusy)return;setSeatBusy(true);try{await takeSeat(emptySeat);setEmptySeat(null)}finally{setSeatBusy(false)}}}
       onLock={async()=>{if(emptySeat===null||seatBusy)return;setSeatBusy(true);try{const action=activeRoom.seats[emptySeat]?.isLocked?unlockSeat:lockSeat;if(await action(emptySeat))setEmptySeat(null)}finally{setSeatBusy(false)}}}/>
-    {activeRoom.giftEffectsEnabled!==false&&activeGiftOverlay&&<GiftOverlayAnimation overlayData={activeGiftOverlay}/>}<RoomUserProfileModal isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={()=>setSelectedUser(null)} onGift={()=>{if(!selectedUser)return;setGiftRecipient(selectedUser);setSelectedUser(null);setGiftOpen(true)}} onManage={()=>{setSelectedUser(null);setManagementOpen(true)}} onMention={()=>{if(!selectedUser)return;setText(previous=>`${previous}${previous?' ':''}@${selectedUser.name} `);setSelectedUser(null)}} onMessage={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('chat_detail')}} onOpenMore={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('user_detail_profile')}}/><GiftStoreModal initialRecipient={giftRecipient} isOpen={giftOpen} onClose={()=>setGiftOpen(false)} room={activeRoom} onRechargeClick={()=>{setGiftOpen(false);setActiveSubScreen('recharge')}}/><RoomInfoModal isOpen={infoOpen} onClose={()=>setInfoOpen(false)} room={activeRoom} membersOnly={membersOnly} onSelectMember={setSelectedUser}/><RoomManagementModal isOpen={managementOpen} onClose={()=>setManagementOpen(false)} room={activeRoom}/>
+    {activeRoom.giftEffectsEnabled!==false&&activeGiftOverlay&&<GiftOverlayAnimation overlayData={activeGiftOverlay}/>}<RoomUserProfileModal isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={()=>setSelectedUser(null)} onGift={()=>{if(!selectedUser)return;setGiftRecipient(selectedUser);setSelectedUser(null);setGiftOpen(true)}} onManage={()=>{setSelectedUser(null);setManagementOpen(true)}} selfMicMuted={micUiMuted} onToggleSelfMic={()=>void handleMic()} onLeaveSelfSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}} onMention={()=>{if(!selectedUser)return;setText(previous=>`${previous}${previous?' ':''}@${selectedUser.name} `);setSelectedUser(null)}} onMessage={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('chat_detail')}} onOpenMore={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('user_detail_profile')}}/><GiftStoreModal initialRecipient={giftRecipient} isOpen={giftOpen} onClose={()=>setGiftOpen(false)} room={activeRoom} onRechargeClick={()=>{setGiftOpen(false);setActiveSubScreen('recharge')}}/><RoomInfoModal isOpen={infoOpen} onClose={()=>setInfoOpen(false)} room={activeRoom} membersOnly={membersOnly} onSelectMember={setSelectedUser}/><RoomManagementModal isOpen={managementOpen} onClose={()=>setManagementOpen(false)} room={activeRoom}/>
   </>;
 };
