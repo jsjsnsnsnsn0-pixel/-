@@ -10,33 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
 import { RoyalAccountId } from '../common/RoyalAccountId';
-import {ArrowDownToLine, Crown, Gift, MessageCircle, Mic, MicOff, ShieldCheck, UserCheck, UserPlus, X} from 'lucide-react';
-import {RelationshipShowcaseCard} from '../common/RelationshipShowcaseCard';
-
-const vipPalette=(level:number)=>{
-  if(level>=8)return {from:'rgba(244,63,94,.82)',mid:'rgba(168,85,247,.90)',to:'rgba(59,130,246,.78)',ring:'border-fuchsia-200'};
-  if(level>=5)return {from:'rgba(251,191,36,.88)',mid:'rgba(244,63,94,.78)',to:'rgba(168,85,247,.78)',ring:'border-amber-200'};
-  if(level>=3)return {from:'rgba(34,211,238,.78)',mid:'rgba(99,102,241,.82)',to:'rgba(168,85,247,.74)',ring:'border-cyan-200'};
-  return {from:'rgba(52,211,153,.72)',mid:'rgba(34,211,238,.76)',to:'rgba(99,102,241,.72)',ring:'border-emerald-200'};
-};
-
-const RoomProfileHeader=({profile}:{profile:RoomPublicProfile})=>{
-  const activeVip=profile.vipLevel>0;
-  const palette=vipPalette(profile.vipLevel);
-  return <div className="relative flex justify-center items-center mt-2 mb-3" data-testid={activeVip?'vip-profile-header':'standard-profile-header'} data-vip-level={activeVip?String(profile.vipLevel):undefined}>
-    <div data-testid="profile-avatar-frame" className={`relative w-72 h-28 flex items-center justify-center isolate bg-transparent ${activeVip?'':'h-24'}`}>
-      {activeVip&&<>
-        <span aria-hidden="true" className="absolute left-5 top-7 w-28 h-9 rounded-[75%_18%_70%_26%] -rotate-[15deg] opacity-95 shadow-[0_0_22px_rgba(168,85,247,.22)]" style={{background:`linear-gradient(110deg,transparent 4%,${palette.from} 34%,${palette.mid} 66%,${palette.to} 100%)`}}/>
-        <span aria-hidden="true" className="absolute right-5 top-7 w-28 h-9 rounded-[18%_75%_26%_70%] rotate-[15deg] opacity-95 shadow-[0_0_22px_rgba(168,85,247,.22)]" style={{background:`linear-gradient(250deg,transparent 4%,${palette.from} 34%,${palette.mid} 66%,${palette.to} 100%)`}}/>
-        <span className="absolute top-1 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/25 backdrop-blur px-3 py-1 text-[10px] font-black text-amber-100 shadow-lg"><Crown size={11} className="inline ml-1"/>VIP{profile.vipLevel}</span>
-      </>}
-      {!activeVip&&<span aria-hidden="true" className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-28 rounded-full bg-violet-500/10 blur-2xl"/>}
-      <div className={`absolute w-[82px] h-[82px] rounded-full border-[3px] overflow-hidden bg-transparent flex items-center justify-center z-10 shadow-[0_0_0_4px_rgba(124,58,237,.13),0_10px_30px_rgba(0,0,0,.34)] ${activeVip?palette.ring:'border-white/70'}`}>
-        <img src={profile.avatar} onError={e=>{e.currentTarget.alt='صورة افتراضية';setImageFallback(e,defaultAvatar);}} alt={profile.avatar===defaultAvatar?'صورة افتراضية':profile.name} className="w-full h-full object-cover object-center bg-transparent"/>
-      </div>
-    </div>
-  </div>;
-};
+import {X, Heart, Crown} from 'lucide-react';
 
 interface RoomUserProfileModalProps {
   isOpen: boolean;
@@ -46,9 +20,6 @@ interface RoomUserProfileModalProps {
   onMessage?: () => void;
   onGift?:()=>void;
   onManage?:()=>void;
-  onToggleSelfMic?:()=>void;
-  onLeaveSelfSeat?:()=>void;
-  selfMicMuted?:boolean;
   targetUser?: User | null;
 }
 
@@ -60,17 +31,13 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   onMessage,
   onGift,
   onManage,
-  onToggleSelfMic,
-  onLeaveSelfSeat,
-  selfMicMuted,
   targetUser,
 }) => {
   const layerRef=useDismissableLayer(isOpen,onClose);
 
-  const {user:currentUser,activeRoom,refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen}=useApp();
+  const { user: currentUser, activeRoom, refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen } = useApp();
   const [actionBusy,setActionBusy]=React.useState(false);
   const targetSeat=activeRoom?.seats.find(seat=>seat.user?.id===targetUser?.id);
-  const isSelf=Boolean(targetUser&&targetUser.id===currentUser.id);
   type RoomUserPermissions = {
     social?: {follow?:boolean;message?:boolean;gift?:boolean;mention?:boolean;is_following?:boolean};
     moderation?: string[];
@@ -112,26 +79,48 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   if (!displayUser) return <div ref={layerRef} role="dialog" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"><div className="w-full max-w-md ui-sheet rounded-t-3xl bg-[#131118] p-6 text-white text-center"><p>لا يوجد مستخدم محدد لعرضه.</p><button onClick={onClose} className="mt-3">إغلاق</button></div></div>;
 
   return (
-    <div ref={layerRef} role="dialog" aria-modal="true" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-[3px] select-none animate-fadeIn">
+    <div ref={layerRef} role="dialog" aria-modal="true" aria-label="بطاقة مستخدم الغرفة" className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-[4px] select-none animate-fadeIn">
       {/* Tap backdrop to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Main Bottom Sheet Container */}
-      <div className="relative z-10 w-full max-w-md bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,.18),transparent_32%),linear-gradient(180deg,#15082b_0%,#100523_48%,#090416_100%)] ui-sheet rounded-t-[34px] pt-1 pb-safe pb-6 px-4 max-h-[90dvh] overflow-y-auto shadow-[0_-18px_54px_rgba(0,0,0,.78)] border border-white/8 text-center animate-slideUp">
+      <div className="relative z-10 w-full max-w-md bg-[radial-gradient(circle_at_80%_0%,rgba(236,72,153,.14),transparent_26%),linear-gradient(165deg,rgba(28,22,52,.97),rgba(9,10,22,.98))] ui-sheet rounded-t-[30px] pt-1 pb-safe pb-6 px-4 max-h-[88dvh] overflow-y-auto shadow-[0_-20px_55px_rgba(0,0,0,.60)] border border-white/10 text-center animate-slideUp backdrop-blur-2xl">
         {/* Subtle drag handle / top glow line */}
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-2.5" />
+        <div className="w-14 h-1.5 bg-white/25 rounded-full mx-auto my-2.5" />
 
         {/* Close Button top-left */}
         <button
           type="button"
           onClick={onClose}
           aria-label="إغلاق البطاقة"
-          className="absolute z-20 top-5 left-5 w-12 h-12 rounded-full bg-white/[0.08] border border-white/8 hover:bg-white/[0.13] flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
+          className="absolute z-20 top-4 left-4 ui-icon-button rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 transition-colors cursor-pointer"
         >
-          <X size={24} />
+          <X size={16} />
         </button>
 
-        <RoomProfileHeader profile={displayUser}/>
+        {/* ========================================================= */}
+        {/* 1. TOP WINGS & AVATAR (الأجنحة الذهبية المرصعة بالياقوت) */}
+        {/* ========================================================= */}
+        <div className="relative flex justify-center items-center mt-1 mb-2">
+          {/* Transparent decorative wings. Avoid raster backgrounds so every account
+              keeps a clean avatar without a white rectangular plate. */}
+          <div className="relative w-72 h-20 flex items-center justify-center bg-transparent" data-testid="profile-avatar-frame">
+            <span aria-hidden="true" className="absolute left-8 top-7 w-20 h-4 rounded-full bg-gradient-to-r from-transparent via-rose-500/65 to-amber-300/80 -rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute left-5 top-10 w-20 h-3 rounded-full bg-gradient-to-r from-transparent via-fuchsia-500/55 to-amber-300/70 rotate-6" />
+            <span aria-hidden="true" className="absolute right-8 top-7 w-20 h-4 rounded-full bg-gradient-to-l from-transparent via-rose-500/65 to-amber-300/80 rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute right-5 top-10 w-20 h-3 rounded-full bg-gradient-to-l from-transparent via-fuchsia-500/55 to-amber-300/70 -rotate-6" />
+
+            {/* Circular Avatar in the Center */}
+            <div className="absolute w-16 h-16 rounded-full border-2 border-amber-200/90 shadow-[0_0_15px_rgba(255,215,0,0.45)] overflow-hidden bg-transparent flex items-center justify-center z-10">
+              <img
+                src={displayUser.avatar}
+                onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}}
+                alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name}
+                className="w-full h-full object-cover object-center bg-transparent"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* ========================================================= */}
         {/* 2. USERNAME & BADGES                                      */}
@@ -218,56 +207,30 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
               VIP{displayUser.vipLevel}
             </span>
           </div>}
-          {targetUser?.roomRole&&<div className="px-2.5 py-0.5 rounded-full bg-white/[0.07] border border-white/10 flex items-center gap-1 text-[10px] font-black text-slate-200">
-            <ShieldCheck size={11} className="text-cyan-300"/>{targetUser.roomRole==='owner'?'مالك الغرفة':targetUser.roomRole==='moderator'?'مشرف':'عضو'}
-          </div>}
         </div>
 
-        {displayUser.couple&&<div data-testid="profile-couple" className="mt-3">
-          <RelationshipShowcaseCard
-            compact
-            owner={{name:displayUser.name,avatar:displayUser.avatar,level:displayUser.level}}
-            relation={displayUser.couple}
-            onPartner={()=>{const partner=displayUser.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));onClose();setActiveSubScreen('user_detail_profile');}}
-          />
+        {displayUser.couple && <div data-testid="profile-couple" className="mt-3 rounded-[22px] border border-pink-400/40 shadow-[0_6px_24px_rgba(244,63,94,0.25)] bg-gradient-to-r from-[#2a0820] via-[#400d33] to-[#2a0820] p-3 flex items-center justify-around gap-3">
+          <button type="button" aria-label={`زيارة ملف ${displayUser.couple.partner.name}`} onClick={()=>{const partner=displayUser.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));onClose();setActiveSubScreen('user_detail_profile');}} className="min-w-0"><img src={displayUser.couple.partner.avatar} alt={displayUser.couple.partner.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.couple.partner.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-rose-300 object-cover" /><p className="text-xs text-pink-200 mt-1 truncate">{displayUser.couple.partner.name}</p>{displayUser.couple.partner.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.couple.partner.level}</span>}</button>
+          <div className="text-pink-200"><Heart className="mx-auto text-rose-400" /><p className="text-xs mt-1">{displayUser.couple.typeLabel||'رفيق الروح'}</p>{displayUser.couple.days !== undefined && <p className="text-xs">{displayUser.couple.days} أيام</p>}{displayUser.couple.level!==undefined&&<p className="text-[10px] text-amber-300 mt-0.5">CP LV.{displayUser.couple.level}</p>}{displayUser.couple.experience!==undefined&&<p className="text-[9px] text-slate-400">EXP {displayUser.couple.experience.toLocaleString('ar-SA')}</p>}</div>
+          <div className="min-w-0"><img src={displayUser.avatar} alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-amber-300 object-cover" /><p className="text-xs text-amber-200 mt-1 truncate">{displayUser.name}</p>{displayUser.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.level}</span>}</div>
         </div>}
         {loading && <p role="status" className="mt-3 text-xs text-slate-300">جارٍ تحميل الملف العام…</p>}
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
 
-        {isSelf&&targetSeat&&<section className="mt-5 rounded-[24px] border border-white/8 bg-white/[0.045] p-3 text-right">
-          <p className="px-1 pb-2 text-[11px] font-black text-slate-300">تحكم المقعد والمايك</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" disabled={actionBusy||!onToggleSelfMic} onClick={onToggleSelfMic} className="min-h-[68px] rounded-2xl bg-white/[0.06] border border-white/8 flex flex-col items-center justify-center gap-1.5 text-xs font-black disabled:opacity-50">
-              {selfMicMuted?<Mic size={20} className="text-emerald-300"/>:<MicOff size={20} className="text-rose-300"/>}
-              {selfMicMuted?'تشغيل المايك':'كتم المايك'}
-            </button>
-            <button type="button" disabled={actionBusy||!onLeaveSelfSeat} onClick={()=>{onLeaveSelfSeat?.();onClose();}} className="min-h-[68px] rounded-2xl bg-rose-500/10 border border-rose-400/15 flex flex-col items-center justify-center gap-1.5 text-xs font-black text-rose-200 disabled:opacity-50">
-              <ArrowDownToLine size={20}/>النزول من المايك
-            </button>
-          </div>
-        </section>}
+        <div className="grid grid-cols-2 gap-3 mt-5 text-white text-sm">
+          {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
+          {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">📣 منشن</button>}
+          {onMessage&&permissions?.social?.message!==false&&!permissions?.self&&<button type="button" onClick={onMessage} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">رسالة خاصة</button>}
+          {onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">🎁 إرسال هدية</button>}
+          {canManage&&<>
+            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
+            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>}
+            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
+            {moderation.includes('ban')&&<div className="rounded-[20px] p-2 bg-white/[0.065] border border-white/8 backdrop-blur-xl"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
+          </>}
+          {permissions?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">إدارة المشرفين</button>}
 
-        <div className="grid grid-cols-3 gap-2 mt-5 text-white text-xs">
-          {!isSelf&&permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="min-h-[74px] p-3 rounded-[20px] bg-white/[0.055] border border-white/[0.07] disabled:opacity-40 flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-            {permissions.social.is_following?<UserCheck size={20} className="text-emerald-300"/>:<UserPlus size={20} className="text-cyan-300"/>}
-            {permissions.social.is_following?'تمت المتابعة':'متابعة'}
-          </button>}
-          {!isSelf&&onMessage&&permissions?.social?.message!==false&&<button type="button" onClick={onMessage} className="min-h-[74px] p-3 rounded-[20px] bg-white/[0.055] border border-white/[0.07] flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-transform"><MessageCircle size={20} className="text-cyan-300"/>دردشة</button>}
-          {!isSelf&&onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="min-h-[74px] p-3 rounded-[20px] bg-white/[0.055] border border-white/[0.07] flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-transform"><Gift size={20} className="text-fuchsia-300"/>إرسال هدية</button>}
-          {onMention&&permissions?.social?.mention!==false&&!isSelf&&<button type="button" onClick={onMention} className="min-h-[74px] p-3 rounded-[20px] bg-white/[0.055] border border-white/[0.07] flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-transform">📣<span>منشن</span></button>}
         </div>
-
-        {canManage&&!isSelf&&<section className="mt-4 rounded-[24px] border border-white/8 bg-white/[0.04] p-3 text-right">
-          <p className="px-1 pb-2 text-[11px] font-black text-slate-300">إجراءات الإشراف</p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="min-h-[58px] rounded-2xl bg-white/[0.055] border border-white/8 disabled:opacity-40">{targetSeat.isMuted?'فتح صوت العضو':'كتم العضو'}</button>}
-            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="min-h-[58px] rounded-2xl bg-white/[0.055] border border-white/8 disabled:opacity-40">{targetSeat?'إزالة من المايك':'دعوة للمايك'}</button>}
-            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="min-h-[58px] rounded-2xl bg-rose-500/10 border border-rose-400/15 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
-            {moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/[0.055] border border-white/8"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="w-full p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
-          </div>
-        </section>}
-        {isSelf&&activeRoom?.canModerate&&onManage&&<button type="button" onClick={onManage} className="mt-3 w-full min-h-[52px] rounded-2xl bg-cyan-500/10 border border-cyan-400/15 text-cyan-200 text-sm font-black">إدارة الغرفة</button>}
-
         {/* ========================================================= */}
         {/* 7. MINT GREEN ACTION BUTTON:  المزيد                      */}
         {/* ========================================================= */}

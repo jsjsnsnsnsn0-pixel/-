@@ -4,14 +4,13 @@ import { catalog, rpc, backendMessage } from '../../services/backend';
 import { supabase } from '../../services/supabase';
 import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
-import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen, WalletCards, Search, Play, X, Grid2X2 } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen } from 'lucide-react';
 
-type StoreCategory = 'all' | 'gift' | 'nation' | 'luck' | 'custom' | 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges' | 'vip';
-type ProductCategory = Exclude<StoreCategory,'all'>;
+type StoreCategory = 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges';
 interface StoreItem {
   id: string;
   name: string;
-  category: ProductCategory;
+  category: StoreCategory;
   price: number;
   currency: 'gold' | 'silver';
   image: string;
@@ -20,34 +19,21 @@ interface StoreItem {
   description: string;
   duration: string;
   isOwned?: boolean;
-  isGiftStock?: boolean;
-  savedCount?: number;
 }
 
-const equipableCategories=new Set<ProductCategory>(['frames','cars','bubbles','entrances','badges']);
-
-const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>;always?:boolean}> = [
-  { id: 'all', label: 'الكل', icon: Grid2X2, always:true },
-  { id: 'gift', label: 'هدايا', icon: ShoppingBag },
-  { id: 'nation', label: 'الأعلام والأمة', icon: Crown },
-  { id: 'luck', label: 'حظ', icon: Sparkles },
-  { id: 'custom', label: 'مخصص', icon: Sparkles },
+const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>}> = [
   { id: 'frames', label: 'الإطارات', icon: Sparkles },
   { id: 'cars', label: 'المركبات', icon: Car },
   { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
   { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
-  { id: 'cards', label: 'CP', icon: IdCard, always:true },
+  { id: 'cards', label: 'بطاقات CP', icon: IdCard },
   { id: 'badges', label: 'الشارات', icon: Crown },
-  { id: 'vip', label: 'VIP', icon: Crown },
 ];
 
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<StoreCategory>('all');
-  const [query,setQuery]=useState('');
-  const [selected,setSelected]=useState<StoreItem|null>(null);
-  const [preview,setPreview]=useState<StoreItem|null>(null);
+  const [activeTab, setActiveTab] = useState<StoreCategory>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const requests = useRef(new Map<string, string>());
@@ -58,31 +44,10 @@ export const StoreScreen: React.FC = () => {
       supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId),
     ]);
     if (owned.error) throw owned.error;
-    // Gift stock uses the existing server-backed gift inventory and a different purchase RPC.
-    // Store cosmetics remain real store_catalog products, never fabricated display entries.
-    type GiftBoxProducts = {gifts?:Array<{id:string;name:string;price:number;icon?:string;description?:string;preview_url?:string|null;category_id?:string;duration_days?:number|null}>;inventory?:Array<{gift_id:string;remaining:number}>};
-    let box:GiftBoxProducts|null=null;
-    try { box=await rpc<GiftBoxProducts>('gift_box_state'); }
-    catch { /* Keep already available cosmetic categories if the optional gift catalog fails. */ }
-    const counts = new Map<string,number>();
-    for (const lot of box?.inventory || []) counts.set(String(lot.gift_id),(counts.get(String(lot.gift_id))||0)+Number(lot.remaining||0));
-    const giftItems:StoreItem[] = (box?.gifts || []).filter(item=>Number(item.price)>0).map(item=>({
-      id:String(item.id),
-      name:String(item.name),
-      category:(['nation','luck','custom'].includes(String(item.category_id)) ? item.category_id : 'gift') as ProductCategory,
-      price:Number(item.price),
-      currency:'gold',
-      image:String(item.icon||'🎁'),
-      previewUrl:item.preview_url||null,
-      description:String(item.description||'هدية قابلة للحفظ والإرسال من الغرفة'),
-      duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
-      isGiftStock:true,
-      savedCount:counts.get(String(item.id))||0,
-    }));
-    const cosmetics = entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
+    return entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
       id:item.id,
       name:item.name,
-      category:item.category as ProductCategory,
+      category:item.category as StoreCategory,
       price:item.price,
       currency:item.currency,
       image:item.icon,
@@ -92,73 +57,49 @@ export const StoreScreen: React.FC = () => {
       duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
       isOwned:(owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
     }));
-    return [...giftItems,...cosmetics];
   }, [user.authId]);
 
   const {data: items, loading, error, reload} = useServerData(load, []);
-  const visibleTabs=tabs.filter(tab=>tab.always||tab.id==='cards'||items.some(item=>item.category===tab.id));
-  const normalizedQuery=query.trim().toLocaleLowerCase('ar');
-  const filteredItems=items.filter(item=>(activeTab==='all'||item.category===activeTab)&&(!normalizedQuery||item.name.toLocaleLowerCase('ar').includes(normalizedQuery)||item.description.toLocaleLowerCase('ar').includes(normalizedQuery)));
+  const filteredItems = items.filter(item => item.category === activeTab);
 
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
-    if(item.isOwned&&!item.isGiftStock){
-      if(item.category==='cards'){setSelected(null);setActiveSubScreen('inventory');return;}
-      if(!equipableCategories.has(item.category))return;
+    if (item.isOwned && item.category === 'cards') {
+      setActiveSubScreen('inventory');
+      return;
     }
     setBusy(true); setPurchaseSuccess(null);
     try {
-      if(item.isOwned&&!item.isGiftStock) await rpc('equip_store_item',{p_item_id:item.id,p_category:item.category});
+      if (item.isOwned) await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
       else {
-        const key=(item.isGiftStock?'gift:':'store:')+item.id;
-        const request = requests.current.get(key) || crypto.randomUUID();
-        requests.current.set(key, request);
-        if(item.isGiftStock){
-          const confirmed=await rpc<string>('buy_gift_stock',{p_gift_id:item.id,p_request_id:request});
-          if(String(confirmed)!==request)throw new Error('gift stock purchase not confirmed');
-        }else{
-          const result=await rpc<{id:string}>('purchase_store_item',{p_item_id:item.id,p_request_id:request});
-          if(!result?.id)throw new Error('purchase not confirmed');
-        }
-        requests.current.delete(key);
+        const request = requests.current.get(item.id) || crypto.randomUUID();
+        requests.current.set(item.id, request);
+        const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: item.id, p_request_id: request});
+        if (!result?.id) throw new Error('purchase not confirmed');
+        requests.current.delete(item.id);
       }
-      setPurchaseSuccess(item.isOwned&&!item.isGiftStock?'تم اعتماد تجهيز المنتج.':item.isGiftStock?'تم شراء الهدية وحفظها في الحقيبة.':'تم اعتماد الشراء من الخادم.');
-      setSelected(null);
-      await Promise.all([reload(),refreshWallet()]);
+      setPurchaseSuccess(item.isOwned ? 'تم اعتماد تجهيز المنتج.' : 'تم اعتماد الشراء من الخادم.');
+      await Promise.all([reload(), refreshWallet()]);
       scheduleTimeout(() => setPurchaseSuccess(null), 3000);
     } catch (e) { reportError(backendMessage(e)); }
     finally { setBusy(false); }
   };
 
-  const actionLabel=(item:StoreItem)=>{
-    if(item.isGiftStock)return 'شراء وحفظ في الحقيبة';
-    if(!item.isOwned)return 'شراء';
-    if(item.category==='cards')return 'فتح الحقيبة';
-    if(equipableCategories.has(item.category))return 'استخدام';
-    return 'مملوك';
-  };
-
   return (
-    <div className="min-h-screen bg-[#081510] text-slate-100 pb-28" dir="rtl">
-      <header className="sticky top-0 z-30 bg-[#081510]/95 backdrop-blur-md border-b border-emerald-300/10 px-4 py-3 flex items-center justify-between shadow-xs">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(124,58,237,.20),transparent_28%),radial-gradient(circle_at_90%_10%,rgba(16,185,129,.13),transparent_30%),#090b12] text-slate-100 pb-28" dir="rtl">
+      <header className="sticky top-0 z-30 bg-[#090b12]/72 backdrop-blur-2xl border-b border-white/8 px-4 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-2">
           <button onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 text-slate-100">
             <ChevronRight size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-emerald-400/10 text-emerald-300 flex items-center justify-center"><ShoppingBag size={18}/></div>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500/25 to-emerald-400/15 text-amber-200 border border-white/10 flex items-center justify-center shadow-inner"><ShoppingBag size={18}/></div>
             <div><h1 className="text-base font-black">متجر TotiChat</h1><p className="text-[10px] text-emerald-300/70">مقتنيات تجميلية مرتبطة بحسابك</p></div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={()=>setActiveSubScreen('wallet')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-amber-200" aria-label="فتح المحفظة"><WalletCards size={17}/></button>
-          <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-emerald-200" aria-label="فتح الحقيبة"><PackageOpen size={17}/></button>
-        </div>
-        <label className="mt-3 h-11 rounded-2xl border border-white/10 bg-black/15 flex items-center gap-2 px-3 focus-within:border-emerald-300/30">
-          <Search size={15} className="text-slate-500"/>
-          <input aria-label="البحث في المتجر" value={query} onChange={event=>setQuery(event.target.value)} placeholder="ابحث عن عنصر..." className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-slate-600"/>
-          {query&&<button type="button" aria-label="مسح البحث" onClick={()=>setQuery('')} className="text-slate-500"><X size={15}/></button>}
-        </label>
+        <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-control px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold flex items-center gap-1" aria-label="فتح الحقيبة">
+          <PackageOpen size={16}/>الحقيبة
+        </button>
       </header>
 
       <div className="px-4 pt-3 flex items-center gap-2 text-xs">
@@ -170,10 +111,10 @@ export const StoreScreen: React.FC = () => {
 
       <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto">
         <div className="flex gap-2 min-w-max pb-2">
-          {visibleTabs.map(tab => {
+          {tabs.map(tab => {
             const Icon=tab.icon; const active=activeTab===tab.id;
             return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
-              className={`min-h-11 px-3 rounded-xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/15 border-emerald-300/35 text-emerald-200':'bg-white/5 border-white/10 text-slate-400'}`}>
+              className={`min-h-11 px-3 rounded-2xl flex items-center gap-1.5 border text-xs font-bold transition-all ${active?'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/15 border-violet-300/35 text-white shadow-lg shadow-violet-950/20':'bg-white/[0.045] border-white/8 text-slate-400'}`}>
               <Icon size={15}/><span>{tab.label}</span>
             </button>;
           })}
@@ -186,55 +127,33 @@ export const StoreScreen: React.FC = () => {
 
       {loading && <p role="status" className="p-6 text-center text-slate-400">جارٍ تحميل المتجر…</p>}
       {error && <div className="p-4"><button onClick={() => void reload()} className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-rose-200">{error} — إعادة المحاولة</button></div>}
-      {!loading && !error && !filteredItems.length && <div className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400"><ShoppingBag size={24} className="mx-auto text-slate-600"/><p className="mt-2 text-sm font-bold">{query?'لا توجد نتائج مطابقة':'لا توجد منتجات متاحة حالياً في هذا القسم'}</p>{activeTab==='cards'&&<p className="mt-1 text-[10px] text-pink-200/60">أي منتج CP فعلي يضاف للكتالوج سيظهر هنا تلقائياً.</p>}</div>}
+      {!loading && !error && !filteredItems.length && <p className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400">لا توجد عناصر حالياً في هذا القسم.</p>}
 
       <div className="p-4 grid grid-cols-2 gap-3">
-        {filteredItems.map(item=>(
-          <article key={item.id} className="rounded-[24px] overflow-hidden border border-white/10 bg-gradient-to-b from-white/[.06] to-white/[.025] shadow-[0_12px_30px_rgba(0,0,0,.18)]">
-            <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="w-full text-right">
-              <div className="relative aspect-square bg-black/20 flex items-center justify-center text-5xl overflow-hidden">
-                {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/>:<span aria-hidden="true">{item.image}</span>}
-                {item.isOwned&&!item.isGiftStock&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">مملوك</span>}
-                {item.isGiftStock&&Boolean(item.savedCount)&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">بالحقيبة ×{item.savedCount}</span>}
-                <span className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center"><Play size={12} fill="currentColor"/></span>
+        {filteredItems.map(item => (
+          <article key={item.id} className="rounded-[26px] p-3 border border-white/10 bg-white/[0.055] backdrop-blur-xl flex flex-col justify-between min-h-56 shadow-[0_14px_32px_rgba(0,0,0,.18)]">
+            <div>
+              <div className="h-28 rounded-[20px] bg-gradient-to-br from-white/[0.07] to-black/25 flex items-center justify-center text-4xl mb-3 border border-white/8 overflow-hidden">
+                {item.previewUrl ? <img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/> : <span aria-hidden="true">{item.image}</span>}
               </div>
-              <div className="p-3">
-                <h3 className="font-black text-sm truncate">{item.name}</h3>
-                <div className="mt-2 flex items-center justify-between gap-1 text-[10px]"><span className="text-amber-200 font-black" dir="ltr">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-IQ')}</span><span className="text-slate-500">{item.duration}</span></div>
+              <h3 className="font-bold text-sm text-white mb-1 break-words">{item.name}</h3>
+              <p className="text-[11px] text-slate-400 leading-5 line-clamp-2">{item.description}</p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="text-[10px] text-emerald-200 bg-emerald-400/10 px-2 py-1 rounded-full">صلاحية {item.duration}</span>
+                {item.category==='cards'&&item.relationshipTypeId&&<span className="text-[10px] text-pink-200 bg-pink-400/10 px-2 py-1 rounded-full">CP: {item.relationshipTypeId}</span>}
+                {item.isOwned&&<span className="text-[10px] text-cyan-200 bg-cyan-400/10 px-2 py-1 rounded-full">مملوك</span>}
               </div>
-            </button>
+            </div>
+            <div className="pt-3 mt-3 border-t border-white/8 flex items-center justify-between gap-2">
+              <span className="font-bold text-xs text-amber-200">{item.currency === 'gold' ? '🪙' : '🥈'} {item.price.toLocaleString('ar-SA')}</span>
+              <button disabled={busy || loading} onClick={() => void handleBuy(item)}
+                className="min-h-10 px-4 bg-gradient-to-r from-amber-300 to-amber-400 text-slate-950 text-[11px] font-black rounded-xl shadow-lg shadow-amber-950/20 disabled:opacity-50">
+                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? (item.category==='cards'?'الحقيبة':'تجهيز') : 'شراء'}
+              </button>
+            </div>
           </article>
         ))}
       </div>
-
-      {selected&&<div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center" onClick={()=>{if(!busy)setSelected(null)}}>
-        <section role="dialog" aria-modal="true" aria-label={`تفاصيل ${selected.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-[32px] border border-white/10 bg-[#0b1712] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl">
-          <button type="button" onClick={()=>{if(!busy)setSelected(null)}} aria-label="إغلاق" className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"><X size={18}/></button>
-          <button type="button" onClick={()=>setPreview(selected)} aria-label={`معاينة ${selected.name}`} className="relative w-full aspect-[4/3] rounded-[26px] bg-black/25 border border-white/8 overflow-hidden flex items-center justify-center text-7xl">
-            {selected.previewUrl?<img src={selected.previewUrl} alt={selected.name} className="w-full h-full object-contain"/>:<span>{selected.image}</span>}
-            <span className="absolute inset-0 flex items-center justify-center"><span className="w-14 h-14 rounded-full bg-black/55 border border-white/15 flex items-center justify-center"><Play size={22} fill="currentColor"/></span></span>
-          </button>
-          <div className="mt-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">{selected.name}</h2><p className="mt-1 text-xs leading-6 text-slate-400">{selected.description||'عنصر تجميلي من متجر TotiChat.'}</p></div>{selected.isOwned&&!selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">مملوك</span>}
-          {selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">بالحقيبة ×{selected.savedCount||0}</span>}</div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">السعر</span><strong className="block mt-1 text-sm text-amber-200" dir="ltr">{selected.currency==='gold'?'🪙':'🥈'} {selected.price.toLocaleString('ar-IQ')}</strong></div>
-            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">المدة</span><strong className="block mt-1 text-sm">{selected.duration}</strong></div>
-          </div>
-          {selected.category==='cards'&&selected.relationshipTypeId&&<p className="mt-3 rounded-xl bg-pink-500/10 border border-pink-300/10 px-3 py-2 text-[10px] text-pink-200">نوع العلاقة المطلوب: {selected.relationshipTypeId}</p>}
-          {selected.isGiftStock&&<p className="mt-3 rounded-xl bg-cyan-500/10 border border-cyan-300/10 px-3 py-2 text-[11px] text-cyan-200">ستدخل هدية واحدة إلى حقيبتك لتُرسلها من صندوق الهدايا داخل الغرفة. المعاينة لا تشتري الهدية ولا ترسلها.</p>}
-          {selected.category==='vip'&&<p className="mt-3 rounded-xl bg-amber-500/10 border border-amber-300/10 px-3 py-2 text-[10px] text-amber-200">امتياز VIP يُفعّل فقط وفق بيانات المنتج وقواعد الخادم.</p>}
-          <button type="button" disabled={busy||loading||(selected.isOwned&&!selected.isGiftStock&&!equipableCategories.has(selected.category)&&selected.category!=='cards')} onClick={()=>void handleBuy(selected)} className="mt-5 w-full min-h-[50px] rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#042019] text-sm font-black disabled:opacity-45">{busy?'جارٍ التنفيذ…':actionLabel(selected)}</button>
-          {(!selected.isOwned||selected.isGiftStock)&&<p className="mt-2 text-center text-[10px] text-slate-500">الخصم وإضافة الملكية ينفذهما Backend في عملية واحدة موثقة.</p>}
-        </section>
-      </div>}
-
-      {preview&&<div className="fixed inset-0 z-[60] bg-[#060b09]/94 backdrop-blur-xl flex items-center justify-center p-5" onClick={()=>setPreview(null)}>
-        <div role="dialog" aria-modal="true" aria-label={`معاينة ${preview.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-sm text-center">
-          <button type="button" aria-label="إغلاق المعاينة" onClick={()=>setPreview(null)} className="absolute -top-12 left-0 w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
-          <div className="aspect-square rounded-[34px] bg-[radial-gradient(circle,rgba(52,211,153,.15),transparent_62%)] border border-white/8 flex items-center justify-center overflow-hidden text-8xl">{preview.previewUrl?<img src={preview.previewUrl} alt={preview.name} className="w-full h-full object-contain"/>:<span className="animate-pulse">{preview.image}</span>}</div>
-          <h2 className="mt-5 text-lg font-black">{preview.name}</h2><p className="mt-2 text-[11px] text-slate-500">Preview فقط — لا شراء ولا تفعيل من هذه الشاشة.</p>
-        </div>
-      </div>}
     </div>
   );
 };

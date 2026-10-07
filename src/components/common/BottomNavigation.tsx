@@ -28,15 +28,15 @@ export const BottomNavigation: React.FC = () => {
   return (
     <nav
       aria-label="التنقل الرئيسي"
-      className="fixed bottom-0 inset-x-0 z-40 max-w-md mx-auto bg-[#1b7050]/95 backdrop-blur-md border-t border-[#2a8b65]/70 text-white shadow-[0_-4px_20px_rgba(0,0,0,0.2)] pb-safe"
+      className="fixed bottom-3 inset-x-3 z-40 max-w-[calc(28rem-1.5rem)] mx-auto rounded-[24px] bg-[#121726]/88 backdrop-blur-2xl border border-white/10 text-white shadow-[0_14px_40px_rgba(0,0,0,.34)] pb-safe"
       dir="rtl"
     >
-      <div className="flex items-center justify-around h-16 px-4">
+      <div className="flex items-center justify-around h-[66px] px-2">
         {/* Tab 1: الصفحة الرئيسية (Home with Golden Dome Palace) */}
         <button
           type="button"
           onClick={() => setActiveTab('home')}
-          className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
+          className="flex flex-col items-center justify-center flex-1 h-[54px] mx-1 rounded-2xl cursor-pointer relative group transition-all active:scale-95 hover:bg-white/[0.05]"
           title="الصفحة الرئيسية"
           aria-current={isHomeActive ? "page" : undefined}
         >
@@ -47,7 +47,7 @@ export const BottomNavigation: React.FC = () => {
             </div>
             <span
               className={`text-[11px] font-bold mt-0.5 tracking-tight transition-colors ${
-                isHomeActive ? 'text-amber-300 font-black' : 'text-emerald-100/75 group-hover:text-white'
+                isHomeActive ? 'text-amber-300 font-black' : 'text-slate-400 group-hover:text-white'
               }`}
             >
               الصفحة الرئيسية
@@ -59,7 +59,7 @@ export const BottomNavigation: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('messages')}
-          className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
+          className="flex flex-col items-center justify-center flex-1 h-[54px] mx-1 rounded-2xl cursor-pointer relative group transition-all active:scale-95 hover:bg-white/[0.05]"
           title="الرسائل"
           aria-current={isMessagesActive ? "page" : undefined}
         >
@@ -75,7 +75,7 @@ export const BottomNavigation: React.FC = () => {
             )}
             <span
               className={`text-[11px] font-bold mt-0.5 tracking-tight transition-colors ${
-                isMessagesActive ? 'text-amber-300 font-black' : 'text-emerald-100/75 group-hover:text-white'
+                isMessagesActive ? 'text-amber-300 font-black' : 'text-slate-400 group-hover:text-white'
               }`}
             >
               الرسائل
@@ -87,7 +87,7 @@ export const BottomNavigation: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
-          className="flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative group transition-transform active:scale-95"
+          className="flex flex-col items-center justify-center flex-1 h-[54px] mx-1 rounded-2xl cursor-pointer relative group transition-all active:scale-95 hover:bg-white/[0.05]"
           title="أنا"
           aria-current={isProfileActive ? "page" : undefined}
         >
@@ -104,7 +104,7 @@ export const BottomNavigation: React.FC = () => {
             </div>
             <span
               className={`text-[11px] font-bold mt-0.5 tracking-tight transition-colors ${
-                isProfileActive ? 'text-amber-300 font-black' : 'text-emerald-100/75 group-hover:text-white'
+                isProfileActive ? 'text-amber-300 font-black' : 'text-slate-400 group-hover:text-white'
               }`}
             >
               أنا
