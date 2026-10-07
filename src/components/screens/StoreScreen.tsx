@@ -105,9 +105,15 @@ export const StoreScreen: React.FC = () => {
             <div><h1 className="text-base font-black">متجر TotiChat</h1><p className="text-[10px] text-emerald-300/70">مقتنيات تجميلية مرتبطة بحسابك</p></div>
           </div>
         </div>
-        <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-control px-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold flex items-center gap-1" aria-label="فتح الحقيبة">
-          <PackageOpen size={16}/>الحقيبة
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={()=>setActiveSubScreen('wallet')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-amber-200" aria-label="فتح المحفظة"><WalletCards size={17}/></button>
+          <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-emerald-200" aria-label="فتح الحقيبة"><PackageOpen size={17}/></button>
+        </div>
+        <label className="mt-3 h-11 rounded-2xl border border-white/10 bg-black/15 flex items-center gap-2 px-3 focus-within:border-emerald-300/30">
+          <Search size={15} className="text-slate-500"/>
+          <input aria-label="البحث في المتجر" value={query} onChange={event=>setQuery(event.target.value)} placeholder="ابحث عن عنصر..." className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-slate-600"/>
+          {query&&<button type="button" aria-label="مسح البحث" onClick={()=>setQuery('')} className="text-slate-500"><X size={15}/></button>}
+        </label>
       </header>
 
       <div className="px-4 pt-3 flex items-center gap-2 text-xs">
@@ -119,7 +125,7 @@ export const StoreScreen: React.FC = () => {
 
       <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto">
         <div className="flex gap-2 min-w-max pb-2">
-          {tabs.map(tab => {
+          {visibleTabs.map(tab => {
             const Icon=tab.icon; const active=activeTab===tab.id;
             return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
               className={`min-h-11 px-3 rounded-xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/15 border-emerald-300/35 text-emerald-200':'bg-white/5 border-white/10 text-slate-400'}`}>
@@ -135,7 +141,7 @@ export const StoreScreen: React.FC = () => {
 
       {loading && <p role="status" className="p-6 text-center text-slate-400">جارٍ تحميل المتجر…</p>}
       {error && <div className="p-4"><button onClick={() => void reload()} className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-rose-200">{error} — إعادة المحاولة</button></div>}
-      {!loading && !error && !filteredItems.length && <p className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400">لا توجد عناصر حالياً في هذا القسم.</p>}
+      {!loading && !error && !filteredItems.length && <div className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400"><ShoppingBag size={24} className="mx-auto text-slate-600"/><p className="mt-2 text-sm font-bold">{query?'لا توجد نتائج مطابقة':'لا توجد منتجات متاحة حالياً في هذا القسم'}</p>{activeTab==='cards'&&<p className="mt-1 text-[10px] text-pink-200/60">أي منتج CP فعلي يضاف للكتالوج سيظهر هنا تلقائياً.</p>}</div>}
 
       <div className="p-4 grid grid-cols-2 gap-3">
         {filteredItems.map(item => (
