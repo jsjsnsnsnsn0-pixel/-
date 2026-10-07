@@ -4,24 +4,34 @@ import { catalog, rpc, backendMessage } from '../../services/backend';
 import { supabase } from '../../services/supabase';
 import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
-import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, Heart } from 'lucide-react';
 
 interface StoreItem {
   id: string;
   name: string;
-  category: 'frames' | 'cars' | 'bubbles' | 'badges';
+  category: 'frames' | 'cars' | 'bubbles' | 'badges' | 'cards';
   price: number;
   currency: 'gold' | 'silver';
   image: string;
   description: string;
   duration: string;
   isOwned?: boolean;
+  relationshipTypeId?: string | null;
+  previewUrl?: string | null;
+  presentation?: Record<string, unknown>;
+}
+
+interface RelationshipSummary {
+  relation_id: string;
+  type_id: string;
+  type_label?: string;
+  card?: {id?: string; name?: string} | null;
 }
 
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges'>('frames');
+  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges' | 'cards'>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
@@ -29,28 +39,45 @@ export const StoreScreen: React.FC = () => {
   const load = useCallback(async (): Promise<StoreItem[]> => {
     const [entries, owned] = await Promise.all([catalog(), supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId)]);
     if (owned.error) throw owned.error;
-    return entries.filter(item => ['frames','cars','bubbles','badges'].includes(item.category)).map(item => ({
-      ...item, category: item.category as StoreItem['category'], image: item.icon,
+    return entries.filter(item => ['frames','cars','bubbles','badges','cards'].includes(item.category)).map(item => ({
+      ...item,
+      category: item.category as StoreItem['category'],
+      image: item.icon,
       duration: item.duration_days ? `${item.duration_days} يوم` : 'دائم',
       isOwned: (owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
+      relationshipTypeId: item.relationship_type_id ?? null,
+      previewUrl: item.preview_url ?? null,
+      presentation: item.presentation ?? {},
     }));
   }, [user.authId]);
+  const loadRelationships = useCallback(
+    () => rpc<RelationshipSummary[]>('profile_relationships', {p_public_id: Number(user.id)}),
+    [user.id, user.authId],
+  );
   const {data: items, loading, error, reload} = useServerData(load, []);
+  const relationships = useServerData(loadRelationships, []);
   const filteredItems = items.filter(item => item.category === activeTab);
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
     setBusy(true); setPurchaseSuccess(null);
     try {
-      if (item.isOwned) await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
-      else {
+      if (item.isOwned) {
+        if (item.category === 'cards') {
+          const relationship = relationships.data?.find(relation => relation.type_id === item.relationshipTypeId);
+          if (!relationship?.relation_id) throw new Error('active matching relationship required');
+          await rpc('equip_relationship_card', {p_relation_id: relationship.relation_id, p_item_id: item.id});
+        } else {
+          await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
+        }
+      } else {
         const request = requests.current.get(item.id) || crypto.randomUUID();
         requests.current.set(item.id, request);
         const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: item.id, p_request_id: request});
         if (!result?.id) throw new Error('purchase not confirmed');
         requests.current.delete(item.id);
       }
-      setPurchaseSuccess(item.isOwned ? 'تم اعتماد تجهيز المنتج.' : 'تم اعتماد الشراء من الخادم.');
-      await Promise.all([reload(), refreshWallet()]);
+      setPurchaseSuccess(item.isOwned ? (item.category === 'cards' ? 'تم تفعيل بطاقة العلاقة.' : 'تم اعتماد تجهيز المنتج.') : 'تم اعتماد الشراء من الخادم.');
+      await Promise.all([reload(), relationships.reload(), refreshWallet()]);
       scheduleTimeout(() => setPurchaseSuccess(null), 3000);
     } catch (e) { reportError(backendMessage(e)); }
     finally { setBusy(false); }
@@ -97,12 +124,13 @@ export const StoreScreen: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1 p-3 bg-white border-b border-slate-100 text-xs font-bold">
+      <div className="grid grid-cols-5 gap-1 p-3 bg-white border-b border-slate-100 text-xs font-bold">
         {[
           { id: 'frames', label: 'إطارات', icon: Sparkles },
           { id: 'cars', label: 'سيارات الدخول', icon: Car },
           { id: 'bubbles', label: 'فقاعات الشات', icon: MessageCircle },
           { id: 'badges', label: 'شارات الشرف', icon: Crown },
+          { id: 'cards', label: 'البطاقات', icon: Heart },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -134,8 +162,8 @@ export const StoreScreen: React.FC = () => {
             className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
           >
             <div>
-              <div className="h-24 rounded-2xl bg-gradient-to-tr from-slate-50 to-pink-50/40 flex items-center justify-center text-4xl mb-3 border border-pink-100/50">
-                {item.image}
+              <div className="h-24 rounded-2xl bg-gradient-to-tr from-slate-50 to-pink-50/40 flex items-center justify-center text-4xl mb-3 border border-pink-100/50 overflow-hidden">
+                {item.previewUrl ? <img src={item.previewUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" /> : item.image}
               </div>
               <h3 className="font-bold text-xs text-slate-900 mb-1">{item.name}</h3>
               <p className="text-[10px] text-slate-500 leading-tight line-clamp-2 mb-2">
@@ -154,11 +182,19 @@ export const StoreScreen: React.FC = () => {
                 </span>
               </div>
               <button
-                disabled={busy || loading}
+                disabled={busy || loading || (item.category === 'cards' && Boolean(item.isOwned) && !relationships.data?.some(relation => relation.type_id === item.relationshipTypeId))}
                 onClick={() => void handleBuy(item)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-bold rounded-xl shadow-xs hover:from-pink-600 hover:to-rose-600 cursor-pointer active:scale-95 transition-all"
+                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-bold rounded-xl shadow-xs hover:from-pink-600 hover:to-rose-600 cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? 'تجهيز' : 'شراء'}
+                {busy
+                  ? 'جارٍ التنفيذ…'
+                  : item.category === 'cards' && item.isOwned && relationships.data?.some(relation => relation.card?.id === item.id)
+                    ? 'مفعلة'
+                    : item.category === 'cards' && item.isOwned && !relationships.data?.some(relation => relation.type_id === item.relationshipTypeId)
+                      ? 'تحتاج علاقة'
+                      : item.category === 'cards' && item.isOwned
+                        ? 'تفعيل'
+                        : item.isOwned ? 'تجهيز' : 'شراء'}
               </button>
             </div>
           </div>
