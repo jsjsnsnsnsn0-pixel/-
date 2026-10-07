@@ -159,7 +159,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const effectiveQuantity=sendSource==='saved'?1:quantity;
   const totalPrice=selectedGift?selectedGift.price*effectiveQuantity:0;
   const insufficientCoins=sendSource==='coins'&&Boolean(selectedGift)&&user.gold<totalPrice;
-  const unavailableSaved=sendSource==='saved'&&Boolean(selectedGift)&&(inventoryCounts[selectedGift.id]||0)<1;
+  const unavailableSaved=sendSource==='saved'&&selectedGift!==null&&(inventoryCounts[selectedGift.id]||0)<1;
   const sendDisabled=sending||loading||sendSuccess||!selectedGift||!selectedRecipient||insufficientCoins||unavailableSaved;
 
   const handleSend = async () => {
