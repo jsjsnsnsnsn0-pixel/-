@@ -22,7 +22,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const [micUiMuted,setMicUiMuted]=useState(isMyMicMuted);
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
-  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,musicName}=useRoomAudioContext();
+  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused}=useRoomAudioContext();
   useEffect(()=>{if(!micBusy)setMicUiMuted(isMyMicMuted)},[isMyMicMuted,micBusy,activeRoom?.id]);
   useEffect(()=>{
     if(!activeRoom)return;
@@ -86,7 +86,7 @@ export const VoiceRoomScreen: React.FC = () => {
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}
       messages={messages} chatEnabled={activeRoom.chatEnabled!==false} text={text} sending={sending}
       muted={micUiMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
-      musicName={musicName} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic}
+      musicName={musicName} musicPaused={musicPaused} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic} onPauseMusic={pauseMusic} onResumeMusic={()=>{void resumeMusic().catch(error=>reportError(error instanceof Error?error.message:'تعذر استئناف الموسيقى.'))}}
       onText={setText} onSend={send} onInfo={openInfo} onUsers={openMembers} onExit={()=>setExitOpen(true)} onGift={()=>{setGiftRecipient(null);setGiftOpen(true)}}
       onMic={()=>void handleMic()} onSpeaker={toggleSpeaker} onHand={()=>void toggleRaiseHand()} onLeaveSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}}
       onManage={()=>setManagementOpen(true)} onMessages={()=>setActiveSubScreen('messages')}/>
