@@ -32,6 +32,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
+  const quantityOptions = [1, 7, 17, 77, 777] as const;
+  const [quantity, setQuantity] = useState<(typeof quantityOptions)[number]>(1);
   
   // Available recipients: room participants or host
   const potentialRecipients: User[] = [...new Map([...(room?.members?.length?room.members:(room?.seats||[]).flatMap(seat=>seat.user?[seat.user]:[])),user].map(member=>[member.id,member])).values()];
@@ -51,6 +53,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       giftRetry.current=null;
       setSendSuccess(false);
       setErrorMsg(null);
+      setQuantity(1);
     }
   }, [isOpen]);
 
@@ -95,15 +98,16 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       return;
     }
 
-    if (user.gold < selectedGift.price) {
+    const totalPrice = selectedGift.price * quantity;
+    if (user.gold < totalPrice) {
       setErrorMsg('رصيدك من Coins غير كافٍ. اضغط لشحن الرصيد');
       return;
     }
 
     setSending(true);
-    const key = `${room?.id}:${selectedGift.id}:${selectedRecipient.id}`;
+    const key = `${room?.id}:${selectedGift.id}:${selectedRecipient.id}:${quantity}`;
     if(giftRetry.current?.key!==key)giftRetry.current={key,id:crypto.randomUUID()};
-    const ok = await sendGiftInRoom(selectedGift, selectedRecipient, undefined, giftRetry.current.id);
+    const ok = await sendGiftInRoom(selectedGift, selectedRecipient, quantity, undefined, giftRetry.current.id);
     if(ok)giftRetry.current=null;
     setSending(false);
     if (ok) {
@@ -246,6 +250,33 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             })}
           </div>
 
+          {/* Quantity selector */}
+          <div className="pb-3">
+            <span className="text-xs text-slate-400 mb-2 block">الكمية:</span>
+            <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="كمية الهدية">
+              {quantityOptions.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-label={`اختيار كمية ${value}`}
+                  aria-pressed={quantity === value}
+                  onClick={() => {
+                    setQuantity(value);
+                    setErrorMsg(null);
+                    setSendSuccess(false);
+                  }}
+                  className={`py-1.5 rounded-lg text-xs font-black border transition-all ${
+                    quantity === value
+                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
+                      : 'bg-[#181a2e] text-slate-300 border-purple-500/20 hover:border-purple-400/50'
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Error notice */}
           {errorMsg && (
             <div className="text-xs text-rose-400 bg-rose-950/40 p-2 rounded-xl border border-rose-500/30 text-center mb-2">
@@ -295,7 +326,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                   <span>إرسال الهدية</span>
                   {selectedGift && (
                     <span className="text-xs opacity-90 font-mono">
-                      ({selectedGift.price.toLocaleString('ar-SA')} 🪙)
+                      ({(selectedGift.price * quantity).toLocaleString('ar-SA')} 🪙 · ×{quantity})
                     </span>
                   )}
                 </>
