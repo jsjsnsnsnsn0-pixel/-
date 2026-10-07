@@ -102,21 +102,21 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {/* 1. TOP WINGS & AVATAR (الأجنحة الذهبية المرصعة بالياقوت) */}
         {/* ========================================================= */}
         <div className="relative flex justify-center items-center mt-1 mb-2">
-          {/* Symmetrical Ruby Wings Banner Asset */}
-          <div className="relative w-72 h-20 flex items-center justify-center">
-            <img
-              src="/assets/images/ruby_wings_frame_1790377749780.jpg"
-              alt="Ruby Wings"
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(239,68,68,0.4)] mix-blend-screen scale-110"
-            />
+          {/* Transparent decorative wings. Avoid raster backgrounds so every account
+              keeps a clean avatar without a white rectangular plate. */}
+          <div className="relative w-72 h-20 flex items-center justify-center bg-transparent" data-testid="profile-avatar-frame">
+            <span aria-hidden="true" className="absolute left-8 top-7 w-20 h-4 rounded-full bg-gradient-to-r from-transparent via-rose-500/65 to-amber-300/80 -rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute left-5 top-10 w-20 h-3 rounded-full bg-gradient-to-r from-transparent via-fuchsia-500/55 to-amber-300/70 rotate-6" />
+            <span aria-hidden="true" className="absolute right-8 top-7 w-20 h-4 rounded-full bg-gradient-to-l from-transparent via-rose-500/65 to-amber-300/80 rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute right-5 top-10 w-20 h-3 rounded-full bg-gradient-to-l from-transparent via-fuchsia-500/55 to-amber-300/70 -rotate-6" />
 
             {/* Circular Avatar in the Center */}
-            <div className="absolute w-16 h-16 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,215,0,0.6)] overflow-hidden bg-black flex items-center justify-center z-10">
+            <div className="absolute w-16 h-16 rounded-full border-2 border-amber-200/90 shadow-[0_0_15px_rgba(255,215,0,0.45)] overflow-hidden bg-transparent flex items-center justify-center z-10">
               <img
                 src={displayUser.avatar}
                 onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}}
                 alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-cover object-center bg-transparent"
               />
             </div>
           </div>
