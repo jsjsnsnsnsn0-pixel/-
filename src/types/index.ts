@@ -94,6 +94,11 @@ export interface Gift {
   icon: string;
   animationType: 'pulse' | 'rocket' | 'lion' | 'car' | 'crown' | 'sparkle';
   diamondSourceType?: 'FIXED_GIFT' | 'LUCKY_GIFT';
+  categoryId?: string;
+  description?: string;
+  previewUrl?: string | null;
+  relationshipTypeId?: string | null;
+  rarity?: string | null;
   badge?: string;
 }
 
@@ -148,5 +153,6 @@ export interface ActiveGiftAnimation {
   gift: Gift;
   sender: User;
   recipient: User;
+  quantity?: number;
   targetSeatIndex?: number;
 }

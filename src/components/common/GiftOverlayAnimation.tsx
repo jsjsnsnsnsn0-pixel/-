@@ -10,7 +10,7 @@ interface GiftOverlayAnimationProps {
 export const GiftOverlayAnimation: React.FC<GiftOverlayAnimationProps> = ({ overlayData }) => {
   if (!overlayData) return null;
 
-  const { gift, sender, recipient } = overlayData;
+  const { gift, sender, recipient, quantity = 1 } = overlayData;
 
   return (
     <AnimatePresence>
@@ -65,7 +65,7 @@ export const GiftOverlayAnimation: React.FC<GiftOverlayAnimationProps> = ({ over
             <span className="font-bold text-purple-300 truncate max-w-[100px]">{sender.name}</span>
             <span className="text-slate-400 text-xs">أهدى</span>
             <span className="font-extrabold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/40">
-              {gift.name}
+              {gift.name}{quantity > 1 ? ` ×${quantity}` : ''}
             </span>
             <span className="text-slate-400 text-xs">إلى</span>
             <span className="font-bold text-pink-300 truncate max-w-[100px]">{recipient.name}</span>

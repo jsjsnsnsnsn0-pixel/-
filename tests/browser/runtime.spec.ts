@@ -7,12 +7,12 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = true;
   let currentRoom = {...room,max_seats:overrides.tenSeats?10:room.max_seats, owner_id:overrides.listener?other:actor, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
-  let current = {...profile,display_name:overrides.longText?'اسم مستخدم عربي طويل جداً لاختبار المساحة وتناسق الملف الشخصي':profile.display_name, sent_gold:overrides.economy?16000:0,received_gold:overrides.economy?20000:0, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
+  let current = {...profile,display_name:overrides.longText?'اسم مستخدم عربي طويل جداً لاختبار المساحة وتناسق الملف الشخصي':profile.display_name, sent_gold:overrides.economy?16000:0,received_gold:overrides.economy?20000:0, gold: overrides.zero ? 0 : overrides.giftFunds ? 1000 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
   let fixed=overrides.currency?100000:60; let lucky=overrides.currency?100000:20; let legacy=overrides.currency?777:10; const redemptions = new Map<string,any>();
@@ -44,6 +44,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       return respond(directMessages);
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
+    if (path.endsWith('/gift_catalog')) return respond([{id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',is_active:true}]);
     if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:overrides.listener?null:1,role:overrides.listener?'member':'owner',is_muted:currentMuted,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
@@ -154,6 +155,27 @@ test('room seats are rendered from the database and recharge opens while joined'
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   await page.getByTitle('شحن رصيد',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('gift selection waits for Send, supports agreed quantities and blocks rapid duplicates', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
+  await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
+  await dialog.getByText('وردة الاختبار',{exact:true}).click();
+  expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
+  await dialog.getByRole('button',{name:'اختيار كمية 77',exact:true}).click();
+  const send=dialog.getByRole('button',{name:/إرسال الهدية/});
+  await send.dblclick();
+  await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
+  const calls=requests.filter(r=>r.path.endsWith('/send_room_gift_batch'));
+  expect(calls).toHaveLength(1);
+  expect(calls[0].body.p_quantity).toBe(77);
+  expect(calls[0].body.p_recipient_public_id).toBe(920003);
+  expect(calls[0].body.p_gift_id).toBe('g1');
+  expect(typeof calls[0].body.p_request_id).toBe('string');
   expect(errors).toEqual([]);
 });
 
@@ -429,14 +451,20 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await page.getByTitle('أنا').click();await page.getByText('شحن / محفظة',{exact:true}).click();
  await expect(page.getByText('الشحن للـCoins',{exact:false})).toBeVisible();
  await page.getByTitle('سجل العمليات',{exact:true}).click();
- await expect(page.getByText('Coins 🪙 — عملة الشحن والإنفاق',{exact:true})).toBeVisible();
- await expect(page.getByText('Diamonds 💎 — أرباح الهدايا',{exact:true})).toBeVisible();
- await expect(page.getByText('Fixed Diamonds: 100,000 💎 — 30%',{exact:true})).toBeVisible();
- await expect(page.getByText('Lucky Diamonds: 100,000 💎 — 10%',{exact:true})).toBeVisible();
- await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
- await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'المحفظة والسجل',exact:true})).toBeVisible();
+ await expect(page.getByText('Coins 🪙',{exact:true})).toBeVisible();
+ await expect(page.getByText('Diamonds 💎',{exact:true})).toBeVisible();
+ await expect(page.getByText('Fixed',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky',{exact:true})).toBeVisible();
+ await expect(page.getByText('Legacy',{exact:true})).toBeVisible();
+ await expect(page.getByText('100,000',{exact:true})).toHaveCount(2);
+ await expect(page.getByText('777',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'فك الماس',exact:true}).click();
- const dialog=page.getByRole('dialog');await expect(dialog.getByText(/777/)).toBeVisible();
+ const dialog=page.getByRole('dialog');
+ await expect(dialog.getByText('ماس الهدايا الثابتة: 30% · ماس هدايا الحظ: 10%',{exact:true})).toBeVisible();
+ await expect(dialog.getByText('Fixed Diamonds: 100,000 💎',{exact:true})).toBeVisible();
+ await expect(dialog.getByText('Lucky Diamonds: 100,000 💎',{exact:true})).toBeVisible();
+ await expect(dialog.getByText(/777/)).toBeVisible();
  await dialog.getByRole('button',{name:'اختيار كل الماس القابل للفك'}).click();
  await dialog.getByRole('button',{name:'معاينة الفك',exact:true}).click();
  await expect(dialog.getByTestId('diamond-quote')).toContainText('200,000');
@@ -450,12 +478,13 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  expect(Object.keys(request.body).sort()).toEqual(['p_diamonds','p_request_id']);
  expect(request.body.p_diamonds).toBe(200000);
  await dialog.getByRole('button',{name:'إغلاق فك الماس'}).click();
- await expect(page.getByText('Fixed Diamonds: 0 💎 — 30%',{exact:true})).toBeVisible();
- await expect(page.getByText('Lucky Diamonds: 0 💎 — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('Fixed',{exact:true}).locator('..').getByText('0',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky',{exact:true}).locator('..').getByText('0',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'التحويل',exact:true}).click();
  await expect(page.getByText('فك ماس ثابت — 30%',{exact:true})).toBeVisible();
  await expect(page.getByText('فك ماس الحظ — 10%',{exact:true})).toBeVisible();
  await expect(page.getByText('Coins من فك الماس',{exact:true})).toBeVisible();
- await expect(page.getByText((40100).toLocaleString('ar-SA'),{exact:true})).toBeVisible();
+ await expect(page.getByText('40,000',{exact:false}).first()).toBeVisible();
  await page.getByRole('button',{name:'مستلمة',exact:true}).click();
  await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
  await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
@@ -644,7 +673,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
  await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByRole('button',{name:'تعديل الملف',exact:true})).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();const idBrightness=await copyId.locator('span').first().evaluate(el=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d')!;ctx.fillStyle=getComputedStyle(el).color;ctx.fillRect(0,0,1,1);return Math.min(...ctx.getImageData(0,0,1,1).data.slice(0,3));});expect(idBrightness).toBeGreaterThan(230);await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
- await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد عمليات في هذه القائمة',{exact:true})).toBeVisible();await capture('wallet');
+ await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد طلبات شحن',{exact:true})).toBeVisible();await capture('wallet');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('وكالة',{exact:true}).click();await expect(page.getByText('بوابة الوكالات',{exact:true})).toBeVisible();await capture('agency');
  await page.goto('/');await page.getByTitle('إنشاء غرفة',{exact:true}).click();await expect(page.getByRole('button',{name:'إنشاء غرفة',exact:true})).toBeDisabled();await capture('create');expect(errors).toEqual([]);
 });

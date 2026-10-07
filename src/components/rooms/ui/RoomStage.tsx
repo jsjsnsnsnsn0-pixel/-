@@ -1,14 +1,14 @@
 import {useDismissableLayer} from '../../../hooks/useDismissableLayer';
 import React, {useEffect, useRef, useState} from 'react';
-import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, X} from 'lucide-react';
+import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, Wifi, WifiOff, X} from 'lucide-react';
 import './room-ui.css';
 
-export interface RoomChatMessage {id: string; content: string; sender_display_name?: string}
+export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean; created_at?: string}
 interface Props {
   title: string; cover: string; thumbnail?:string; count: number; welcome: string; seats: React.ReactNode;
   onDeleteMessage?:(id:string)=>void;
   messages: RoomChatMessage[]; chatEnabled: boolean; text: string; sending: boolean;
-  muted: boolean; micBusy: boolean; seated: boolean; speaker: boolean; handRaised: boolean; canModerate: boolean;
+  muted: boolean; micBusy: boolean; seated: boolean; speaker: boolean; handRaised: boolean; canModerate: boolean; audioConnected: boolean;
   onText: (value: string) => void; onSend: (event: React.FormEvent) => void;
   onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
   onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
@@ -34,6 +34,7 @@ export function RoomStage(props: Props) {
     <header className="room-header">
       <button type="button" aria-label="معلومات الغرفة" onClick={props.onInfo} className="room-thumbnail"><img src={props.thumbnail||props.cover} alt={props.title}/></button>
       <div className="room-header-spacer"/>
+      <span role="status" aria-label={props.audioConnected?'الصوت متصل':'الصوت يعيد الاتصال'} className={`room-presence ${props.audioConnected?'text-emerald-300':'text-amber-300'}`}>{props.audioConnected?<Wifi size={14}/>:<WifiOff size={14}/>}<span>{props.audioConnected?'متصل':'اتصال'}</span></span>
       <button type="button" aria-label="الموجودون في الغرفة" onClick={props.onUsers} className="room-presence"><Users size={17}/><span>USR {props.count}</span></button>
       <button type="button" aria-label="خيارات الغرفة" onClick={props.onExit} className="room-icon"><Power/></button>
     </header>
@@ -42,7 +43,7 @@ export function RoomStage(props: Props) {
     <section className="room-chat-area" aria-label="دردشة الغرفة">
       <div ref={chatRef} className="room-chat" role="log" aria-live="polite" onScroll={event=>{const el=event.currentTarget;atBottom.current=el.scrollHeight-el.scrollTop-el.clientHeight<48;}}>
         {props.welcome&&<p className="room-welcome">{props.welcome}</p>}
-        {props.messages.map(message=><p className="room-message" key={message.id}><b>{message.sender_display_name||'مستخدم'} </b><span>{message.content}</span>{props.onDeleteMessage&&<button type="button" aria-label={`حذف رسالة ${message.sender_display_name||'مستخدم'}`} onClick={()=>props.onDeleteMessage?.(message.id)} className="inline-flex align-middle p-2 opacity-60"><X size={12}/></button>}</p>)}
+        {props.messages.map(message=><p className={`room-message ${message.kind==='gift'?'text-pink-200':''}`} key={message.id}><b>{message.sender_display_name||'مستخدم'} </b><span>{message.kind==='gift'?'🎁 ':''}{message.content}</span>{props.onDeleteMessage&&message.deletable!==false&&<button type="button" aria-label={`حذف رسالة ${message.sender_display_name||'مستخدم'}`} onClick={()=>props.onDeleteMessage?.(message.id)} className="inline-flex align-middle p-2 opacity-60"><X size={12}/></button>}</p>)}
       </div>
       {!props.chatEnabled&&<p role="status" className="room-chat-status">الدردشة العامة متوقفة</p>}
       <form className="room-compose" onSubmit={props.onSend}>
