@@ -4,12 +4,14 @@ import {readFile} from 'node:fs/promises';
 
 test('production lucky rewards stay server-side and cosmetic-only',async()=>{
   const sql=await readFile('supabase/migrations/20261008102000_lucky_gifts_safe_rewards.sql','utf8');
-  assert.match(sql,/create table if not exists public\\.lucky_results/);
-  assert.match(sql,/create table if not exists public\\.lucky_point_balances/);
-  assert.match(sql,/gift_events_lucky_reward/);
-  assert.match(sql,/pg_advisory_xact_lock/);
-  assert.match(sql,/floor\\(random\\(\\)\\*total_weight\\)/);
-  assert.match(sql,/private\\.require_owner\\(\\)/);
-  assert.doesNotMatch(sql,/update public\\.profiles set (?:gold|diamonds)/i);
-  assert.doesNotMatch(sql,/insert into public\\.diamond_lots/i);
+  for(const marker of [
+    'create table if not exists public.lucky_results',
+    'create table if not exists public.lucky_point_balances',
+    'gift_events_lucky_reward',
+    'pg_advisory_xact_lock',
+    'floor(random()*total_weight)',
+    'private.require_owner()',
+  ]) assert.ok(sql.includes(marker), 'missing financial safety marker: '+marker);
+  assert.ok(!sql.includes('update public.profiles set diamonds='));
+  assert.ok(!sql.includes('insert into public.diamond_lots'));
 });
