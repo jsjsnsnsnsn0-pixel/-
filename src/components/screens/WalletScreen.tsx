@@ -7,7 +7,7 @@ import {useServerData} from '../../hooks/useServerData';
 import {DiamondRedeemModal} from '../modals/DiamondRedeemModal';
 import {EmptyState, ErrorState, InlineLoading} from '../common/UIState';
 
-type Tab = 'recharge' | 'sent' | 'received' | 'games';
+type Tab = 'recharge' | 'sent' | 'received' | 'conversion' | 'games';
 type RechargeRequest = {id:string; amount_iqd:number|null; gold_amount:number; status:string; note:string|null; price_usd:number|null; created_at:string; updated_at:string};
 type GameRow = {id:string; game_type:string; outcome:string; score:number; details:Record<string,unknown>; created_at:string};
 
@@ -43,6 +43,7 @@ export const WalletScreen: React.FC = () => {
 
   const sent = useMemo(() => transactions.filter(t => t.type === 'gift_sent'), [transactions]);
   const received = useMemo(() => transactions.filter(t => ['gift_received','fixed_gift_diamonds_received','lucky_gift_diamonds_received'].includes(t.type)), [transactions]);
+  const conversions = useMemo(() => transactions.filter(t => ['fixed_diamonds_redeemed','lucky_diamonds_redeemed','coins_from_diamond_redemption','diamonds_exchange'].includes(t.type)), [transactions]);
 
   return <div className="min-h-screen bg-[linear-gradient(180deg,#090a12_0,#0e1020_45%,#111525_100%)] text-slate-100 pb-28" dir="rtl">
     <header className="sticky top-0 z-30 bg-[#090a12]/86 backdrop-blur-xl border-b border-white/8 px-4 py-3 flex items-center justify-between gap-3">
@@ -63,8 +64,8 @@ export const WalletScreen: React.FC = () => {
       </section>
 
       <section>
-        <div className="grid grid-cols-4 gap-1 rounded-2xl bg-white/5 border border-white/8 p-1">
-          {([['recharge','الشحن'],['sent','مرسلة'],['received','مستلمة'],['games','الألعاب']] as [Tab,string][]).map(([id,label]) => <button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`rounded-xl px-1 py-2 text-xs font-black ${tab===id?'bg-white text-slate-950 shadow-md':'text-slate-400'}`}>{label}</button>)}
+        <div className="grid grid-cols-5 gap-1 rounded-2xl bg-white/5 border border-white/8 p-1">
+          {([['recharge','الشحن'],['sent','مرسلة'],['received','مستلمة'],['conversion','التحويل'],['games','الألعاب']] as [Tab,string][]).map(([id,label]) => <button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`rounded-xl px-1 py-2 text-[11px] font-black ${tab===id?'bg-white text-slate-950 shadow-md':'text-slate-400'}`}>{label}</button>)}
         </div>
       </section>
 
@@ -78,6 +79,7 @@ export const WalletScreen: React.FC = () => {
 
       {tab === 'sent' && <TransactionList rows={sent} empty="ما أرسلت هدايا بعد" icon="sent"/>}
       {tab === 'received' && <TransactionList rows={received} empty="ما استلمت هدايا بعد" icon="received"/>}
+      {tab === 'conversion' && <TransactionList rows={conversions} empty="لا توجد عمليات تحويل بعد" icon="mixed"/>}
 
       {tab === 'games' && <section className="space-y-2">
         <div className="rounded-3xl bg-gradient-to-l from-violet-700/25 to-fuchsia-600/10 border border-violet-300/20 p-4 flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-violet-400/15 flex items-center justify-center text-violet-300"><Gamepad2/></div><div className="flex-1"><h2 className="font-black">TotiFun</h2><p className="text-xs text-slate-400">ألعاب ترفيهية بدون خصم Coins.</p></div><button type="button" onClick={()=>setActiveSubScreen('luck_games')} className="rounded-xl bg-white text-violet-950 px-3 py-2 text-xs font-black">العب</button></div>
@@ -91,7 +93,7 @@ export const WalletScreen: React.FC = () => {
   </div>;
 };
 
-const TransactionList: React.FC<{rows:any[]; empty:string; icon:'sent'|'received'}> = ({rows,empty,icon}) => <section className="space-y-2">
+const TransactionList: React.FC<{rows:any[]; empty:string; icon:'sent'|'received'|'mixed'}> = ({rows,empty,icon}) => <section className="space-y-2">
   {!rows.length && <EmptyState title={empty}/>} 
-  {rows.map(tx => <article key={tx.id} className="rounded-2xl bg-white/5 border border-white/8 p-3 flex items-start justify-between gap-3"><div className="flex items-center gap-3 min-w-0"><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${icon==='sent'?'bg-rose-500/12 text-rose-300':'bg-emerald-500/12 text-emerald-300'}`}>{icon==='sent'?<ArrowUpRight size={19}/>:<ArrowDownLeft size={19}/>}</span><div className="min-w-0"><strong className="text-sm block break-words">{tx.title}</strong><p className="text-[10px] text-slate-500 mt-1">{tx.date} · {tx.time}</p><span className="ui-id text-[10px] text-slate-600 block">{tx.id}</span></div></div><div className="text-left shrink-0"><span dir="ltr" className={`font-black text-sm ${tx.amount>0?'text-emerald-300':'text-slate-200'}`}>{tx.amount>0?'+':''}{Number(tx.amount).toLocaleString()} {tx.currency==='gold'?'🪙':tx.currency==='silver'?'🥈':'💎'}</span><span className="block text-[10px] text-slate-500 mt-1"><Gift size={10} className="inline"/> مكتمل</span></div></article>)}
+  {rows.map(tx => {const direction = icon === 'mixed' ? (Number(tx.amount) < 0 ? 'sent' : 'received') : icon; return <article key={tx.id} className="rounded-2xl bg-white/5 border border-white/8 p-3 flex items-start justify-between gap-3"><div className="flex items-center gap-3 min-w-0"><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${direction==='sent'?'bg-rose-500/12 text-rose-300':'bg-emerald-500/12 text-emerald-300'}`}>{direction==='sent'?<ArrowUpRight size={19}/>:<ArrowDownLeft size={19}/>}</span><div className="min-w-0"><strong className="text-sm block break-words">{tx.title}</strong><p className="text-[10px] text-slate-500 mt-1">{tx.date} · {tx.time}</p><span className="ui-id text-[10px] text-slate-600 block">{tx.id}</span></div></div><div className="text-left shrink-0"><span dir="ltr" className={`font-black text-sm ${tx.amount>0?'text-emerald-300':'text-slate-200'}`}>{tx.amount>0?'+':''}{Number(tx.amount).toLocaleString()} {tx.currency==='gold'?'🪙':tx.currency==='silver'?'🥈':'💎'}</span><span className="block text-[10px] text-slate-500 mt-1"><Gift size={10} className="inline"/> مكتمل</span></div></article>})}
 </section>;
