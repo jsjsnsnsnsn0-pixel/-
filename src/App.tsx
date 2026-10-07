@@ -1,4 +1,5 @@
 import {ConnectionBanner} from './components/common/ConnectionBanner';
+import {recordBetaEvent} from './services/betaTelemetry';
 import {NativeBackNavigation} from './components/common/NativeBackNavigation';
 import {GlobalGiftBanner} from './components/common/GlobalGiftBanner';
 import React, {lazy, Suspense} from 'react';
@@ -97,6 +98,16 @@ const MainLayout: React.FC = () => {
 const OperationError: React.FC = () => { const {error, dismissError} = useApp(); return error ? <div role="alert" dir="rtl" className="fixed top-3 inset-x-3 z-[200] max-w-md mx-auto bg-rose-950 text-white border border-rose-400 rounded-xl p-4 shadow-lg flex gap-3 items-center"><span className="flex-1">{error}</span><button aria-label="إغلاق" onClick={dismissError}>✕</button></div> : null; };
 
 export default function App() {
+  React.useEffect(()=>{
+    const onError=()=>recordBetaEvent('app_crash','window_error');
+    const onUnhandled=()=>recordBetaEvent('app_crash','promise_rejection');
+    window.addEventListener('error',onError);
+    window.addEventListener('unhandledrejection',onUnhandled);
+    return()=>{
+      window.removeEventListener('error',onError);
+      window.removeEventListener('unhandledrejection',onUnhandled);
+    };
+  },[]);
   if (!isSupabaseConfigured) return <div dir="rtl" className="min-h-screen flex items-center justify-center text-white p-6"><p>إعداد الاتصال غير مكتمل. أضف رابط Supabase والمفتاح العام وفق ملف .env.example ثم أعد بناء التطبيق.</p></div>;
   return <ErrorBoundary><AppProvider><RealtimeRankingsProvider><RoomAudioProvider><NativeBackNavigation /><Suspense fallback={<div className="fixed top-0 inset-x-0 h-1 bg-emerald-500/60 animate-pulse" role="status" aria-label="تحميل الصفحة" />}><MainLayout /></Suspense><GlobalGiftBanner/><OperationError /><ConnectionBanner/></RoomAudioProvider></RealtimeRankingsProvider></AppProvider></ErrorBoundary>;
 }
