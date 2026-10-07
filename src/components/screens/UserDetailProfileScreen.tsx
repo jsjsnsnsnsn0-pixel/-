@@ -120,8 +120,8 @@ export const UserDetailProfileScreen:React.FC=()=>{
   const openGift=()=>{
     if(!giftAvailable){reportError('إرسال الهدية لهذا الحساب متاح عندما يكون موجوداً معك داخل الغرفة.');return;}
     setSelectedChatUser(user);
+    sessionStorage.setItem('totichat.pendingGiftRecipient',user.id);
     setActiveSubScreen(null);
-    window.setTimeout(()=>window.dispatchEvent(new CustomEvent('totichat:open-gift-for-user',{detail:{userId:user.id}})),0);
   };
 
   const relationshipRequest=state.data?.couples?.relations?.find(item=>item.partner.public_id===Number(target.id));
