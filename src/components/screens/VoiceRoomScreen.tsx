@@ -30,12 +30,12 @@ export const VoiceRoomScreen: React.FC = () => {
     if(!activeRoom?.id)return;
     let disposed=false;
     const channel=supabase.channel('room-lucky:'+activeRoom.id)
-      .on('postgres_changes',{event:'INSERT',schema:'public',table:'lucky_bonus_results',filter:`room_id=eq.${activeRoom.id}`},event=>{
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_lucky_feed',filter:`room_id=eq.${activeRoom.id}`},event=>{
         if(disposed)return;
-        const row=event.new as Partial<RoomLuckyBonus>;
-        if(typeof row.gift_event_id==='string'&&Number(row.lucky_points)>0){
+        const row=event.new as Partial<RoomLuckyBonus> & {lucky_result_id?:string;id?:string};
+        if(typeof (row.lucky_result_id||row.id)==='string'&&Number(row.lucky_points)>0){
           setLuckyBonus({
-            gift_event_id:row.gift_event_id,
+            gift_event_id:String(row.lucky_result_id||row.id),
             sender_name:String(row.sender_name||'مستخدم'),
             recipient_name:String(row.recipient_name||'مستخدم'),
             gift_name:String(row.gift_name||'هدية حظ'),

@@ -140,7 +140,7 @@ const TransactionList: React.FC<{rows:any[]; empty:string; icon:'sent'|'received
 </section>;
 
 type LuckyHistoryRow = {
-  gift_event_id:string;request_id:string;sender_name:string;recipient_name:string;
+  id:string;request_id:string;sender_name:string;recipient_name:string;
   gift_name:string;quantity:number;multiplier:number;lucky_points:number;
   room_id:string;created_at:string;
 };
@@ -148,16 +148,16 @@ type LuckyHistoryRow = {
 const LuckyPointsHistory:React.FC<{userId:string}>=({userId})=>{
   const load=useCallback(async()=>{
     const [history,totals]=await Promise.all([
-      supabase.from('lucky_bonus_results')
-        .select('gift_event_id,request_id,sender_name,recipient_name,gift_name,quantity,multiplier,lucky_points,room_id,created_at')
+      supabase.from('lucky_results')
+        .select('id,request_id,sender_name,recipient_name,gift_name,quantity,multiplier,lucky_points,room_id,created_at')
         .eq('recipient_id',userId).order('created_at',{ascending:false}).limit(100),
-      supabase.rpc('lucky_points_state')
+      supabase.from('lucky_point_balances').select('points').eq('user_id',userId).maybeSingle()
     ]);
     if(history.error)throw history.error;
     if(totals.error)throw totals.error;
     return {
       results:(history.data||[]) as LuckyHistoryRow[],
-      total:Number((totals.data as {total_lucky_points?:number}|null)?.total_lucky_points||0),
+      total:Number((totals.data as {points?:number}|null)?.points||0),
     };
   },[userId]);
   const state=useServerData(load,{results:[] as LuckyHistoryRow[],total:0});
@@ -175,11 +175,11 @@ const LuckyPointsHistory:React.FC<{userId:string}>=({userId})=>{
         <p className="mt-2 text-[10px] text-slate-400">لا يوجد تحويل لهذه النقاط إلى Coins أو Diamonds.</p>
       </div>
       {!state.data.results.length&&<EmptyState title="لا توجد نتائج حظ" description="ستظهر نتائج الهدايا المؤهلة بعد إرسالها بنجاح داخل الغرفة."/>}
-      {state.data.results.map(row=><article key={row.gift_event_id} className="rounded-2xl border border-violet-300/15 bg-white/5 p-3 text-xs">
+      {state.data.results.map(row=><article key={row.id} className="rounded-2xl border border-violet-300/15 bg-white/5 p-3 text-xs">
         <div className="flex justify-between gap-2"><strong>{row.gift_name}</strong><strong className="text-amber-200">×{row.multiplier} · +{Number(row.lucky_points).toLocaleString()} نقطة</strong></div>
         <p className="mt-1 text-slate-300">من {row.sender_name} · الكمية ×{row.quantity}</p>
         <p className="mt-2 text-[10px] text-slate-500">{new Date(row.created_at).toLocaleString('ar-IQ')}</p>
-        <p className="mt-1 text-[9px] text-slate-600 break-all">Gift TX: {row.gift_event_id} · Room: {row.room_id}</p>
+        <p className="mt-1 text-[9px] text-slate-600 break-all">Lucky TX: {row.id} · Room: {row.room_id}</p>
       </article>)}
     </>}
   </section>;
