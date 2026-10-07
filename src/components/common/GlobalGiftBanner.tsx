@@ -29,7 +29,7 @@ export const GlobalGiftBanner: React.FC = () => {
     if(!row)return;
     if(hideTimer.current)clearTimeout(hideTimer.current);
     setAnnouncement(row);
-    hideTimer.current=setTimeout(()=>setAnnouncement(current=>current?.id===row.id?null:current),6500);
+    hideTimer.current=setTimeout(()=>setAnnouncement(current=>current?.id===row.id?null:current),5200);
   },[]);
 
   React.useEffect(()=>{
@@ -63,22 +63,25 @@ export const GlobalGiftBanner: React.FC = () => {
 
   return <AnimatePresence>
     {announcement&&<motion.div
-      initial={{y:-80,opacity:0,scale:.96}}
-      animate={{y:0,opacity:1,scale:1}}
-      exit={{y:-60,opacity:0,scale:.97}}
-      transition={{duration:.28,ease:'easeOut'}}
+      initial={{x:'110%',opacity:0,scale:.98}}
+      animate={{x:0,opacity:1,scale:1}}
+      exit={{x:'-110%',opacity:0,scale:.98}}
+      transition={{duration:.38,ease:'easeOut'}}
       dir="rtl"
-      className="fixed top-[max(10px,env(safe-area-inset-top))] inset-x-3 z-[180] max-w-md mx-auto"
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-3 z-[180] max-w-md mx-auto pointer-events-none"
+      style={{top:'max(68px, calc(env(safe-area-inset-top) + 56px))'}}
     >
-      <div className="rounded-2xl border border-amber-300/45 bg-gradient-to-r from-[#25113f]/95 via-[#39154d]/95 to-[#25113f]/95 backdrop-blur-xl shadow-2xl text-white flex items-center gap-2 p-2">
-        <button type="button" disabled={busy} onClick={()=>void openRoom()} aria-label={`فتح غرفة هدية ${announcement.gift_name}`} className="min-w-0 flex-1 flex items-center gap-3 text-right rounded-xl p-1 disabled:opacity-60">
-          <span className="w-10 h-10 shrink-0 rounded-full bg-amber-400/15 border border-amber-300/30 flex items-center justify-center text-amber-300"><Gift size={19}/></span>
+      <div className="pointer-events-auto rounded-[20px] border border-amber-300/35 bg-[linear-gradient(105deg,rgba(31,13,54,.94),rgba(65,20,76,.96),rgba(31,13,54,.94))] backdrop-blur-2xl shadow-[0_12px_34px_rgba(0,0,0,.34)] text-white flex items-center gap-2 p-2">
+        <button type="button" disabled={busy} onClick={()=>void openRoom()} aria-label={`فتح غرفة هدية ${announcement.gift_name}`} className="min-w-0 flex-1 flex items-center gap-2.5 text-right rounded-xl p-1 disabled:opacity-60 active:scale-[0.99] transition-transform">
+          <span className="w-10 h-10 shrink-0 rounded-[14px] bg-gradient-to-br from-amber-300/20 to-fuchsia-500/15 border border-amber-200/25 flex items-center justify-center text-amber-300 shadow-inner"><Gift size={19}/></span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-black text-amber-300">هدية مميزة · اضغط للدخول إلى الغرفة</span>
-            <span className="block text-xs mt-0.5 truncate"><b>{announcement.sender_name}</b> أرسل <b className="text-pink-300">{announcement.gift_name}</b> إلى <b>{announcement.recipient_name}</b></span>
+            <span className="block text-[10px] font-black text-amber-300">هدية كبيرة · اضغط للدخول للغرفة</span>
+            <span className="block text-xs mt-0.5 truncate"><b className="text-white">{announcement.sender_name}</b> أرسل <b className="text-pink-300">{announcement.gift_name}</b> إلى <b className="text-white">{announcement.recipient_name}</b></span>
           </span>
         </button>
-        <button type="button" aria-label="إخفاء إعلان الهدية" onClick={()=>setAnnouncement(null)} className="w-9 h-9 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-slate-300"><X size={16}/></button>
+        <button type="button" aria-label="إخفاء إعلان الهدية" onClick={()=>setAnnouncement(null)} className="w-9 h-9 shrink-0 rounded-full bg-white/[0.06] border border-white/[0.05] flex items-center justify-center text-slate-300"><X size={16}/></button>
       </div>
     </motion.div>}
   </AnimatePresence>;
