@@ -13,6 +13,7 @@ type RoleState={roles:{id:string;label:string;built_in:boolean;permissions:strin
 type AgencyApplication={id:string;applicant_public_id:number;agency_name:string;country_code:string;agent_number:string;full_name:string;status:string;submitted_at:string;review_note:string|null;logo_path:string;identity_path:string;portrait_path:string};
 type LedgerEntry={id:string;created_at:string;operator_name:string;public_id:number;target_public_id:number;delta:number;previous_balance:number;new_balance:number;reason:string};
 type AuditEntry={id:string;operator_name:string;action:string;created_at:string;metadata:Record<string,unknown>};
+type BetaHealth={last_24h:Record<string,number>;last_7_days:number;recent_codes:{category:string;code:string;total:number}[]};
 
 const sections=[
  {id:'overview',name:'الرئيسية',perm:'dashboard.view',Icon:ClipboardList},
@@ -21,6 +22,7 @@ const sections=[
  {id:'roles',name:'الرتب والصلاحيات',perm:'roles.view',Icon:KeyRound},
  {id:'agencies',name:'طلبات الوكالات',perm:'agencies.view',Icon:Building2},
  {id:'audit',name:'سجل الإدارة',perm:'audit.view',Icon:ShieldCheck},
+ {id:'health',name:'صحة Beta',perm:'reports.view',Icon:RefreshCw},
  {id:'settings',name:'إعدادات Beta',perm:'system.settings',Icon:Settings2},
 ] as const;
 type SectionId=(typeof sections)[number]['id'];
@@ -80,6 +82,9 @@ export const DashboardScreen:React.FC=()=>{
  const audit=useServerData(useCallback(
    ()=>dashboardEnabled&&active==='audit'?rpc<AuditEntry[]>('dashboard_audit_history'):Promise.resolve([]),
    [dashboardEnabled,active]),[] as AuditEntry[]);
+ const health=useServerData(useCallback(
+  ()=>dashboardEnabled&&active==='health'?rpc<BetaHealth>('dashboard_beta_health'):Promise.resolve({last_24h:{},last_7_days:0,recent_codes:[]}),
+  [dashboardEnabled,active]),{last_24h:{},last_7_days:0,recent_codes:[]} as BetaHealth);
  const flags=useServerData(useCallback(
    ()=>dashboardEnabled&&active==='settings'?rpc<Record<string,boolean>>('beta_flags_state'):Promise.resolve({}),
    [dashboardEnabled,active]),{} as Record<string,boolean>);
@@ -208,6 +213,15 @@ export const DashboardScreen:React.FC=()=>{
    </section>}
    {active==='audit'&&<section className="space-y-3"><h2 className="font-black text-lg">سجل الإجراءات الإدارية</h2>
     {audit.loading?<InlineLoading>تحميل السجل…</InlineLoading>:audit.error?<ErrorState message={audit.error} onRetry={()=>void audit.reload()}/>:audit.data.length===0?<EmptyState title="السجل فارغ"/>:audit.data.map(a=><article key={a.id} className="border border-white/10 rounded-xl bg-white/5 p-3 text-sm"><strong>{a.action}</strong><p>{a.operator_name} · {date(a.created_at)}</p><pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap break-all">{JSON.stringify(a.metadata)}</pre></article>)}
+   </section>}
+   {active==='health'&&<section className="space-y-3">
+     <h2 className="font-black text-lg">مراقبة Beta</h2>
+     <p className="text-xs text-slate-400">أرقام مجمعة فقط؛ لا تشمل الرسائل أو كلمات المرور.</p>
+     {health.loading?<InlineLoading>تحميل الأحداث…</InlineLoading>:health.error?<ErrorState message={health.error} onRetry={()=>void health.reload()}/>:<>
+       <div className="rounded-xl bg-white/5 border border-white/10 p-4">أحداث الأسبوع: <strong>{num(health.data.last_7_days)}</strong></div>
+       <div className="grid grid-cols-2 gap-2">{Object.entries(health.data.last_24h).map(([key,value])=><div key={key} className="rounded-xl bg-white/5 border border-white/10 p-3"><strong>{num(value)}</strong><p className="text-xs text-slate-400">{key}</p></div>)}</div>
+       {health.data.recent_codes.map(row=><p key={row.category+row.code} className="text-xs border-b border-white/10 p-2">{row.category} · {row.code} · {num(row.total)}</p>)}
+     </>}
    </section>}
    {active==='settings'&&<section className="space-y-3">
     <h2 className="font-black text-lg">Feature Flags للنسخة التجريبية</h2>
