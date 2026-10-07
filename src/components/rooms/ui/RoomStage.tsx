@@ -12,7 +12,7 @@ interface Props {
   onText: (value: string) => void; onSend: (event: React.FormEvent) => void;
   onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
   onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
-  musicName?: string; onMusic?: (file:File) => void; onStopMusic?:()=>void;
+  musicName?: string; musicPaused?:boolean; onMusic?: (file:File) => void; onStopMusic?:()=>void; onPauseMusic?:()=>void; onResumeMusic?:()=>void;
   onManage: () => void; onMessages: () => void;
 }
 
@@ -52,7 +52,7 @@ export function RoomStage(props: Props) {
       </form>
     </section>
     <input ref={fileRef} type="file" accept="audio/*" className="hidden" onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)props.onMusic?.(file)}}/>
-    {props.musicName&&<div className="px-4 flex justify-between gap-2 text-xs text-cyan-200"><span className="truncate">♫ {props.musicName}</span><button type="button" onClick={props.onStopMusic}>إيقاف</button></div>}
+    {props.musicName&&<div className="mx-3 mb-1 rounded-xl bg-cyan-950/35 border border-cyan-300/15 px-3 py-2 flex items-center gap-2 text-xs text-cyan-100"><span className="truncate flex-1">♫ {props.musicName}</span><button type="button" aria-label={props.musicPaused?'متابعة الموسيقى':'إيقاف الموسيقى مؤقتاً'} onClick={props.musicPaused?props.onResumeMusic:props.onPauseMusic} className="rounded-lg bg-white/10 px-2 py-1">{props.musicPaused?'متابعة':'إيقاف مؤقت'}</button><button type="button" aria-label="إيقاف الموسيقى" onClick={props.onStopMusic} className="rounded-lg bg-rose-500/15 text-rose-200 px-2 py-1">إيقاف</button></div>}
     <footer className="room-footer">
       <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
       <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>
