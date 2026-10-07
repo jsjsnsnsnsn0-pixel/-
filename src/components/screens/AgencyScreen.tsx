@@ -116,12 +116,12 @@ export const AgencyScreen: React.FC = () => {
   const normalizedAgencySearch=agencySearch.trim().toLowerCase();
   const visibleAgencies=(directory.data||[]).filter(item=>!normalizedAgencySearch||item.name.toLowerCase().includes(normalizedAgencySearch)||String(item.id).includes(normalizedAgencySearch));
 
-  return <div dir="rtl" className="min-h-screen bg-[#0b0c16] text-white p-4 pb-28">
+  return <div dir="rtl" className="min-h-screen bg-[radial-gradient(circle_at_80%_0%,rgba(245,158,11,.16),transparent_28%),radial-gradient(circle_at_10%_12%,rgba(124,58,237,.18),transparent_32%),#090b12] text-white p-4 pb-28">
     <header className="flex items-center gap-3 mb-4"><button className="ui-control px-3 rounded-xl bg-white/5" onClick={() => {if(!agency&&portalMode!=='home'){setPortalMode('home');setShowRegistration(false);}else setActiveSubScreen(null);}}>الرجوع</button><h1 className="text-base font-bold">بوابة الوكالات</h1></header>
     <img src="/assets/images/agency_login_portal_1790714750581.jpg" alt="بوابة الوكالة" className="w-full h-52 object-cover rounded-3xl mb-5" />
     {loading && <InlineLoading>جارٍ تحميل الوكالات…</InlineLoading>}{error && <ErrorState message={error} onRetry={()=>void reload()}/>} {notice && <p role="status" className="p-3 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-3">{notice}</p>}
 
-    {agency && <section className="p-4 bg-white/10 rounded-2xl mb-4"><h2 className="font-bold text-base break-words">{agency.name}</h2><p className="ui-id text-xs text-slate-400 mt-1">ID: {agency.id}</p><p className="my-3">الأعضاء: {data.members.length}</p>
+    {agency && <section className="p-4 bg-white/[0.065] backdrop-blur-xl rounded-2xl mb-4"><h2 className="font-bold text-base break-words">{agency.name}</h2><p className="ui-id text-xs text-slate-400 mt-1">ID: {agency.id}</p><p className="my-3">الأعضاء: {data.members.length}</p>
       {data.members.map(m => <div key={m.public_id} className="flex items-center justify-between gap-3 p-3 border-b border-white/5 min-w-0"><span className="min-w-0 flex-1"><span className="block text-sm truncate">{m.display_name}</span><span className="ui-id text-xs text-slate-400">ID: {m.public_id}</span></span>{isOwner && m.public_id !== Number(user.id) && <button className="ui-control px-3 rounded-xl text-rose-300 bg-rose-500/10" disabled={busy} onClick={() => void act(agency.id,'remove',m.public_id)}>إزالة</button>}</div>)}
       {isOwner && !data.applications.length && <div className="text-slate-400 mt-3"><EmptyState title="لا توجد طلبات انضمام معلقة" /></div>}{isOwner ? data.applications.map(m => <div key={m.public_id} className="flex flex-wrap items-center gap-2 p-3 border-b border-white/5"><span>{m.display_name}</span><button className="ui-control px-3 rounded-xl bg-emerald-700 text-white" disabled={busy} onClick={() => void act(agency.id,'accept',m.public_id)}>قبول</button><button className="ui-control px-3 rounded-xl bg-rose-500/10 text-rose-300" disabled={busy} onClick={() => void act(agency.id,'reject',m.public_id)}>رفض</button></div>) : <button className="ui-control px-3 rounded-xl bg-rose-500/10 text-rose-300" disabled={busy} onClick={() => void act(agency.id,'leave')}>مغادرة الوكالة</button>}
     </section>}
@@ -142,7 +142,7 @@ export const AgencyScreen: React.FC = () => {
       {portalMode === 'host' && <section>
         {selectedAgencyId && detail.data ? <div className="space-y-3">
           <button type="button" onClick={()=>setSelectedAgencyId(null)} className="text-xs text-purple-200 rounded-xl bg-white/5 px-3 py-2">الرجوع إلى قائمة الوكالات</button>
-          <div className="rounded-2xl border border-purple-400/20 bg-white/5 p-4">
+          <div className="rounded-[24px] border border-purple-400/20 bg-white/5 p-4">
             <div className="flex items-center gap-3">
               {detail.data.agency.logo_url?<img src={detail.data.agency.logo_url} alt="" loading="lazy" className="w-16 h-16 rounded-2xl object-cover border border-white/10"/>:<span className="w-16 h-16 rounded-2xl bg-purple-500/15 flex items-center justify-center text-3xl" aria-hidden="true">🏛️</span>}
               <span className="min-w-0 flex-1"><span className="block text-lg font-black truncate">{detail.data.agency.name}</span><span className="ui-id text-xs text-slate-400">ID: {detail.data.agency.id}</span><span className="block text-[11px] text-slate-400 mt-1">{detail.data.members.length} عضو</span></span>
@@ -156,10 +156,10 @@ export const AgencyScreen: React.FC = () => {
           </div>
         </div> : <>
           <div className="flex items-center justify-between mb-3"><h2 className="font-bold">الوكالات المتاحة</h2><span className="text-xs text-slate-400">{directory.data?.length || 0} وكالة</span></div>
-          <label className="block mb-3"><span className="sr-only">بحث الوكالات</span><input value={agencySearch} onChange={event=>setAgencySearch(event.target.value)} placeholder="ابحث باسم الوكالة أو ID" className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-purple-400/50" /></label>
+          <label className="block mb-3"><span className="sr-only">بحث الوكالات</span><input value={agencySearch} onChange={event=>setAgencySearch(event.target.value)} placeholder="ابحث باسم الوكالة أو ID" className="w-full rounded-xl bg-white/[0.065] backdrop-blur-xl border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-purple-400/50" /></label>
           {directory.loading&&<InlineLoading>جارٍ تحميل قائمة الوكالات…</InlineLoading>}
           {directory.error&&<ErrorState message={directory.error} onRetry={()=>void directory.reload()}/>}
-          {!directory.loading&&!directory.error&&visibleAgencies.map(a => <button type="button" key={a.id} onClick={()=>setSelectedAgencyId(a.id)} className="w-full flex items-center gap-3 p-3 bg-white/10 rounded-xl mb-2 text-right active:scale-[0.99] transition-transform">
+          {!directory.loading&&!directory.error&&visibleAgencies.map(a => <button type="button" key={a.id} onClick={()=>setSelectedAgencyId(a.id)} className="w-full flex items-center gap-3 p-3 bg-white/[0.065] backdrop-blur-xl rounded-xl mb-2 text-right active:scale-[0.99] transition-transform">
             {a.logo_url?<img src={a.logo_url} alt="" loading="lazy" className="w-11 h-11 rounded-xl object-cover shrink-0"/>:<span className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0" aria-hidden="true">🏛️</span>}
             <span className="flex-1 min-w-0"><span className="block text-sm font-bold truncate">{a.name}</span><span className="ui-id text-xs text-slate-400">ID: {a.id}</span>{a.owner_name&&<span className="block text-[10px] text-slate-400 truncate">الوكيل: {a.owner_name}</span>}{typeof a.members_count==='number'&&<span className="block text-[10px] text-slate-500">{a.members_count} عضو</span>}</span>
             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${a.requested?'bg-amber-500/15 text-amber-200':'bg-purple-500/20 text-purple-200'}`}>{a.requested?'قيد المراجعة':'عرض'}</span>
@@ -170,7 +170,7 @@ export const AgencyScreen: React.FC = () => {
         {selectedAgencyId&&detail.error&&<ErrorState message={detail.error} onRetry={()=>void detail.reload()}/>}
       </section>}
 
-      {portalMode === 'agent' && <section className="rounded-2xl border border-amber-400/20 bg-amber-500/5 p-4">
+      {portalMode === 'agent' && <section className="rounded-[24px] border border-amber-400/20 bg-amber-500/5 p-4">
         <h2 className="font-bold text-amber-300">طلب تسجيل وكيل وفتح وكالة</h2>
         {registration.loading && <InlineLoading>جارٍ التحقق من حالة الطلب…</InlineLoading>}
         {registration.error && <ErrorState message={registration.error} onRetry={()=>void registration.reload()}/>}
@@ -188,7 +188,7 @@ export const AgencyScreen: React.FC = () => {
           <label className="block text-xs text-slate-300">صورة البطاقة الشخصية<input aria-label="صورة الهوية" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setRegistrationFile('identity',e.target.files?.[0]||null)} className="mt-1 block w-full text-xs" required /><LocalImagePreview file={files.identity} alt="معاينة البطاقة الشخصية" /></label>
           <label className="block text-xs text-slate-300">صورة شخصية حقيقية<input aria-label="صورة شخصية للوكالة" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setRegistrationFile('portrait',e.target.files?.[0]||null)} className="mt-1 block w-full text-xs" required /><LocalImagePreview file={files.portrait} alt="معاينة الصورة الشخصية" /></label>
           <p className="text-[11px] text-slate-400">المستندات مخصصة للمراجعة الإدارية ولا تظهر في الملف العام أو الغرف.</p>
-          <div className="grid grid-cols-2 gap-2"><button type="submit" disabled={busy} className="rounded-xl bg-emerald-600 py-3 font-bold disabled:opacity-50">{busy?'جارٍ الإرسال…':'إرسال الطلب'}</button><button type="button" disabled={busy} onClick={()=>setShowRegistration(false)} className="rounded-xl bg-white/10 py-3">إلغاء</button></div>
+          <div className="grid grid-cols-2 gap-2"><button type="submit" disabled={busy} className="rounded-xl bg-emerald-600 py-3 font-bold disabled:opacity-50">{busy?'جارٍ الإرسال…':'إرسال الطلب'}</button><button type="button" disabled={busy} onClick={()=>setShowRegistration(false)} className="rounded-xl bg-white/[0.065] backdrop-blur-xl py-3">إلغاء</button></div>
         </form>}
       </section>}
     </>}
