@@ -508,7 +508,7 @@ test('failed store purchase retains retry identifier and never displays success'
 test('real relationships record visits and persist follow/friend requests via RPC', async ({page})=>{
   const {requests,errors}=await setup(page,true,{social:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('متابعين',{exact:true}).click();
   await page.getByRole('button').filter({hasText:'مستخدم العلاقة'}).click();await page.getByRole('button',{name:'متابعة',exact:true}).click();
-  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();await page.getByText('إجراءات إضافية',{exact:true}).click();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
   await expect(page.getByRole('button',{name:'إلغاء الطلب',exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_visit&&r.body.p_public_id===451305)).toBe(true);
   expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='request')).toBe(true);expect(errors).toEqual([]);
@@ -875,7 +875,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
  await capture('home');
  await page.getByTitle('الرسائل',{exact:true}).click();await expect(page.getByText('لا توجد محادثات بعد',{exact:true})).toBeVisible();await capture('messages');
  await page.getByTitle('أنا',{exact:true}).click();await expect(page.getByTitle('اسم الحساب')).toBeVisible();await capture('profile');
- await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByTestId('self-profile-actions')).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ معرف الحساب.',{exact:true})).toBeVisible();await capture('full-profile');
+ await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByTestId('self-profile-actions')).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد طلبات شحن',{exact:true})).toBeVisible();await capture('wallet');
