@@ -1,0 +1,95 @@
+/* Deadline visual pass: clearly visible polish without replacing component logic. */
+:root {
+  --toti-glass: rgba(255,255,255,.78);
+  --toti-glass-dark: rgba(15,17,30,.78);
+  --toti-shadow-soft: 0 12px 32px rgba(15,23,42,.10);
+  --toti-shadow-dark: 0 14px 36px rgba(0,0,0,.34);
+}
+
+html { background: #07110d; }
+body { margin: 0; background: radial-gradient(circle at top, #1c8c66 0, #0b1914 34rem, #07110d 100%); }
+
+.ui-page {
+  isolation: isolate;
+  border-inline: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 28px 80px rgba(0,0,0,.28);
+}
+
+.ui-page > header,
+.ui-page header.sticky {
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+}
+
+.ui-page button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-page button:not(:disabled) {
+  transition-property: transform, box-shadow, filter, background-color, border-color, color, opacity;
+  transition-duration: 160ms;
+}
+.ui-page button:not(:disabled):active { transform: scale(.965); }
+
+.ui-page :is(input, textarea, select) {
+  border-width: 1px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.ui-page :is(.rounded-2xl,.rounded-3xl) {
+  box-shadow: 0 8px 26px rgba(15,23,42,.08);
+}
+
+/* Light surfaces */
+.ui-page.bg-\[\#f8fafc\],
+.ui-page .bg-white {
+  --surface-border: rgba(15,23,42,.08);
+}
+
+/* Dark premium surfaces */
+.ui-page .bg-\[\#141629\],
+.ui-page .bg-\[\#0b0c16\] {
+  box-shadow: var(--toti-shadow-dark);
+}
+
+/* Bottom nav feels like a floating native dock. */
+.ui-page nav:has(button),
+.ui-page > div > nav:has(button) {
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+
+/* Common content hierarchy */
+.ui-page h1 { letter-spacing: -.02em; }
+.ui-page h2, .ui-page h3 { letter-spacing: -.012em; }
+
+/* Card lift on pointer devices; mobile keeps pressed feedback only. */
+@media (hover:hover) {
+  .ui-page button:hover,
+  .ui-page [role="button"]:hover {
+    filter: brightness(1.025);
+  }
+}
+
+/* More obvious room / profile / wallet premium separation. */
+.ui-page .border-purple-500\/15,
+.ui-page .border-purple-500\/20,
+.ui-page .border-amber-500\/40,
+.ui-page .border-cyan-500\/40 {
+  border-width: 1px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* Better mobile safe-area presentation. */
+@supports (padding: max(0px)) {
+  .ui-page { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+}
+
+/* Keep animation tasteful and disable automatically when requested. */
+@media (prefers-reduced-motion: no-preference) {
+  .ui-page { animation: toti-page-in .18s ease-out; }
+  @keyframes toti-page-in {
+    from { opacity: .93; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
