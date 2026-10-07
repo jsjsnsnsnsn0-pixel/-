@@ -41,6 +41,8 @@ export function useLiveKitRoomAudio(
 ) {
   const [musicName,setMusicName]=useState('');
   const [musicPaused,setMusicPaused]=useState(false);
+  const [musicVolume,setMusicVolume]=useState(1);
+  const musicVolumeRef=useRef(musicVolume);musicVolumeRef.current=musicVolume;
   const musicRef=useRef<RoomMusicPublisher|null>(null);
   if(!musicRef.current)musicRef.current=new RoomMusicPublisher(name=>{setMusicName(name);if(!name)setMusicPaused(false)});
   const [connected, setConnected] = useState(false);
@@ -118,6 +120,9 @@ export function useLiveKitRoomAudio(
       removeRemoteAudio(key);
       const element = track.attach?.() as HTMLMediaElement | undefined;
       if (!element) return;
+      const musicTrack=String(publication?.trackName||publication?.name||track?.name||'')==='room-music';
+      element.dataset.roomMusic=musicTrack?'true':'false';
+      element.volume=musicTrack?musicVolumeRef.current:1;
       element.autoplay = true;
       element.muted = !speakerRef.current;
       element.setAttribute('playsinline', 'true');
@@ -192,6 +197,9 @@ export function useLiveKitRoomAudio(
     };
   }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError, resumePlayback]);
 
+  useEffect(()=>{
+    for(const element of remoteAudio.current.values())if(element.dataset.roomMusic==='true')element.volume=musicVolume;
+  },[musicVolume]);
   useEffect(() => {
     for (const element of remoteAudio.current.values()) element.muted = !speaker;
     if (speaker) { playbackWarningShown.current = false; void resumePlayback(); }
@@ -312,7 +320,7 @@ export function useLiveKitRoomAudio(
   const stopMusic=useCallback(()=>{musicRef.current?.stop();setMusicPaused(false)},[]);
   const pauseMusic=useCallback(()=>{if(musicRef.current?.pause())setMusicPaused(true)},[]);
   const resumeMusic=useCallback(async()=>{if(await musicRef.current?.resume())setMusicPaused(false)},[]);
-  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused };
+  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused,musicVolume,setMusicVolume };
 }
 
 // main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps

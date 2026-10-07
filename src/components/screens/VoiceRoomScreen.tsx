@@ -14,6 +14,16 @@ import {RoomExitOverlay} from '../rooms/ui/RoomExitOverlay';
 import {SeatActions} from '../rooms/ui/SeatActions';
 import {RoomStage, RoomChatMessage} from '../rooms/ui/RoomStage';
 
+type SharedMusic={room_id:string;track_id:string|null;track_name:string|null;status:'playing'|'paused'|'stopped';position_seconds:number;duration_seconds:number;started_at:string|null;version:number};
+const getMusicDuration=async(file:File)=>{
+  const url=URL.createObjectURL(file);
+  try{return await new Promise<number>((resolve,reject)=>{
+    const audio=new Audio();const timer=setTimeout(()=>{audio.src='';reject(new Error('انتهت مهلة قراءة الأغنية'));},8000);
+    audio.onloadedmetadata=()=>{clearTimeout(timer);const result=audio.duration;audio.src='';resolve(result)};
+    audio.onerror=()=>{clearTimeout(timer);reject(new Error('تعذر قراءة الملف الصوتي'))};
+    audio.preload='metadata';audio.src=url;
+  });}finally{URL.revokeObjectURL(url);}
+};
 type RoomLuckyBonus = {
   gift_event_id:string; sender_name:string; recipient_name:string; gift_name:string;
   multiplier:number; lucky_points:number; quantity:number;
@@ -22,6 +32,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const {activeRoom,user,leaveRoom,takeSeat,leaveSeat,isMyMicMuted,toggleMyMic,toggleRaiseHand,isHandRaised,isSpeakerOn,toggleSpeaker,activeGiftOverlay,setActiveSubScreen,setSelectedChatUser,reportError,lockSeat,unlockSeat}=useApp();
   const [infoOpen,setInfoOpen]=useState(false); const [membersOnly,setMembersOnly]=useState(false);
   const [luckyBonus,setLuckyBonus]=useState<RoomLuckyBonus|null>(null);
+  const [sharedMusic,setSharedMusic]=useState<SharedMusic|null>(null);
   const [giftRecipient,setGiftRecipient]=useState<User|null>(null);
   const [giftOpen,setGiftOpen]=useState(false); const [managementOpen,setManagementOpen]=useState(false); const [exitOpen,setExitOpen]=useState(false); const [selectedUser,setSelectedUser]=useState<User|null>(null);
   const [messages,setMessages]=useState<RoomChatMessage[]>([]); const [giftTotals,setGiftTotals]=useState<Record<string,number>>({}); const [text,setText]=useState(''); const [sending,setSending]=useState(false); const [micBusy,setMicBusy]=useState(false);
@@ -62,7 +73,48 @@ export const VoiceRoomScreen: React.FC = () => {
     const recipient=activeRoom.members?.find(member=>member.id===userId)||activeRoom.seats.find(seat=>seat.user?.id===userId)?.user;
     if(recipient){setGiftRecipient(recipient);setGiftOpen(true);}
   },[activeRoom?.id]);
-  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused}=useRoomAudioContext();
+  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused,musicVolume,setMusicVolume}=useRoomAudioContext();
+  useEffect(()=>{
+    if(!activeRoom?.id)return;
+    let disposed=false;
+    setSharedMusic(null);
+    void supabase.rpc('room_music_current',{p_room_id:activeRoom.id}).then(({data,error})=>{
+      if(!disposed&&!error)setSharedMusic(data as SharedMusic);
+    });
+    const channel=supabase.channel('room-music:'+activeRoom.id)
+      .on('postgres_changes',{event:'*',schema:'public',table:'room_music_state',filter:`room_id=eq.${activeRoom.id}`},change=>{
+        if(!disposed&&change.new&&Object.keys(change.new).length)setSharedMusic(change.new as SharedMusic);
+      }).subscribe();
+    return()=>{disposed=true;void supabase.removeChannel(channel)};
+  },[activeRoom?.id]);
+  useEffect(()=>{
+    if(!musicName||!sharedMusic||sharedMusic.track_name!==musicName)return;
+    if(sharedMusic.status==='stopped')stopMusic();
+    else if(sharedMusic.status==='paused'&&!musicPaused)pauseMusic();
+    else if(sharedMusic.status==='playing'&&musicPaused)void resumeMusic().catch(()=>{});
+  },[sharedMusic?.status,sharedMusic?.track_name,musicName,musicPaused,stopMusic,pauseMusic,resumeMusic]);
+  const sendMusicAction=async(action:'play'|'pause'|'resume'|'stop',file?:File)=>{
+    if(!activeRoom?.id||!activeRoom.canModerate)throw new Error('إدارة الموسيقى متاحة للمالك والمشرف فقط.');
+    const args:Record<string,unknown>={p_room_id:activeRoom.id,p_action:action,p_request_id:crypto.randomUUID()};
+    if(action==='play'){
+      if(!file)throw new Error('اختر ملفاً صوتياً.');
+      const duration=await getMusicDuration(file);
+      if(!Number.isFinite(duration)||duration<=0||duration>3600)throw new Error('مدة الأغنية غير مدعومة.');
+      args.p_track_id=crypto.randomUUID();args.p_track_name=file.name;args.p_duration_seconds=duration;
+    }
+    const {data,error}=await supabase.rpc('room_music_control',args);
+    if(error)throw new Error(error.message);
+    setSharedMusic(data as SharedMusic);
+    if(action==='play'&&file){
+      try{await startMusic(file)}
+      catch(e){
+        void supabase.rpc('room_music_control',{p_room_id:activeRoom.id,p_action:'stop',p_request_id:crypto.randomUUID()});
+        throw e;
+      }
+    }else if(action==='stop')stopMusic();
+    else if(action==='pause')pauseMusic();
+    else if(action==='resume')await resumeMusic();
+  };
   useEffect(()=>{if(!micBusy)setMicUiMuted(isMyMicMuted)},[isMyMicMuted,micBusy,activeRoom?.id]);
   useEffect(()=>{
     if(!activeRoom)return;
@@ -139,7 +191,7 @@ export const VoiceRoomScreen: React.FC = () => {
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}
       messages={messages} chatEnabled={activeRoom.chatEnabled!==false} text={text} sending={sending}
       muted={micUiMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
-      musicName={musicName} musicPaused={musicPaused} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic} onPauseMusic={pauseMusic} onResumeMusic={()=>{void resumeMusic().catch(error=>reportError(error instanceof Error?error.message:'تعذر استئناف الموسيقى.'))}}
+      musicName={sharedMusic?.track_name||musicName} musicPaused={sharedMusic?.status==='paused'||musicPaused} musicVolume={musicVolume} onMusicVolume={setMusicVolume} canControlMusic={Boolean(activeRoom.canModerate)} onMusic={file=>sendMusicAction('play',file)} onStopMusic={()=>sendMusicAction('stop')} onPauseMusic={()=>sendMusicAction('pause')} onResumeMusic={()=>sendMusicAction('resume')}
       onText={setText} onSend={send} onInfo={openInfo} onUsers={openMembers} onExit={()=>setExitOpen(true)} onGift={()=>{setGiftRecipient(null);setGiftOpen(true)}}
       onMic={()=>void handleMic()} onSpeaker={toggleSpeaker} onHand={()=>void toggleRaiseHand()} onLeaveSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}}
       onManage={()=>setManagementOpen(true)} onMessages={()=>setActiveSubScreen('messages')}/>
