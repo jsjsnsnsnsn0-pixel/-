@@ -182,6 +182,11 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   const send=dialog.getByRole('button',{name:/إرسال الهدية/});
   await send.dblclick();
   await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
+  await expect(page.getByTestId('room-gift-animation')).toBeVisible();
+  const announcement=page.getByTestId('room-gift-announcement');
+  await expect(announcement).toBeVisible();
+  await expect(announcement).toContainText('أرسل');
+  await expect(announcement).toContainText('وردة الاختبار');
   await expect(page.getByText('هدية فاخرة',{exact:true})).toHaveCount(0);
   const calls=requests.filter(r=>r.path.endsWith('/send_room_gift_batch'));
   expect(calls).toHaveLength(1);
