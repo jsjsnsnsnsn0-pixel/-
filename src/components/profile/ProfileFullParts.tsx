@@ -64,7 +64,7 @@ export function ProfileIdentity({user,onCopy}:{user:User;onCopy:()=>void}) {
     <div className="mt-2 flex items-center justify-center gap-2 flex-wrap">
       {user.countryCode&&<span className="text-xs text-slate-300">{user.countryFlag} {user.countryCode}</span>}
       <RoyalAccountId tone="dark" id={user.id} vipLevel={user.vipLevel} size="sm"/>
-      <button type="button" onClick={onCopy} aria-label={`نسخ معرف الحساب ${user.id}`} className="w-8 h-8 rounded-xl border border-white/8 bg-white/[.05] flex items-center justify-center text-slate-400"><Copy size={14}/></button>
+      <button type="button" onClick={onCopy} aria-label={`نسخ ID سريع ${user.id}`} className="w-8 h-8 rounded-xl border border-white/8 bg-white/[.05] flex items-center justify-center text-slate-400"><Copy size={14}/></button>
     </div>
     <div className="mt-3 flex flex-wrap justify-center gap-2">
       {(user.vipLevel??0)>0&&<VIPBadge level={user.vipLevel} size="sm"/>}
