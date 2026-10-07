@@ -8,6 +8,7 @@ import {supabase} from '../../services/supabase';
 
 interface Agency {id: number; name: string; owner_id: string}
 interface DirectoryAgency {id:number;name:string;logo_url?:string|null;owner_name?:string|null;members_count?:number;requested?:boolean}
+interface AgencyDetailState {agency:{id:number;name:string;logo_url?:string|null};is_member:boolean;can_manage:boolean;can_leave:boolean;has_pending_request?:boolean;can_request:boolean;members:Member[];applications:Member[]}
 interface Member {public_id: number; display_name: string}
 interface State {agency: Agency | null; available: Agency[]; members: Member[]; applications: Member[]}
 interface RegistrationState {
@@ -38,18 +39,25 @@ export const AgencyScreen: React.FC = () => {
   const [fullName,setFullName] = useState('');
   const [countryCode,setCountryCode] = useState((user.countryCode || '').toUpperCase());
   const [agencySearch,setAgencySearch] = useState('');
+  const [selectedAgencyId,setSelectedAgencyId] = useState<number|null>(null);
   const [files,setFiles] = useState<RegistrationFiles>({logo:null,identity:null,portrait:null});
 
   const load = useCallback(() => rpc<State>('agency_state'), [user.authId]);
   const registrationLoad = useCallback(() => rpc<RegistrationState>('agency_registration_state'), [user.authId]);
   const directoryLoad = useCallback(() => rpc<DirectoryAgency[]>('agency_directory'), [user.authId]);
+  const detailLoad = useCallback(() => selectedAgencyId ? rpc<AgencyDetailState>('agency_detail',{p_agency_id:selectedAgencyId}) : Promise.resolve(null), [selectedAgencyId,user.authId]);
   const {data,loading,error,reload} = useServerData(load, {agency:null,available:[],members:[],applications:[]});
   const registration = useServerData(registrationLoad, {application:null,can_apply:false});
   const directory = useServerData(directoryLoad, []);
+  const detail = useServerData(detailLoad, null);
 
   const act = async (id: number, action: string, target?: number) => {
     if (busy) return; setBusy(true); setNotice('');
-    try {await rpc('agency_action', {p_agency_id:id,p_action:action,p_target_public_id:target ?? null}); setNotice('تم اعتماد العملية من الخادم.'); await reload();}
+    try {
+      await rpc('agency_action', {p_agency_id:id,p_action:action,p_target_public_id:target ?? null});
+      setNotice(action==='request'?'تم إرسال طلب الانضمام كمضيف وهو قيد المراجعة.':'تم اعتماد العملية من الخادم.');
+      await Promise.all([reload(),directory.reload(),detail.reload()]);
+    }
     catch(e) {reportError(backendMessage(e));} finally {setBusy(false);}
   };
 
@@ -132,16 +140,34 @@ export const AgencyScreen: React.FC = () => {
       </section>}
 
       {portalMode === 'host' && <section>
-        <div className="flex items-center justify-between mb-3"><h2 className="font-bold">الوكالات المتاحة</h2><span className="text-xs text-slate-400">{directory.data?.length || 0} وكالة</span></div>
-        <label className="block mb-3"><span className="sr-only">بحث الوكالات</span><input value={agencySearch} onChange={event=>setAgencySearch(event.target.value)} placeholder="ابحث باسم الوكالة أو ID" className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-purple-400/50" /></label>
-        {directory.loading&&<InlineLoading>جارٍ تحميل قائمة الوكالات…</InlineLoading>}
-        {directory.error&&<ErrorState message={directory.error} onRetry={()=>void directory.reload()}/>}
-        {!directory.loading&&!directory.error&&visibleAgencies.map(a => <div key={a.id} className="flex items-center gap-3 p-3 bg-white/10 rounded-xl mb-2">
-          {a.logo_url?<img src={a.logo_url} alt="" loading="lazy" className="w-11 h-11 rounded-xl object-cover shrink-0"/>:<span className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0" aria-hidden="true">🏛️</span>}
-          <span className="flex-1 min-w-0"><span className="block text-sm font-bold truncate">{a.name}</span><span className="ui-id text-xs text-slate-400">ID: {a.id}</span>{a.owner_name&&<span className="block text-[10px] text-slate-400 truncate">الوكيل: {a.owner_name}</span>}{typeof a.members_count==='number'&&<span className="block text-[10px] text-slate-500">{a.members_count} عضو</span>}</span>
-          <button className="ui-control shrink-0 px-3 rounded-xl bg-purple-600 text-white text-xs disabled:opacity-50" disabled={busy||a.requested} onClick={() => void act(a.id,'request')}>{a.requested?'قيد المراجعة':'طلب الانضمام كمضيف'}</button>
-        </div>)}
-        {!directory.loading&&!directory.error&&!visibleAgencies.length&&<EmptyState title={normalizedAgencySearch?"لا توجد وكالة مطابقة للبحث.":"لا توجد وكالات متاحة حالياً."} />}
+        {selectedAgencyId && detail.data ? <div className="space-y-3">
+          <button type="button" onClick={()=>setSelectedAgencyId(null)} className="text-xs text-purple-200 rounded-xl bg-white/5 px-3 py-2">الرجوع إلى قائمة الوكالات</button>
+          <div className="rounded-2xl border border-purple-400/20 bg-white/5 p-4">
+            <div className="flex items-center gap-3">
+              {detail.data.agency.logo_url?<img src={detail.data.agency.logo_url} alt="" loading="lazy" className="w-16 h-16 rounded-2xl object-cover border border-white/10"/>:<span className="w-16 h-16 rounded-2xl bg-purple-500/15 flex items-center justify-center text-3xl" aria-hidden="true">🏛️</span>}
+              <span className="min-w-0 flex-1"><span className="block text-lg font-black truncate">{detail.data.agency.name}</span><span className="ui-id text-xs text-slate-400">ID: {detail.data.agency.id}</span><span className="block text-[11px] text-slate-400 mt-1">{detail.data.members.length} عضو</span></span>
+            </div>
+            <div className="mt-4 flex -space-x-2 space-x-reverse overflow-hidden" aria-label="أعضاء الوكالة">
+              {detail.data.members.slice(0,6).map(member=><span key={member.public_id} title={member.display_name} className="w-9 h-9 rounded-full bg-purple-700 border-2 border-[#171325] flex items-center justify-center text-[10px] font-black">{member.display_name?.slice(0,1)||'U'}</span>)}
+            </div>
+            <button type="button" disabled={busy||detail.data.is_member||detail.data.has_pending_request||!detail.data.can_request} onClick={()=>void act(detail.data!.agency.id,'request')} className="mt-4 w-full rounded-xl bg-purple-600 py-3 font-black text-sm disabled:opacity-50">
+              {detail.data.is_member?'أنت عضو في هذه الوكالة':detail.data.has_pending_request?'طلبك قيد المراجعة':detail.data.can_request?'طلب الانضمام كمضيف':'لا يمكن تقديم طلب حالياً'}
+            </button>
+          </div>
+        </div> : <>
+          <div className="flex items-center justify-between mb-3"><h2 className="font-bold">الوكالات المتاحة</h2><span className="text-xs text-slate-400">{directory.data?.length || 0} وكالة</span></div>
+          <label className="block mb-3"><span className="sr-only">بحث الوكالات</span><input value={agencySearch} onChange={event=>setAgencySearch(event.target.value)} placeholder="ابحث باسم الوكالة أو ID" className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-purple-400/50" /></label>
+          {directory.loading&&<InlineLoading>جارٍ تحميل قائمة الوكالات…</InlineLoading>}
+          {directory.error&&<ErrorState message={directory.error} onRetry={()=>void directory.reload()}/>}
+          {!directory.loading&&!directory.error&&visibleAgencies.map(a => <button type="button" key={a.id} onClick={()=>setSelectedAgencyId(a.id)} className="w-full flex items-center gap-3 p-3 bg-white/10 rounded-xl mb-2 text-right active:scale-[0.99] transition-transform">
+            {a.logo_url?<img src={a.logo_url} alt="" loading="lazy" className="w-11 h-11 rounded-xl object-cover shrink-0"/>:<span className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0" aria-hidden="true">🏛️</span>}
+            <span className="flex-1 min-w-0"><span className="block text-sm font-bold truncate">{a.name}</span><span className="ui-id text-xs text-slate-400">ID: {a.id}</span>{a.owner_name&&<span className="block text-[10px] text-slate-400 truncate">الوكيل: {a.owner_name}</span>}{typeof a.members_count==='number'&&<span className="block text-[10px] text-slate-500">{a.members_count} عضو</span>}</span>
+            <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${a.requested?'bg-amber-500/15 text-amber-200':'bg-purple-500/20 text-purple-200'}`}>{a.requested?'قيد المراجعة':'عرض'}</span>
+          </button>)}
+          {!directory.loading&&!directory.error&&!visibleAgencies.length&&<EmptyState title={normalizedAgencySearch?"لا توجد وكالة مطابقة للبحث.":"لا توجد وكالات متاحة حالياً."} />}
+        </>}
+        {selectedAgencyId&&detail.loading&&<InlineLoading>جارٍ تحميل تفاصيل الوكالة…</InlineLoading>}
+        {selectedAgencyId&&detail.error&&<ErrorState message={detail.error} onRetry={()=>void detail.reload()}/>}
       </section>}
 
       {portalMode === 'agent' && <section className="rounded-2xl border border-amber-400/20 bg-amber-500/5 p-4">
