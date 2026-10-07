@@ -4,8 +4,6 @@ import {el,box,title,note,panel,btn,field} from './ui.js';
 import {overview,users,wallet,audit,health,settings} from './pages-core.js';
 import {roles,agencies,catalog,rooms,tickets} from './pages-admin.js';
 import {settlements} from './pages-finance.js';
-import {previewGate} from './gate.js';
-import {showDemo} from './demo.js';
 
 const root=document.getElementById('app');
 const config=window.TOTICHAT_ADMIN_CONFIG;
@@ -32,14 +30,14 @@ function inform(message,severity='success'){
 state.notify=inform;
 function login(message=''){
  state.version++;root.replaceChildren();
- const email=field('البريد الإلكتروني','email'),password=field('كلمة المرور','password');
+ const email=field('اسم المستخدم أو البريد الإلكتروني','text'),password=field('كلمة المرور','password');
  const msg=box('');if(message)msg.append(box('message error',message));
  const form=el('form',{class:'stack'},email.label,password.label);
  form.append(btn('تسجيل الدخول',()=>form.requestSubmit(),'btn primary'));
  form.addEventListener('submit',async e=>{
   e.preventDefault();const b=form.querySelector('button');b.disabled=true;msg.replaceChildren();
   try{
-   const {error}=await state.client.auth.signInWithPassword({email:email.input.value.trim(),password:password.input.value});
+   const {error}=await state.client.auth.signInWithPassword({email:email.input.value.trim().toLowerCase()==='admin'?'xxjjh20@gmail.com':email.input.value.trim(),password:password.input.value});
    if(error)throw error;await authenticate();
   }catch(err){msg.append(box('message error',err?.message||'فشل تسجيل الدخول'))}
   finally{b.disabled=false}
@@ -49,9 +47,9 @@ function login(message=''){
   if(error)msg.replaceChildren(box('message error',error.message));
  });
  root.append(box('login',box('loginLogo',box('logo','T'),el('h1',{},'TotiChat Admin'),
-  note('لوحة الإدارة المستقلة • نفس حساب تطبيق TotiChat')),
+  note('لوحة الإدارة الرسمية — Owner / Staff')),
   panel(msg,form,box('divider'),google,
-   note('لا يحصل أي شخص على صلاحية بمجرد استلام الرابط. يجب أن يعيّنه المالك أولاً.'))));
+   note('اسم الدخول admin مخصص لحساب المالك xxjjh20@gmail.com؛ كلمة المرور هي كلمة مرور حساب Supabase الحقيقي، وليست admin. يمكن الدخول أيضاً عبر Google بنفس البريد.'))));
 }
 function render(){
  if(!state.session?.allowed){login('غير مصرح لهذا الحساب بفتح لوحة الإدارة.');return}
@@ -84,28 +82,17 @@ async function authenticate(){
   render();
  }catch(err){login(err?.message||'تعذر التحقق من الدخول.')}
 }
-function demo(){
- showDemo(root,{
-  onRealLogin:()=>login(),
-  onReturn:()=>{void previewGate(root).then(()=>demo());}
- });
-}
 async function start(){
- // The admin/admin gate is for a safe read-only preview, not for Supabase authorization.
- await previewGate(root);
  if(!config?.url||!config?.key){
-  demo();
-  return;
+  root.replaceChildren(box('message error','لم يتم تهيئة اتصال قاعدة TotiChat.'));return;
  }
  state.client=createClient(config.url,config.key,{
   auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
  });
  state.client.auth.onAuthStateChange(event=>{
-  if(event==='SIGNED_OUT'){state.session=null;state.user=null;demo()}
+  if(event==='SIGNED_OUT'){state.session=null;state.user=null;login()}
  });
- const {data}=await state.client.auth.getUser();
- if(data?.user)await authenticate();
- else demo();
+ await authenticate();
  setInterval(()=>{
   if(!state.session?.allowed)return;
   void rpc('dashboard_session').then(next=>{
