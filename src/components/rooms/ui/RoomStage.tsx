@@ -56,7 +56,7 @@ export function RoomStage(props: Props) {
     <footer className="room-footer">
       <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
       <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>
-      <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy||!props.audioConnected} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
+      <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
       {props.onMusic&&<button type="button" aria-label="موسيقى الهاتف" className="room-icon" onClick={()=>fileRef.current?.click()}><Music size={20}/></button>}
       <button type="button" aria-label="أدوات الغرفة" aria-expanded={tools} onClick={()=>setTools(value=>!value)} className="room-icon"><Settings/></button>
     </footer>
