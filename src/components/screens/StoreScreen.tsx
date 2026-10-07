@@ -4,12 +4,12 @@ import { catalog, rpc, backendMessage } from '../../services/backend';
 import { supabase } from '../../services/supabase';
 import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
-import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, Heart } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, Heart, DoorOpen } from 'lucide-react';
 
 interface StoreItem {
   id: string;
   name: string;
-  category: 'frames' | 'cars' | 'bubbles' | 'badges' | 'cards';
+  category: 'frames' | 'cars' | 'bubbles' | 'badges' | 'entrances' | 'cards';
   price: number;
   currency: 'gold' | 'silver';
   image: string;
@@ -31,7 +31,7 @@ interface RelationshipSummary {
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges' | 'cards'>('frames');
+  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges' | 'entrances' | 'cards'>('frames');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,7 @@ export const StoreScreen: React.FC = () => {
   const load = useCallback(async (): Promise<StoreItem[]> => {
     const [entries, owned] = await Promise.all([catalog(), supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId)]);
     if (owned.error) throw owned.error;
-    return entries.filter(item => ['frames','cars','bubbles','badges','cards'].includes(item.category)).map(item => ({
+    return entries.filter(item => ['frames','cars','bubbles','badges','entrances','cards'].includes(item.category)).map(item => ({
       ...item,
       category: item.category as StoreItem['category'],
       image: item.icon,
@@ -124,12 +124,13 @@ export const StoreScreen: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="grid grid-cols-5 gap-1 p-3 bg-white border-b border-slate-100 text-xs font-bold">
+      <div className="flex gap-1.5 p-3 bg-white border-b border-slate-100 text-xs font-bold overflow-x-auto scrollbar-none">
         {[
           { id: 'frames', label: 'إطارات', icon: Sparkles },
           { id: 'cars', label: 'سيارات الدخول', icon: Car },
           { id: 'bubbles', label: 'فقاعات الشات', icon: MessageCircle },
           { id: 'badges', label: 'شارات الشرف', icon: Crown },
+          { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
           { id: 'cards', label: 'البطاقات', icon: Heart },
         ].map((tab) => {
           const Icon = tab.icon;
