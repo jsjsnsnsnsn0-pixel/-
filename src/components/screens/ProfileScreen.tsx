@@ -26,6 +26,7 @@ import {
   Settings,
   Camera,
   LogOut,
+  Package,
 } from 'lucide-react';
 
 export const ProfileScreen: React.FC = () => {
@@ -298,6 +299,16 @@ export const ProfileScreen: React.FC = () => {
       {/* Menu List Items Card */}
       <div className="px-5 mt-5">
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xs divide-y divide-slate-50 overflow-hidden">
+          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
+            onClick={() => setActiveSubScreen('inventory')}
+            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
+          >
+            <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-slate-900">الحقيبة</span>
+              <div className="w-8 h-8 rounded-full bg-[#7c3aed] text-white flex items-center justify-center shadow-xs"><Package size={16}/></div>
+            </div>
+          </div>
           {/* 1. شارة */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('badges')}
