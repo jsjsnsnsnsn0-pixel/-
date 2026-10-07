@@ -447,7 +447,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const sendGiftInRoom = async (gift: Gift, recipient: User, quantity = 1, seat?: number, requestId?: string): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
-    if (![1,7,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
+    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > 777) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
       const {error} = await supabase.rpc('send_room_gift_batch', {
         p_room_id: room.id,

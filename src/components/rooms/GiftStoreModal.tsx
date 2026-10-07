@@ -7,6 +7,7 @@ import { Gift, User, Room } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { X, Sparkles, Plus, Check, ChevronDown, Play } from 'lucide-react';
+import { DEFAULT_GIFT_QUANTITIES, normalizeGiftQuantities } from '../../utils/giftQuantities';
 
 interface GiftStoreModalProps {
   isOpen: boolean;
@@ -31,8 +32,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
-  const quantityOptions = [1, 7, 77, 777] as const;
-  const [quantity, setQuantity] = useState<(typeof quantityOptions)[number]>(1);
+  const [quantityOptions, setQuantityOptions] = useState<number[]>([...DEFAULT_GIFT_QUANTITIES]);
+  const [quantity, setQuantity] = useState<number>(1);
   const [quantityOpen,setQuantityOpen]=useState(false);
   const [previewGift,setPreviewGift]=useState<Gift|null>(null);
   const [serverCategories, setServerCategories] = useState<Array<{id:string;label:string}>>([]);
@@ -65,6 +66,15 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       setPreviewGift(null);
       sendingRef.current=false;
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    void supabase.rpc('gift_quantity_choices').then(({data, error}) => {
+      if (!cancelled) setQuantityOptions(error ? [...DEFAULT_GIFT_QUANTITIES] : normalizeGiftQuantities(data));
+    }).catch(() => {if (!cancelled) setQuantityOptions([...DEFAULT_GIFT_QUANTITIES]);});
+    return () => {cancelled = true;};
   }, [isOpen]);
 
   const fallbackCategories = [
@@ -159,11 +169,22 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const effectiveQuantity=sendSource==='saved'?1:quantity;
   const totalPrice=selectedGift?selectedGift.price*effectiveQuantity:0;
   const insufficientCoins=sendSource==='coins'&&Boolean(selectedGift)&&user.gold<totalPrice;
+  const invalidPrice=Boolean(selectedGift)&&(!Number.isSafeInteger(totalPrice)||totalPrice<=0);
   const unavailableSaved=sendSource==='saved'&&selectedGift!==null&&(inventoryCounts[selectedGift.id]||0)<1;
-  const sendDisabled=sending||loading||sendSuccess||!selectedGift||!selectedRecipient||insufficientCoins||unavailableSaved;
+  const sendDisabled=sending||loading||sendSuccess||!selectedGift||!selectedRecipient||insufficientCoins||unavailableSaved||invalidPrice;
+
+  const chooseGift = (gift: Gift) => {
+    if (sendingRef.current) return;
+    setSelectedGift(gift);
+    setSendSource('coins');
+    setQuantity(1);
+    setQuantityOpen(false);
+    setErrorMsg(null);
+    giftRetry.current = null;
+  };
 
   const handleSend = async () => {
-    if (sendingRef.current || sending || loading || sendSuccess) return;
+    if (sendingRef.current || sending || loading || sendSuccess || invalidPrice) return;
     if (!selectedGift || !selectedRecipient) {
       setErrorMsg('يرجى اختيار المستلم والهدية');
       return;
@@ -300,19 +321,15 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           </div>
 
           {/* Gifts Grid */}
-          <div className="grid grid-cols-4 gap-2.5 py-3 overflow-y-auto max-h-64 no-scrollbar">
+          <div className="grid grid-cols-3 gap-3 py-3 px-1 overflow-y-auto max-h-64 no-scrollbar">
             {filteredGifts.map((gift) => {
               const isSelected = selectedGift?.id === gift.id;
               return (
                 <div
                   key={gift.id}
-                  onClick={() => {
-                    setSelectedGift(gift);
-                    setSendSource('coins');
-                    setQuantity(1);
-                    setQuantityOpen(false);
-                    setErrorMsg(null);
-                  }}
+                  role="button" tabIndex={0} aria-pressed={isSelected} aria-label={`تحديد هدية ${gift.name}`}
+                  onClick={() => chooseGift(gift)}
+                  onKeyDown={e => {if(e.key==='Enter'||e.key===' '){e.preventDefault();chooseGift(gift);}}}
                   className={`relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-gradient-to-b from-purple-900/50 to-indigo-950/70 border-amber-400 shadow-md shadow-amber-500/20 ring-1 ring-amber-400 scale-[1.03]'
@@ -325,9 +342,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                     </span>
                   )}
                   {/* Badge */}
-                  {gift.badge && (
+                  {(gift.badge || gift.categoryId === 'luck') && (
                     <span className="absolute -top-1.5 right-1 px-1 rounded-md text-[9px] font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-xs">
-                      {gift.badge}
+                      {gift.badge || 'حظ'}
                     </span>
                   )}
 
@@ -352,7 +369,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                 </div>
               );
             })}
-            {!filteredGifts.length && !loading && <div className="col-span-4 py-8 text-center text-xs text-slate-400">لا توجد عناصر حالياً في هذا القسم.</div>}
+            {!filteredGifts.length && !loading && <div className="col-span-3 py-8 text-center text-xs text-slate-400">لا توجد عناصر حالياً في هذا القسم.</div>}
           </div>
 
           {selectedGift && (inventoryCounts[selectedGift.id] || 0) > 0 && (
