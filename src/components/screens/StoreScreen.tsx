@@ -4,13 +4,14 @@ import { catalog, rpc, backendMessage } from '../../services/backend';
 import { supabase } from '../../services/supabase';
 import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
-import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen } from 'lucide-react';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen, WalletCards, Search, Play, X, Grid2X2 } from 'lucide-react';
 
-type StoreCategory = 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges';
+type StoreCategory = 'all' | 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges' | 'vip';
+type ProductCategory = Exclude<StoreCategory,'all'>;
 interface StoreItem {
   id: string;
   name: string;
-  category: StoreCategory;
+  category: ProductCategory;
   price: number;
   currency: 'gold' | 'silver';
   image: string;
@@ -21,19 +22,24 @@ interface StoreItem {
   isOwned?: boolean;
 }
 
-const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>}> = [
+const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>;always?:boolean}> = [
+  { id: 'all', label: 'الكل', icon: Grid2X2, always:true },
   { id: 'frames', label: 'الإطارات', icon: Sparkles },
   { id: 'cars', label: 'المركبات', icon: Car },
   { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
   { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
   { id: 'cards', label: 'بطاقات CP', icon: IdCard },
   { id: 'badges', label: 'الشارات', icon: Crown },
+  { id: 'vip', label: 'VIP', icon: Crown },
 ];
 
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<StoreCategory>('frames');
+  const [activeTab, setActiveTab] = useState<StoreCategory>('all');
+  const [query,setQuery]=useState('');
+  const [selected,setSelected]=useState<StoreItem|null>(null);
+  const [preview,setPreview]=useState<StoreItem|null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const requests = useRef(new Map<string, string>());
@@ -47,7 +53,7 @@ export const StoreScreen: React.FC = () => {
     return entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
       id:item.id,
       name:item.name,
-      category:item.category as StoreCategory,
+      category:item.category as ProductCategory,
       price:item.price,
       currency:item.currency,
       image:item.icon,
@@ -60,7 +66,9 @@ export const StoreScreen: React.FC = () => {
   }, [user.authId]);
 
   const {data: items, loading, error, reload} = useServerData(load, []);
-  const filteredItems = items.filter(item => item.category === activeTab);
+  const visibleTabs=tabs.filter(tab=>tab.always||tab.id==='cards'||items.some(item=>item.category===tab.id));
+  const normalizedQuery=query.trim().toLocaleLowerCase('ar');
+  const filteredItems=items.filter(item=>(activeTab==='all'||item.category===activeTab)&&(!normalizedQuery||item.name.toLocaleLowerCase('ar').includes(normalizedQuery)||item.description.toLocaleLowerCase('ar').includes(normalizedQuery)));
 
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
