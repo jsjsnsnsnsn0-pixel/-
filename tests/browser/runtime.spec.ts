@@ -105,13 +105,13 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       if(overrides.quoteError)return respond({message:'insufficient redeemable diamonds'},400);
       const f=Math.min(body.p_diamonds,fixed);const l=body.p_diamonds-f;
       if(l>lucky)return respond({message:'insufficient redeemable diamonds'},400);
-      return respond({diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l/10)});
+      return respond({diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l*3/10)});
     }
     if (path.endsWith('/redeem_diamonds')) {
       if(overrides.conversionDelay)await new Promise(resolve=>setTimeout(resolve,650));
       if (overrides.conversionError) return respond({message:'insufficient diamonds'},400);
       let quote=redemptions.get(body.p_request_id);
-      if(!quote){const f=Math.min(body.p_diamonds,fixed);const l=body.p_diamonds-f;quote={diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l/10)};
+      if(!quote){const f=Math.min(body.p_diamonds,fixed);const l=body.p_diamonds-f;quote={diamonds_amount:body.p_diamonds,fixed_diamonds:f,lucky_diamonds:l,coins_amount:Math.floor(f*3/10)+Math.floor(l*3/10)};
       fixed-=f;lucky-=l;current={...current,diamonds:current.diamonds-body.p_diamonds,gold:current.gold+quote.coins_amount};redemptions.set(body.p_request_id,quote);
       for(const [type,diamonds,coins] of [['fixed_diamonds_redeemed',-f,0],['lucky_diamonds_redeemed',-l,0],['coins_from_diamond_redemption',0,quote.coins_amount]]){if(diamonds||coins)walletHistory.push({id:type,transaction_type:type,diamond_delta:diamonds,gold_delta:coins,created_at:new Date().toISOString()});}
       }
@@ -685,7 +685,7 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await dialog.getByRole('button',{name:'اختيار كل الماس القابل للفك'}).click();
  await dialog.getByRole('button',{name:'معاينة الفك',exact:true}).click();
  await expect(dialog.getByTestId('diamond-quote')).toContainText('200,000');
- await expect(dialog.getByTestId('diamond-quote')).toContainText('40,000 Coins');
+ await expect(dialog.getByTestId('diamond-quote')).toContainText('60,000 Coins');
  expect(requests.filter(r=>r.path.endsWith('/redeem_diamonds'))).toHaveLength(0);
  await dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/}).click();
  await expect(dialog.getByRole('button',{name:/تأكيد فك الماس والتحويل/})).toBeDisabled();
@@ -701,7 +701,7 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await expect(page.getByText('فك ماس ثابت — 30%',{exact:true})).toBeVisible();
  await expect(page.getByText('فك ماس هدايا الحظ الأساسي — 30%',{exact:true})).toBeVisible();
  await expect(page.getByText('Coins من فك الماس',{exact:true})).toBeVisible();
- await expect(page.getByText('40,000',{exact:false}).first()).toBeVisible();
+ await expect(page.getByText('60,000',{exact:false}).first()).toBeVisible();
  await page.getByRole('button',{name:'مستلمة',exact:true}).click();
  await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
  await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
