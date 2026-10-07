@@ -218,8 +218,16 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       if (sendSource === 'saved') setInventoryCounts(previous => ({...previous,[selectedGift.id]:Math.max(0,(previous[selectedGift.id]||0)-1)}));
       if(selectedGift.diamondSourceType==='LUCKY_GIFT'){
         const result=await supabase.rpc('lucky_result_by_request',{p_request_id:completedRequestId});
-        if(!result.error&&result.data&&typeof window!=='undefined'){
-          window.dispatchEvent(new CustomEvent('totichat:lucky-result',{detail:result.data}));
+        if(!result.error&&result.data){
+          const lucky=result.data as any;
+          const points=Math.max(0,Number(lucky.lucky_points)||0);
+          setLuckyPoints(previous=>previous+points);
+          setLuckyHistory(previous=>previous.some(row=>row.id===String(lucky.id))?previous:[{
+            id:String(lucky.id),gift_name:String(lucky.gift_name||selectedGift.name),quantity:Number(lucky.quantity||effectiveQuantity),
+            result_label:String(lucky.result_label||'Lucky Bonus'),multiplier:Number(lucky.multiplier||1),
+            lucky_points:points,created_at:String(lucky.created_at||new Date().toISOString()),
+          },...previous].slice(0,20));
+          if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('totichat:lucky-result',{detail:lucky}));
         }
       }
     }
