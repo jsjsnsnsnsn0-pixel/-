@@ -14,7 +14,6 @@ jobs:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
-      TOTICHAT_BETA: '1'
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout pinned beta commit
@@ -42,6 +41,8 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e
       - name: Build Capacitor Android project
+        env:
+          TOTICHAT_BETA: '1'
         run: |
           npx cap add android
           node scripts/configure-android.mjs
