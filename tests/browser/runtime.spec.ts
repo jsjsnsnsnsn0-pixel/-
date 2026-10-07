@@ -62,7 +62,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/couple_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({relations:overrides.roomCouple ? [{accepted_at:'2026-01-01T00:00:00Z',ended_at:null,partner:{public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0}}] : [],current:[],previous:[]});}
     if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
-    if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
+    if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'server-entrance',name:'دخول الخادم',category:'entrances',price:41,currency:'gold',icon:'✨',description:'مؤثر دخول من الخادم',duration_days:7},{id:'server-card',name:'بطاقة حب الخادم',category:'cards',price:43,currency:'gold',icon:'💗',description:'بطاقة CP من الخادم',duration_days:30,relationship_type_id:'love',preview_url:null},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
     if (path.endsWith('/store_purchases')) return respond(purchased.map(id=>({item_id:id,expires_at:null})));
     if (path.endsWith('/purchase_store_item')) {
       if(overrides.purchaseError)return respond({message:'insufficient gold'},400);
@@ -217,12 +217,28 @@ test('failed conversion preserves balances and exposes a clear error', async ({p
 
 test('profile screens render without hook errors or blank navigation', async ({page})=>{
   const {errors}=await setup(page); await page.goto('/');
-  for (const [label,heading] of [['شارة','ميدالية'],['السحر/ الثروة','مستوى الثروة'],['اكسب عملات فضية','مركز العملات الفضية والمهام'],['مركز المساعدة','مركز المساعدة'],['اعدادات','الإعدادات'],['المتجر','المتجر'],['وكالة','بوابة الوكالات']]) {
+  for (const [label,heading] of [['شارة','ميدالية'],['السحر/ الثروة','مستوى الثروة'],['اكسب عملات فضية','مركز العملات الفضية والمهام'],['مركز المساعدة','مركز المساعدة'],['اعدادات','الإعدادات'],['المتجر','متجر TotiChat'],['الحقيبة','الحقيبة'],['وكالة','بوابة الوكالات']]) {
     await page.goto('/'); await page.getByTitle('أنا').click();
     await page.getByText(label,{exact:true}).first().click();
     await expect(page.locator('body')).not.toContainText('حدث خطأ أثناء تحميل الصفحة');
     await expect(page.locator('body')).toContainText(heading);
   }
+  expect(errors).toEqual([]);
+});
+
+
+test('store exposes server-backed entrance and CP card tabs and inventory stays separate', async ({page})=>{
+  const {errors}=await setup(page,true,{commerce:true});await page.goto('/');
+  await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
+  await expect(page.getByRole('heading',{name:'متجر TotiChat',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'بطاقات CP',exact:true}).click();
+  await expect(page.getByText('بطاقة حب الخادم',{exact:true})).toBeVisible();
+  await expect(page.getByText('CP: love',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'مؤثر الدخول',exact:true}).click();
+  await expect(page.getByText('دخول الخادم',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
+  await expect(page.getByText('لا توجد مقتنيات في هذا القسم',{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
 
