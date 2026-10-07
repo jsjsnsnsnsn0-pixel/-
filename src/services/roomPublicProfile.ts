@@ -6,7 +6,7 @@ export interface RoomPublicProfile {
   id: string; name: string; avatar: string; level?: number; vipLevel: number;
   charmLevel?: number; wealthLevel?: number; countryCode?: string; countryFlag?: string;
   gender?: 'male' | 'female';
-  agency?: {id: string; name: string};
+  agency?: {id: string; name: string; logoUrl?: string; role?: string; membersCount?: number};
   couple?: RoomRelationship;
   relationships?: RoomRelationship[];
 }
@@ -83,10 +83,10 @@ export async function loadRoomPublicProfile(targetId: string, viewerId: string):
     rpc<{relations: Relation[]}>('couple_state'), rpc<AgencyState>('agency_state'),
     rpc<{partner:Record<string,unknown>;days:number}|null>('profile_cp',{p_public_id:Number(id)}),
     rpc<RelationshipRow[]>('profile_relationships',{p_public_id:Number(id)}),
-    rpc<{id:unknown;name:string}|null>('profile_agency',{p_public_id:Number(id)}),
+    rpc<{id:unknown;name:string;logo_url?:string|null;role?:string;members_count?:number}|null>('profile_agency',{p_public_id:Number(id)}),
   ]);
   if(targetAgency.status==='fulfilled'&&targetAgency.value?.name){
-    profile.agency={id:String(targetAgency.value.id),name:targetAgency.value.name};
+    profile.agency={id:String(targetAgency.value.id),name:targetAgency.value.name,logoUrl:targetAgency.value.logo_url||undefined,role:targetAgency.value.role,membersCount:nonNegative(targetAgency.value.members_count)};
   } else if (agency.status === 'fulfilled' && agency.value?.agency &&
       (id === viewerId || (Array.isArray(agency.value.members) ? agency.value.members : []).some(member => publicId(member.public_id) === id))) {
     profile.agency = {id: String(agency.value.agency.id), name: agency.value.agency.name};
