@@ -449,10 +449,12 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const room = activeRef.current; if (!room) return false;
     if (![1,7,17,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
-      const self = recipient.id===userRef.current.id;
-      const {error} = await supabase.rpc(self?'send_self_room_gift_quantity':'send_room_gift_quantity', {
-        p_room_id: room.id, ...(self?{}:{p_recipient_public_id:Number(recipient.id)}), p_gift_id: gift.id,
-        p_quantity: quantity, p_request_id: requestId || crypto.randomUUID()
+      const {error} = await supabase.rpc('send_room_gift_batch', {
+        p_room_id: room.id,
+        p_recipient_public_id: Number(recipient.id),
+        p_gift_id: gift.id,
+        p_quantity: quantity,
+        p_request_id: requestId || crypto.randomUUID()
       });
       if (error) throw error;
       await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
