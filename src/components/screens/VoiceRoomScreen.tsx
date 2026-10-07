@@ -88,8 +88,9 @@ export const VoiceRoomScreen: React.FC = () => {
     return()=>{disposed=true;void supabase.removeChannel(channel)};
   },[activeRoom?.id]);
   useEffect(()=>{
-    if(!musicName||!sharedMusic||sharedMusic.track_name!==musicName)return;
-    if(sharedMusic.status==='stopped')stopMusic();
+    if(!musicName||!sharedMusic)return;
+    if(sharedMusic.status==='stopped'){stopMusic();return;}
+    if(sharedMusic.track_name!==musicName)return;
     else if(sharedMusic.status==='paused'&&!musicPaused)pauseMusic();
     else if(sharedMusic.status==='playing'&&musicPaused)void resumeMusic().catch(()=>{});
   },[sharedMusic?.status,sharedMusic?.track_name,musicName,musicPaused,stopMusic,pauseMusic,resumeMusic]);

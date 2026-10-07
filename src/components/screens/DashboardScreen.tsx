@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {supabase} from '../../services/supabase';
 import {ArrowRight,RefreshCw,ShieldCheck,Users,Coins,Building2,ClipboardList,Settings2,KeyRound} from 'lucide-react';
 import {useApp} from '../../context/AppContext';
 import {rpc,backendMessage} from '../../services/backend';
@@ -31,6 +32,15 @@ export const DashboardScreen:React.FC=()=>{
  const {user,logout,refreshProfile}=useApp();
  const loadSession=useCallback(()=>rpc<Session>('dashboard_session'),[user.authId]);
  const session=useServerData(loadSession,{allowed:false,permissions:[]} as Session);
+ useEffect(()=>{
+   if(!user.authId||!session.data.allowed)return;
+   const channel=supabase.channel('dashboard-permissions:'+user.authId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'dashboard_user_roles',filter:`user_id=eq.${user.authId}`},()=>void session.reload())
+    .on('postgres_changes',{event:'*',schema:'public',table:'dashboard_role_permissions'},()=>void session.reload())
+    .subscribe();
+   const timer=setInterval(()=>void session.reload(),20000);
+   return()=>{clearInterval(timer);void supabase.removeChannel(channel);};
+ },[user.authId,session.data.allowed,session.reload]);
  const permissions=session.data.permissions||[];
  const can=(name:string)=>permissions.includes(name);
  const [section,setSection]=useState<SectionId>('overview');
@@ -48,7 +58,7 @@ export const DashboardScreen:React.FC=()=>{
  const [rolePermissions,setRolePermissions]=useState<string[]>([]);
  const [assignUserId,setAssignUserId]=useState('');
  const [assignRole,setAssignRole]=useState('support');
- const allowed=sections.filter(s=>can(s.perm)||session.data.owner);
+ const allowed=sections.filter(s=>can(s.perm)||session.data.owner||(s.id==='wallet'&&(can('wallet.credit')||can('wallet.debit')||can('wallet.view'))));
  const active=allowed.some(s=>s.id===section)?section:(allowed[0]?.id||'overview');
  const dashboardEnabled=session.data.allowed;
  const overview=useServerData(useCallback(
