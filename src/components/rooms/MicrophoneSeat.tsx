@@ -12,6 +12,7 @@ interface MicrophoneSeatProps {
   onSeatClick: (seatIndex: number) => void;
   isCurrentUserSeat?: boolean;
   isOwner?: boolean;
+  giftCount?: number;
 }
 
 export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
@@ -19,6 +20,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
   onSeatClick,
   isCurrentUserSeat = false,
   isOwner = false,
+  giftCount = 0,
 }) => {
   const { seatIndex, isLocked, isMuted, isSpeaking } = seat;
   const user = useRoomSeatProfile(seat.user);
@@ -93,6 +95,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
       <span className="absolute top-0 left-0 text-[9px] text-slate-300">{seatIndex+1}</span>
       {seat.user?.roomRole==='moderator'&&<span className="text-[9px] text-cyan-300">مشرف</span>}
       {isOwner&&<span className="text-[9px] text-amber-300">المضيف</span>}
+      {giftCount > 0 && <span aria-label={`هدايا المقعد ${giftCount}`} className="text-[9px] text-pink-300 font-bold">🎁 {giftCount.toLocaleString('ar-SA')}</span>}
       {/* Username & Level */}
       <div className="mt-1.5 flex flex-col items-center w-full min-w-0 max-w-[80px]">
         <span title={user.name}
