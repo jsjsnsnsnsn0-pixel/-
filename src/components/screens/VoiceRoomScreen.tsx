@@ -18,7 +18,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const [infoOpen,setInfoOpen]=useState(false); const [membersOnly,setMembersOnly]=useState(false);
   const [giftRecipient,setGiftRecipient]=useState<User|null>(null);
   const [giftOpen,setGiftOpen]=useState(false); const [managementOpen,setManagementOpen]=useState(false); const [exitOpen,setExitOpen]=useState(false); const [selectedUser,setSelectedUser]=useState<User|null>(null);
-  const [messages,setMessages]=useState<RoomChatMessage[]>([]); const [giftTotals,setGiftTotals]=useState<Record<string,number>>({}); const [text,setText]=useState(''); const [sending,setSending]=useState(false); const [micBusy,setMicBusy]=useState(false);
+  const [messages,setMessages]=useState<RoomChatMessage[]>([]); const [giftTotals,setGiftTotals]=useState<Record<string,number>>({}); const [text,setText]=useState(''); const [sending,setSending]=useState(false); const [micBusy,setMicBusy]=useState(false); const [micPreviewMuted,setMicPreviewMuted]=useState<boolean|null>(null);
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
   const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,musicName}=useRoomAudioContext();
@@ -71,19 +71,16 @@ export const VoiceRoomScreen: React.FC = () => {
   },[activeRoom?.id]);
   if(!activeRoom)return null;
   const mySeat=activeRoom.seats.find(s=>s.user?.authId===user.authId);
-  const handleMic=async()=>{if(micBusy)return;if(!mySeat){reportError('اختر مقعداً أولاً لتشغيل المايكروفون.');return}setMicBusy(true);try{
-    if(isMyMicMuted){
-      const accepted=await toggleMyMic(false);
-      if(!accepted)return;
-      try{await enableMicrophone();}
-      catch(error){
-        await toggleMyMic(true);
-        throw error;
-      }
+  const handleMic=async()=>{if(micBusy)return;if(!mySeat){reportError('اختر مقعداً أولاً لتشغيل المايكروفون.');return}setMicBusy(true);const wantsUnmute=isMyMicMuted;setMicPreviewMuted(!wantsUnmute);try{
+    if(wantsUnmute){
+      // Show immediate UI feedback, but do not unmute the server seat until
+      // microphone permission/capture preflight succeeds.
+      await enableMicrophone();
+      await toggleMyMic(false);
     }else{
       await toggleMyMic(true);
     }
-  }catch(error){const name=error&&typeof error==='object'&&'name'in error?String(error.name):'';if(name==='NotAllowedError'||name==='SecurityError')reportError('تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.');else reportError('تعذر تشغيل المايكروفون. تحقق من الإذن والاتصال ثم حاول مجدداً.')}finally{setMicBusy(false)}};
+  }catch(error){const name=error&&typeof error==='object'&&'name'in error?String(error.name):'';if(name==='NotAllowedError'||name==='SecurityError')reportError('تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.');else reportError('تعذر تشغيل المايكروفون. تحقق من الإذن والاتصال ثم حاول مجدداً.')}finally{setMicPreviewMuted(null);setMicBusy(false)}};
   const send=async(e:React.FormEvent)=>{e.preventDefault();if(!text.trim()||sending||activeRoom.chatEnabled===false)return;setSending(true);try{const {error}=await supabase.from('room_messages').insert({room_id:activeRoom.id,content:text.trim()});if(error)throw error;setText('')}catch{reportError('تعذر إرسال الرسالة. حاول مجدداً.')}finally{setSending(false)}};
   const clickSeat=(index:number)=>{const seat=activeRoom.seats[index];if(!seat)return;if(seat.user)setSelectedUser(seat.user);else setEmptySeat(index)};
   const minimizeRoom=()=>{setExitOpen(false);setActiveSubScreen('home')}; const confirmLeaveRoom=async()=>{setExitOpen(false);await leaveRoom()};
@@ -95,7 +92,7 @@ export const VoiceRoomScreen: React.FC = () => {
       seats={activeRoom.seats.map(seat=><MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId&&speakingIds.includes(seat.user.authId))&&!seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId===user.authId} isOwner={Boolean(seat.user?.authId&&seat.user.authId===activeRoom.ownerAuthId)} giftCount={seat.user?giftTotals[seat.user.id]||0:0}/>)}
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}
       messages={messages} chatEnabled={activeRoom.chatEnabled!==false} text={text} sending={sending}
-      muted={isMyMicMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
+      muted={micPreviewMuted ?? isMyMicMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
       musicName={musicName} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic}
       onText={setText} onSend={send} onInfo={openInfo} onUsers={openMembers} onExit={()=>setExitOpen(true)} onGift={()=>{setGiftRecipient(null);setGiftOpen(true)}}
       onMic={()=>void handleMic()} onSpeaker={toggleSpeaker} onHand={()=>void toggleRaiseHand()} onLeaveSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}}
