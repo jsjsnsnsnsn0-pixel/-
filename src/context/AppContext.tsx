@@ -23,7 +23,7 @@ interface AppContextType {
   joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
   toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
-  sendGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
+  sendGiftInRoom: (gift: Gift, recipient: User, quantity?: number, seat?: number, requestId?: string) => Promise<boolean>;
   rechargeGold: (amount: number, title?: string) => void;
   createNewRoom: (room: Partial<Room>) => Promise<Room | null>;
   lockSeat: (seat: number) => Promise<boolean>; unlockSeat: (seat: number) => Promise<boolean>;
@@ -315,8 +315,9 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       const row=event.new;if(disposed||String(row.sender_public_id)===userRef.current.id)return;
       const sender=profileToUser({public_id:row.sender_public_id,display_name:row.sender_name,avatar_url:row.sender_avatar});
       const recipient=profileToUser({public_id:row.recipient_public_id,display_name:row.recipient_name,avatar_url:row.recipient_avatar});
+      const quantity=Math.max(1,Number(row.quantity)||1);
       const gift:Gift={...(sampleGifts.find(item=>item.id===row.gift_id)||{id:row.gift_id,category:'all' as const,icon:'🎁',animationType:'sparkle' as const}),name:row.gift_name,price:Number(row.amount)};
-      if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay({id:row.id,gift,sender,recipient});overlayTimer.current=setTimeout(()=>setActiveGiftOverlay(null),3800);
+      if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay({id:row.id,gift,sender,recipient,quantity});overlayTimer.current=setTimeout(()=>setActiveGiftOverlay(null),3800);
     }).subscribe();return()=>{disposed=true;void supabase.removeChannel(channel);if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay(null)};
   },[activeRoom?.id]);
 
@@ -444,14 +445,19 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const muteSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: activeRef.current?.seats[index]?.isMuted ? 'unmute' : 'mute'});
   const kickSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: 'remove'});
 
-  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string): Promise<boolean> => {
+  const sendGiftInRoom = async (gift: Gift, recipient: User, quantity = 1, seat?: number, requestId?: string): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
+    if (![1,7,17,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
-      const {error} = await supabase.rpc(recipient.id===userRef.current.id?'send_self_room_gift':'send_room_gift', {p_room_id: room.id, ...(recipient.id===userRef.current.id?{}:{p_recipient_public_id:Number(recipient.id)}), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
+      const self = recipient.id===userRef.current.id;
+      const {error} = await supabase.rpc(self?'send_self_room_gift_quantity':'send_room_gift_quantity', {
+        p_room_id: room.id, ...(self?{}:{p_recipient_public_id:Number(recipient.id)}), p_gift_id: gift.id,
+        p_quantity: quantity, p_request_id: requestId || crypto.randomUUID()
+      });
       if (error) throw error;
       await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
-      setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat});
+      setActiveGiftOverlay({id: crypto.randomUUID(), gift:{...gift,price:gift.price*quantity}, sender: userRef.current, recipient, targetSeatIndex: seat, quantity});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
       return true;
     } catch (e) { fail(e); return false; }
