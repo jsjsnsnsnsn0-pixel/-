@@ -4,10 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../services/supabase';
 import { Gift, User, Room } from '../../types';
-import { sampleGifts } from '../../data/mockData';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
-import { X, Sparkles, Plus, Check } from 'lucide-react';
+import { X, Sparkles, Plus, Check, ChevronDown, Play } from 'lucide-react';
 
 interface GiftStoreModalProps {
   isOpen: boolean;
@@ -32,8 +31,10 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const scheduleTimeout = useTimeouts(isOpen);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
-  const quantityOptions = [1, 7, 17, 77, 777] as const;
+  const quantityOptions = [1, 7, 77, 777] as const;
   const [quantity, setQuantity] = useState<(typeof quantityOptions)[number]>(1);
+  const [quantityOpen,setQuantityOpen]=useState(false);
+  const [previewGift,setPreviewGift]=useState<Gift|null>(null);
   const [serverCategories, setServerCategories] = useState<Array<{id:string;label:string}>>([]);
   const [inventoryCounts, setInventoryCounts] = useState<Record<string,number>>({});
   const [banner, setBanner] = useState<{title:string;subtitle?:string;image_url?:string|null}|null>(null);
@@ -60,6 +61,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       setErrorMsg(null);
       setQuantity(1);
       setSendSource('coins');
+      setQuantityOpen(false);
+      setPreviewGift(null);
       sendingRef.current=false;
     }
   }, [isOpen]);
@@ -80,16 +83,15 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
     setLoading(true); setErrorMsg(null); setSendSuccess(false);
 
     const toGift = (row:any): Gift => {
-      const sample = sampleGifts.find(g => g.id === row.id);
       const animation = (['pulse','rocket','lion','car','crown','sparkle'].includes(String(row.animation_type))
         ? String(row.animation_type)
-        : (sample?.animationType || 'sparkle')) as Gift['animationType'];
+        : 'sparkle') as Gift['animationType'];
       return {
-        ...(sample || {id:String(row.id),name:String(row.name||'هدية'),category:'all' as const,price:Number(row.price||0),icon:String(row.icon||'🎁'),animationType:'sparkle' as const}),
         id:String(row.id),
-        name:String(row.name || sample?.name || 'هدية'),
+        name:String(row.name || 'هدية'),
+        category:'all',
         price:Number(row.price || 0),
-        icon:String(row.icon || sample?.icon || '🎁'),
+        icon:String(row.icon || '🎁'),
         animationType:animation,
         diamondSourceType:row.diamond_source_type,
         categoryId:row.category_id || undefined,
@@ -108,7 +110,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
         if (!state.error && value && Array.isArray(value.gifts)) {
           const next:Gift[] = value.gifts.map(toGift);
           setGifts(next);
-          setSelectedGift(next[0] || null);
+          setSelectedGift(null);
           setServerCategories(Array.isArray(value.categories) ? value.categories.map((row:any)=>({id:String(row.id),label:String(row.label)})) : []);
           const counts:Record<string,number> = {};
           for (const lot of Array.isArray(value.inventory) ? value.inventory : []) {
@@ -126,7 +128,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
         if (fallback.error) throw fallback.error;
         const next:Gift[] = (fallback.data || []).map(toGift);
         setGifts(next);
-        setSelectedGift(next[0] || null);
+        setSelectedGift(null);
         setServerCategories([]);
         setInventoryCounts({});
         setBanner(null);
@@ -154,6 +156,12 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       ? gifts
       : gifts.filter((g) => g.categoryId === selectedCategory || g.category === selectedCategory);
 
+  const effectiveQuantity=sendSource==='saved'?1:quantity;
+  const totalPrice=selectedGift?selectedGift.price*effectiveQuantity:0;
+  const insufficientCoins=sendSource==='coins'&&Boolean(selectedGift)&&user.gold<totalPrice;
+  const unavailableSaved=sendSource==='saved'&&Boolean(selectedGift)&&(inventoryCounts[selectedGift.id]||0)<1;
+  const sendDisabled=sending||loading||sendSuccess||!selectedGift||!selectedRecipient||insufficientCoins||unavailableSaved;
+
   const handleSend = async () => {
     if (sendingRef.current || sending || loading || sendSuccess) return;
     if (!selectedGift || !selectedRecipient) {
@@ -161,8 +169,6 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       return;
     }
 
-    const effectiveQuantity = sendSource === 'saved' ? 1 : quantity;
-    const totalPrice = selectedGift.price * effectiveQuantity;
     if (sendSource === 'saved' && (inventoryCounts[selectedGift.id] || 0) < 1) {
       setErrorMsg('هذه الهدية غير موجودة في صندوقك.');
       return;
@@ -304,6 +310,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                     setSelectedGift(gift);
                     setSendSource('coins');
                     setQuantity(1);
+                    setQuantityOpen(false);
                     setErrorMsg(null);
                   }}
                   className={`relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
@@ -325,9 +332,12 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                   )}
 
                   {/* Visual preview */}
-                  {gift.previewUrl
-                    ? <img src={gift.previewUrl} alt="" loading="lazy" className="w-12 h-12 my-1 rounded-xl object-cover border border-white/10" />
-                    : <span className="text-3xl my-1 drop-shadow-sm">{gift.icon}</span>}
+                  <div className="relative">
+                    {gift.previewUrl
+                      ? <img src={gift.previewUrl} alt="" loading="lazy" className="w-14 h-14 my-1 rounded-2xl object-cover border border-white/10" />
+                      : <span className="w-14 h-14 my-1 flex items-center justify-center text-3xl drop-shadow-sm">{gift.icon}</span>}
+                    <button type="button" aria-label={`معاينة ${gift.name}`} onClick={event=>{event.stopPropagation();setPreviewGift(gift);}} className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full border border-white/10 bg-black/65 text-white flex items-center justify-center"><Play size={12} fill="currentColor"/></button>
+                  </div>
 
                   {/* Name */}
                   <span className="text-[11px] font-medium text-slate-200 truncate w-full text-center">
@@ -366,33 +376,6 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             </div>
           )}
 
-          {/* Quantity selector */}
-          <div className={`pb-3 ${sendSource==='saved'?'opacity-45':''}`}>
-            <span className="text-xs text-slate-400 mb-2 block">الكمية:</span>
-            <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="كمية الهدية">
-              {quantityOptions.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`اختيار كمية ${value}`}
-                  aria-pressed={quantity === value}
-                  disabled={sendSource === 'saved'}
-                  onClick={() => {
-                    setQuantity(value);
-                    setErrorMsg(null);
-                    setSendSuccess(false);
-                  }}
-                  className={`py-1.5 rounded-lg text-xs font-black border transition-all ${
-                    quantity === value
-                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
-                      : 'bg-[#181a2e] text-slate-300 border-purple-500/20 hover:border-purple-400/50'
-                  }`}
-                >
-                  {value}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Error notice */}
           {errorMsg && (
@@ -401,57 +384,45 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             </div>
           )}
 
-          {/* Footer: User Balance + Send CTA */}
-            {selectedGift && <p className="text-center text-xs text-cyan-300 mb-2">{selectedGift.diamondSourceType === 'LUCKY_GIFT' ? 'ماس هدية الحظ يُفك بنسبة 10%' : 'ماس الهدية الثابتة يُفك بنسبة 30%'}</p>}
-          <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-3">
-            {/* Balance + Recharge button */}
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400">رصيدك الحالي</span>
-                <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1">
-                  🪙 {user.gold.toLocaleString('ar-SA')} Coins
-                </span>
+          {/* Footer: Wallet + exact total + quantity + send */}
+          <div className="pt-2 border-t border-purple-500/20">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="block text-[10px] text-slate-400">رصيدك الحالي</span>
+                <span className="text-xs font-bold text-amber-400 font-mono">🪙 {user.gold.toLocaleString('ar-SA')} Coins</span>
               </div>
-              <button
-                type="button"
-                onClick={onRechargeClick}
-                className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 flex items-center justify-center hover:bg-amber-500/30 active:scale-95 transition-transform"
-                title="شحن رصيد"
-              >
-                <Plus size={14} />
-              </button>
+              <button type="button" onClick={onRechargeClick} className="min-h-9 px-3 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-200 text-[11px] font-black flex items-center gap-1" title="شحن رصيد"><Plus size={13}/>شحن</button>
             </div>
 
-            {/* Send Button */}
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={sending || loading || sendSuccess || !selectedGift || !selectedRecipient}
-              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                sendSuccess
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 hover:brightness-105 active:scale-95'
-              }`}
-            >
-              {sendSuccess ? (
-                <>
-                  <Check size={16} />
-                  <span>تم الإرسال بنجاح!</span>
-                </>
-              ) : (
-                <>
-                  <span>إرسال الهدية</span>
-                  {selectedGift && (
-                    <span className="text-xs opacity-90 font-mono">
-                      {sendSource === 'saved'
-                        ? '(من الصندوق · ×1)'
-                        : `(${(selectedGift.price * quantity).toLocaleString('ar-SA')} 🪙 · ×${quantity})`}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
+            {selectedGift&&<div className={`mb-2 rounded-xl border px-3 py-2 flex items-center justify-between text-xs ${insufficientCoins?'border-rose-400/30 bg-rose-950/30 text-rose-200':'border-white/8 bg-white/[.035] text-slate-300'}`}>
+              <span>الإجمالي</span><strong dir="ltr" className="font-mono">{sendSource==='saved'?'من المخزون':`${totalPrice.toLocaleString('ar-IQ')} 🪙`} · ×{effectiveQuantity}</strong>
+            </div>}
+
+            <div className="flex items-stretch gap-2">
+              <div className="relative shrink-0">
+                <button type="button" aria-haspopup="menu" aria-expanded={quantityOpen} disabled={sendSource==='saved'} onClick={()=>setQuantityOpen(v=>!v)} className="h-full min-w-[72px] rounded-xl border border-white/10 bg-white/[.06] px-2 text-xs font-black disabled:opacity-45 flex items-center justify-center gap-1">
+                  <span dir="ltr">×{effectiveQuantity}</span><ChevronDown size={14}/>
+                </button>
+                {quantityOpen&&sendSource==='coins'&&<div role="menu" aria-label="اختيار كمية الهدية" className="absolute bottom-[calc(100%+8px)] left-0 z-30 w-[86px] rounded-2xl border border-white/10 bg-[#17192d]/98 p-1.5 shadow-2xl backdrop-blur-xl">
+                  {quantityOptions.map(value=><button key={value} type="button" role="menuitem" aria-label={`اختيار كمية ${value}`} onClick={()=>{setQuantity(value);setQuantityOpen(false);setErrorMsg(null);setSendSuccess(false);}} className={`w-full min-h-10 rounded-xl text-xs font-black ${quantity===value?'bg-amber-400 text-slate-950':'text-slate-200 hover:bg-white/8'}`}>×{value}</button>)}
+                </div>}
+              </div>
+              <button type="button" onClick={handleSend} disabled={sendDisabled} className={`flex-1 min-h-[48px] px-4 rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed ${sendSuccess?'bg-emerald-600 text-white':'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 hover:brightness-105 active:scale-[.99]'}`}>
+                {sendSuccess?<><Check size={16}/><span>تم الإرسال</span></>:<span>إرسال</span>}
+              </button>
+            </div>
+            {insufficientCoins&&<button type="button" onClick={onRechargeClick} className="w-full mt-2 text-[11px] font-bold text-rose-300">الرصيد غير كافٍ — شحن Coins</button>}
           </div>
+
+          {previewGift&&<div className="absolute inset-0 z-40 bg-[#0c0e1c]/92 backdrop-blur-xl rounded-t-3xl p-5 flex flex-col items-center justify-center text-center">
+            <button type="button" aria-label="إغلاق المعاينة" onClick={()=>setPreviewGift(null)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
+            {previewGift.previewUrl?<img src={previewGift.previewUrl} alt={previewGift.name} className="w-44 h-44 rounded-[28px] object-cover border border-white/10 shadow-2xl"/>:<div className="w-44 h-44 rounded-[28px] bg-white/[.05] flex items-center justify-center text-7xl border border-white/10 animate-pulse">{previewGift.icon}</div>}
+            <h4 className="mt-5 text-lg font-black">{previewGift.name}</h4>
+            {previewGift.description&&<p className="mt-2 max-w-xs text-xs leading-6 text-slate-400">{previewGift.description}</p>}
+            <p className="mt-3 text-sm font-black text-amber-300">🪙 {previewGift.price.toLocaleString('ar-IQ')}</p>
+            <p className="mt-2 text-[10px] text-slate-500">المعاينة لا ترسل الهدية ولا تخصم أي رصيد.</p>
+          </div>}
+
         </motion.div>
       </div>
     </AnimatePresence>
