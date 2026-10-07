@@ -1,7 +1,7 @@
 -- TASK 1: quantity choices configured on the server, never trusted from the client.
 -- Existing quantities, RPC signatures, gifts, diamonds and balances are preserved.
 create table public.gift_quantity_configuration (
-  quantity integer primary key check (quantity in (1,7,17,77,777)),
+  quantity integer primary key check (quantity between 1 and 777),
   enabled boolean not null default true,
   sort_order integer not null
 );
