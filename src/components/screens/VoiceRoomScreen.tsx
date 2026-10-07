@@ -23,10 +23,10 @@ export const VoiceRoomScreen: React.FC = () => {
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
   useEffect(()=>{
-    if(!activeRoom)return;
-    const userId=sessionStorage.getItem('totichat.pendingGiftRecipient');
+    if(!activeRoom||typeof window==='undefined'||!window.sessionStorage)return;
+    const userId=window.sessionStorage.getItem('totichat.pendingGiftRecipient');
     if(!userId)return;
-    sessionStorage.removeItem('totichat.pendingGiftRecipient');
+    window.sessionStorage.removeItem('totichat.pendingGiftRecipient');
     const recipient=activeRoom.members?.find(member=>member.id===userId)||activeRoom.seats.find(seat=>seat.user?.id===userId)?.user;
     if(recipient){setGiftRecipient(recipient);setGiftOpen(true);}
   },[activeRoom?.id]);
