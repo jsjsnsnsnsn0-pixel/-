@@ -400,14 +400,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
 
             <div className="flex items-stretch gap-2">
               <div className="relative shrink-0">
-                <button type="button" aria-haspopup="menu" aria-expanded={quantityOpen} disabled={sendSource==='saved'} onClick={()=>setQuantityOpen(v=>!v)} className="h-full min-w-[72px] rounded-xl border border-white/10 bg-white/[.06] px-2 text-xs font-black disabled:opacity-45 flex items-center justify-center gap-1">
+                <button type="button" aria-label={`اختيار كمية الهدية، الحالية ${effectiveQuantity}`} aria-haspopup="menu" aria-expanded={quantityOpen} disabled={sendSource==='saved'} onClick={()=>setQuantityOpen(v=>!v)} className="h-full min-w-[72px] rounded-xl border border-white/10 bg-white/[.06] px-2 text-xs font-black disabled:opacity-45 flex items-center justify-center gap-1">
                   <span dir="ltr">×{effectiveQuantity}</span><ChevronDown size={14}/>
                 </button>
                 {quantityOpen&&sendSource==='coins'&&<div role="menu" aria-label="اختيار كمية الهدية" className="absolute bottom-[calc(100%+8px)] left-0 z-30 w-[86px] rounded-2xl border border-white/10 bg-[#17192d]/98 p-1.5 shadow-2xl backdrop-blur-xl">
                   {quantityOptions.map(value=><button key={value} type="button" role="menuitem" aria-label={`اختيار كمية ${value}`} onClick={()=>{setQuantity(value);setQuantityOpen(false);setErrorMsg(null);setSendSuccess(false);}} className={`w-full min-h-10 rounded-xl text-xs font-black ${quantity===value?'bg-amber-400 text-slate-950':'text-slate-200 hover:bg-white/8'}`}>×{value}</button>)}
                 </div>}
               </div>
-              <button type="button" onClick={handleSend} disabled={sendDisabled} className={`flex-1 min-h-[48px] px-4 rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed ${sendSuccess?'bg-emerald-600 text-white':'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 hover:brightness-105 active:scale-[.99]'}`}>
+              <button type="button" aria-label="إرسال الهدية" onClick={handleSend} disabled={sendDisabled} className={`flex-1 min-h-[48px] px-4 rounded-xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-45 disabled:cursor-not-allowed ${sendSuccess?'bg-emerald-600 text-white':'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 hover:brightness-105 active:scale-[.99]'}`}>
                 {sendSuccess?<><Check size={16}/><span>تم الإرسال</span></>:<span>إرسال</span>}
               </button>
             </div>
