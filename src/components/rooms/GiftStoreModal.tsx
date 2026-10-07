@@ -39,6 +39,9 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const [inventoryCounts, setInventoryCounts] = useState<Record<string,number>>({});
   const [banner, setBanner] = useState<{title:string;subtitle?:string;image_url?:string|null}|null>(null);
   const [sendSource, setSendSource] = useState<'coins'|'saved'>('coins');
+  const [luckyPoints,setLuckyPoints]=useState(0);
+  const [luckyHistory,setLuckyHistory]=useState<Array<{id:string;gift_name:string;quantity:number;result_label:string;multiplier:number;lucky_points:number;created_at:string}>>([]);
+  const [luckyHistoryOpen,setLuckyHistoryOpen]=useState(false);
   
   // Available recipients: room participants or host
   const potentialRecipients: User[] = [...new Map([...(room?.members?.length?room.members:(room?.seats||[]).flatMap(seat=>seat.user?[seat.user]:[])),user].map(member=>[member.id,member])).values()];
@@ -63,6 +66,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
       setSendSource('coins');
       setQuantityOpen(false);
       setPreviewGift(null);
+      setLuckyHistoryOpen(false);
       sendingRef.current=false;
     }
   }, [isOpen]);
@@ -78,6 +82,25 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
   const categories = serverCategories.length
     ? [{id:'all',label:'الكل'}, ...serverCategories.map(cat=>cat.id==='luck'?{...cat,label:'هدايا الحظ'}:cat)]
     : fallbackCategories.map(cat=>cat.id==='luck'?{...cat,label:'هدايا الحظ'}:cat);
+
+  useEffect(()=>{
+    if(!isOpen||!user.authId)return;
+    let cancelled=false;
+    void (async()=>{
+      const [balance,history]=await Promise.all([
+        supabase.from('lucky_point_balances').select('points').eq('user_id',user.authId).limit(1),
+        supabase.from('lucky_results').select('id,gift_name,quantity,result_label,multiplier,lucky_points,created_at').or(`sender_id.eq.${user.authId},recipient_id.eq.${user.authId}`).order('created_at',{ascending:false}).limit(20),
+      ]);
+      if(cancelled)return;
+      if(!balance.error)setLuckyPoints(Number(balance.data?.[0]?.points||0));
+      if(!history.error)setLuckyHistory((history.data||[]).map((row:any)=>({
+        id:String(row.id),gift_name:String(row.gift_name||'هدية الحظ'),quantity:Number(row.quantity||1),
+        result_label:String(row.result_label||'Lucky Bonus'),multiplier:Number(row.multiplier||1),
+        lucky_points:Number(row.lucky_points||0),created_at:String(row.created_at||''),
+      })));
+    })();
+    return()=>{cancelled=true};
+  },[isOpen,user.authId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -310,6 +333,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             ))}
           </div>
 
+          {selectedCategory==='luck'&&<div className="mt-2 rounded-2xl border border-amber-300/15 bg-gradient-to-r from-amber-950/25 to-fuchsia-950/20 px-3 py-2 flex items-center justify-between gap-3">
+            <div><span className="block text-[9px] text-slate-500">Lucky Points</span><strong className="text-sm text-cyan-300">{luckyPoints.toLocaleString('ar-IQ')}</strong></div>
+            <button type="button" onClick={()=>setLuckyHistoryOpen(true)} className="rounded-xl border border-white/10 bg-white/[.05] px-3 py-2 text-[10px] font-black text-amber-100">سجل الحظ</button>
+          </div>}
+
           {/* Gifts Grid */}
           <div className="grid grid-cols-4 gap-2.5 py-3 overflow-y-auto max-h-64 no-scrollbar">
             {filteredGifts.map((gift) => {
@@ -429,6 +457,22 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
             </div>
             {insufficientCoins&&<button type="button" onClick={onRechargeClick} className="w-full mt-2 text-[11px] font-bold text-rose-300">الرصيد غير كافٍ — شحن Coins</button>}
           </div>
+
+          {luckyHistoryOpen&&<div className="absolute inset-0 z-40 bg-[#0c0e1c]/96 backdrop-blur-xl rounded-t-3xl p-4 flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/8 pb-3">
+              <button type="button" aria-label="إغلاق سجل الحظ" onClick={()=>setLuckyHistoryOpen(false)} className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
+              <div className="text-right"><h4 className="font-black">سجل هدايا الحظ</h4><p className="text-[10px] text-cyan-300">{luckyPoints.toLocaleString('ar-IQ')} Lucky Points</p></div>
+            </div>
+            <div className="mt-3 flex-1 overflow-y-auto space-y-2 no-scrollbar">
+              {!luckyHistory.length&&<div className="py-10 text-center text-xs text-slate-500">لا توجد نتائج حظ مسجلة لهذا الحساب.</div>}
+              {luckyHistory.map(row=><article key={row.id} className="rounded-2xl border border-white/8 bg-white/[.04] p-3">
+                <div className="flex items-center justify-between gap-2"><strong className="text-xs">{row.gift_name}{row.quantity>1?` ×${row.quantity}`:''}</strong><span dir="ltr" className="text-sm font-black text-amber-300">×{row.multiplier}</span></div>
+                <div className="mt-1 flex items-center justify-between text-[10px]"><span className="text-slate-400">{row.result_label}</span><span className="text-cyan-300">+{row.lucky_points} Points</span></div>
+                {row.created_at&&<time className="mt-1 block text-[9px] text-slate-600">{new Date(row.created_at).toLocaleString('ar-IQ')}</time>}
+              </article>)}
+            </div>
+            <p className="pt-2 text-center text-[9px] text-slate-600">السجل غير مالي ولا يمثل أرباحاً نقدية.</p>
+          </div>}
 
           {previewGift&&<div className="absolute inset-0 z-40 bg-[#0c0e1c]/92 backdrop-blur-xl rounded-t-3xl p-5 flex flex-col items-center justify-center text-center">
             <button type="button" aria-label="إغلاق المعاينة" onClick={()=>setPreviewGift(null)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
