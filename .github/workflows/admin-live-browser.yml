@@ -34,13 +34,16 @@ jobs:
           page.on('requestfailed',req=>errors.push('network: '+req.url()+' '+req.failure()?.errorText));
           const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
           if(!response||response.status()!==200)throw new Error('Admin page HTTP '+response?.status());
+          console.log('DIAG: initial content type='+(await response.allHeaders())['content-type']);
+          console.log('DIAG: HTTP document start='+(await response.text()).slice(0,220));
           try{
             await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:18000});
           }catch(error){
             console.error('DIAG: URL='+page.url());
-            console.error('DIAG: app text='+(await page.locator('#app').innerText()).slice(0,1200));
+            console.error('DIAG: title='+(await page.title()));
+            console.error('DIAG: document='+(await page.content()).slice(0,1200));
             console.error('DIAG: errors='+JSON.stringify(errors.slice(0,15)));
-            await page.screenshot({path:'admin-login-smoke.png'});
+            try{await page.screenshot({path:'admin-login-smoke.png',timeout:8000});}catch(e){console.error('screenshot failure '+e.message)}
             throw error;
           }
           await page.getByText('اسم المستخدم أو البريد الإلكتروني').waitFor();
