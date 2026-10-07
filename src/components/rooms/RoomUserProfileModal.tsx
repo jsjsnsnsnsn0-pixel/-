@@ -10,7 +10,8 @@ import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
 import { RoyalAccountId } from '../common/RoyalAccountId';
-import {X, Heart, Crown} from 'lucide-react';
+import {X, Crown} from 'lucide-react';
+import {RelationshipShowcaseCard} from '../common/RelationshipShowcaseCard';
 
 interface RoomUserProfileModalProps {
   isOpen: boolean;
@@ -209,10 +210,13 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           </div>}
         </div>
 
-        {displayUser.couple && <div data-testid="profile-couple" className="mt-3 rounded-[22px] border border-pink-400/40 shadow-[0_6px_24px_rgba(244,63,94,0.25)] bg-gradient-to-r from-[#2a0820] via-[#400d33] to-[#2a0820] p-3 flex items-center justify-around gap-3">
-          <button type="button" aria-label={`زيارة ملف ${displayUser.couple.partner.name}`} onClick={()=>{const partner=displayUser.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));onClose();setActiveSubScreen('user_detail_profile');}} className="min-w-0"><img src={displayUser.couple.partner.avatar} alt={displayUser.couple.partner.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.couple.partner.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-rose-300 object-cover" /><p className="text-xs text-pink-200 mt-1 truncate">{displayUser.couple.partner.name}</p>{displayUser.couple.partner.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.couple.partner.level}</span>}</button>
-          <div className="text-pink-200"><Heart className="mx-auto text-rose-400" /><p className="text-xs mt-1">{displayUser.couple.typeLabel||'رفيق الروح'}</p>{displayUser.couple.days !== undefined && <p className="text-xs">{displayUser.couple.days} أيام</p>}{displayUser.couple.level!==undefined&&<p className="text-[10px] text-amber-300 mt-0.5">CP LV.{displayUser.couple.level}</p>}{displayUser.couple.experience!==undefined&&<p className="text-[9px] text-slate-400">EXP {displayUser.couple.experience.toLocaleString('ar-SA')}</p>}</div>
-          <div className="min-w-0"><img src={displayUser.avatar} alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-amber-300 object-cover" /><p className="text-xs text-amber-200 mt-1 truncate">{displayUser.name}</p>{displayUser.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.level}</span>}</div>
+        {displayUser.couple&&<div data-testid="profile-couple" className="mt-3">
+          <RelationshipShowcaseCard
+            compact
+            owner={{name:displayUser.name,avatar:displayUser.avatar,level:displayUser.level}}
+            relation={displayUser.couple}
+            onPartner={()=>{const partner=displayUser.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));onClose();setActiveSubScreen('user_detail_profile');}}
+          />
         </div>}
         {loading && <p role="status" className="mt-3 text-xs text-slate-300">جارٍ تحميل الملف العام…</p>}
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
