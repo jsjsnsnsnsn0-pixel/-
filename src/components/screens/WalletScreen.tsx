@@ -7,7 +7,7 @@ import {useServerData} from '../../hooks/useServerData';
 import {DiamondRedeemModal} from '../modals/DiamondRedeemModal';
 import {EmptyState, ErrorState, InlineLoading} from '../common/UIState';
 
-type Tab = 'recharge' | 'sent' | 'received' | 'conversion' | 'games' | 'monthly';
+type Tab = 'recharge' | 'sent' | 'received' | 'conversion' | 'games' | 'monthly' | 'lucky';
 type MonthlyHost = {month_start:string;diamonds_earned:number;diamonds_manually_redeemed:number;diamonds_remaining:number;coins_generated:number;monthly_gift_count:number;host_salary:number|null;status:string};
 type MonthlyAgency = {settlement_id:string;agency_id:number;agency_target:number;gift_count:number;agent_commission:number|null};
 type RechargeRequest = {id:string; amount_iqd:number|null; gold_amount:number; status:string; note:string|null; price_usd:number|null; created_at:string; updated_at:string};
@@ -79,8 +79,8 @@ export const WalletScreen: React.FC = () => {
       </section>
 
       <section>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 rounded-2xl bg-white/5 border border-white/8 p-1">
-          {([['recharge','الشحن'],['sent','مرسلة'],['received','مستلمة'],['conversion','التحويل'],['games','الألعاب'],['monthly','التسوية']] as [Tab,string][]).map(([id,label]) => <button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`rounded-xl px-1 py-2 text-[11px] font-black ${tab===id?'bg-white text-slate-950 shadow-md':'text-slate-400'}`}>{label}</button>)}
+        <div className="grid grid-cols-3 sm:grid-cols-7 gap-1 rounded-2xl bg-white/5 border border-white/8 p-1">
+          {([['recharge','الشحن'],['sent','مرسلة'],['received','مستلمة'],['conversion','التحويل'],['games','الألعاب'],['monthly','التسوية'],['lucky','نقاط الحظ']] as [Tab,string][]).map(([id,label]) => <button key={id} type="button" aria-pressed={tab===id} onClick={()=>setTab(id)} className={`rounded-xl px-1 py-2 text-[11px] font-black ${tab===id?'bg-white text-slate-950 shadow-md':'text-slate-400'}`}>{label}</button>)}
         </div>
       </section>
 
@@ -121,6 +121,7 @@ export const WalletScreen: React.FC = () => {
         </article>)}
       </section>}
 
+      {tab === 'lucky' && <LuckyPointsHistory userId={user.authId}/>}
       {tab === 'games' && <section className="space-y-2">
         <div className="rounded-3xl bg-gradient-to-l from-violet-700/25 to-fuchsia-600/10 border border-violet-300/20 p-4 flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-violet-400/15 flex items-center justify-center text-violet-300"><Gamepad2/></div><div className="flex-1"><h2 className="font-black">TotiFun</h2><p className="text-xs text-slate-400">ألعاب ترفيهية بدون خصم Coins.</p></div><button type="button" onClick={()=>setActiveSubScreen('luck_games')} className="rounded-xl bg-white text-violet-950 px-3 py-2 text-xs font-black">العب</button></div>
         {games.loading && <InlineLoading>جارٍ تحميل سجل الألعاب…</InlineLoading>}
@@ -137,3 +138,49 @@ const TransactionList: React.FC<{rows:any[]; empty:string; icon:'sent'|'received
   {!rows.length && <EmptyState title={empty}/>} 
   {rows.map(tx => {const direction = icon === 'mixed' ? (Number(tx.amount) < 0 ? 'sent' : 'received') : icon; return <article key={tx.id} className="rounded-2xl bg-white/5 border border-white/8 p-3 flex items-start justify-between gap-3"><div className="flex items-center gap-3 min-w-0"><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${direction==='sent'?'bg-rose-500/12 text-rose-300':'bg-emerald-500/12 text-emerald-300'}`}>{direction==='sent'?<ArrowUpRight size={19}/>:<ArrowDownLeft size={19}/>}</span><div className="min-w-0"><strong className="text-sm block break-words">{tx.title}</strong><p className="text-[10px] text-slate-500 mt-1">{tx.date} · {tx.time}</p><span className="ui-id text-[10px] text-slate-600 block">{tx.id}</span></div></div><div className="text-left shrink-0"><span dir="ltr" className={`font-black text-sm ${tx.amount>0?'text-emerald-300':'text-slate-200'}`}>{tx.amount>0?'+':''}{Number(tx.amount).toLocaleString()} {tx.currency==='gold'?'🪙':tx.currency==='silver'?'🥈':'💎'}</span><span className="block text-[10px] text-slate-500 mt-1"><Gift size={10} className="inline"/> مكتمل</span></div></article>})}
 </section>;
+
+type LuckyHistoryRow = {
+  gift_event_id:string;request_id:string;sender_name:string;recipient_name:string;
+  gift_name:string;quantity:number;multiplier:number;lucky_points:number;
+  room_id:string;created_at:string;
+};
+
+const LuckyPointsHistory:React.FC<{userId:string}>=({userId})=>{
+  const load=useCallback(async()=>{
+    const [history,totals]=await Promise.all([
+      supabase.from('lucky_bonus_results')
+        .select('gift_event_id,request_id,sender_name,recipient_name,gift_name,quantity,multiplier,lucky_points,room_id,created_at')
+        .eq('recipient_id',userId).order('created_at',{ascending:false}).limit(100),
+      supabase.rpc('lucky_points_state')
+    ]);
+    if(history.error)throw history.error;
+    if(totals.error)throw totals.error;
+    return {
+      results:(history.data||[]) as LuckyHistoryRow[],
+      total:Number((totals.data as {total_lucky_points?:number}|null)?.total_lucky_points||0),
+    };
+  },[userId]);
+  const state=useServerData(load,{results:[] as LuckyHistoryRow[],total:0});
+  return <section className="space-y-3">
+    <header className="flex items-center justify-between gap-2">
+      <div><h2 className="font-black">سجل نقاط الحظ</h2><p className="text-[11px] text-slate-400">مكافآت تجميلية لا تدخل في الماس أو الرواتب أو أهداف الوكالات.</p></div>
+      <button type="button" onClick={()=>void state.reload()} className="ui-icon-button bg-white/5" aria-label="تحديث نقاط الحظ"><RefreshCw size={16}/></button>
+    </header>
+    {state.loading&&<InlineLoading>جارٍ تحميل سجل الحظ…</InlineLoading>}
+    {state.error&&<ErrorState message={state.error} onRetry={()=>void state.reload()}/>}
+    {!state.loading&&!state.error&&<>
+      <div className="rounded-2xl bg-violet-500/15 border border-violet-300/20 p-4">
+        <span className="text-xs text-violet-200">إجمالي Lucky Points</span>
+        <strong className="block mt-2 text-2xl text-amber-200">{state.data.total.toLocaleString('ar-IQ')} ✨</strong>
+        <p className="mt-2 text-[10px] text-slate-400">لا يوجد تحويل لهذه النقاط إلى Coins أو Diamonds.</p>
+      </div>
+      {!state.data.results.length&&<EmptyState title="لا توجد نتائج حظ" description="ستظهر نتائج الهدايا المؤهلة بعد إرسالها بنجاح داخل الغرفة."/>}
+      {state.data.results.map(row=><article key={row.gift_event_id} className="rounded-2xl border border-violet-300/15 bg-white/5 p-3 text-xs">
+        <div className="flex justify-between gap-2"><strong>{row.gift_name}</strong><strong className="text-amber-200">×{row.multiplier} · +{Number(row.lucky_points).toLocaleString()} نقطة</strong></div>
+        <p className="mt-1 text-slate-300">من {row.sender_name} · الكمية ×{row.quantity}</p>
+        <p className="mt-2 text-[10px] text-slate-500">{new Date(row.created_at).toLocaleString('ar-IQ')}</p>
+        <p className="mt-1 text-[9px] text-slate-600 break-all">Gift TX: {row.gift_event_id} · Room: {row.room_id}</p>
+      </article>)}
+    </>}
+  </section>;
+};
