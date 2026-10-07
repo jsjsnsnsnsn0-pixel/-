@@ -3,6 +3,7 @@ import {Wifi,WifiOff,RefreshCw,SignalLow} from 'lucide-react';
 import {useApp} from '../../context/AppContext';
 import {useRoomAudioContext} from '../../context/RoomAudioContext';
 import {supabase} from '../../services/supabase';
+import {recordBetaEvent} from '../../services/betaTelemetry';
 
 export type ConnectionPhase='connected'|'weak'|'disconnected'|'reconnecting'|'restored';
 
@@ -61,6 +62,11 @@ export function ConnectionBanner(){
   previousPhase.current=phase;
   return()=>{if(restoreTimer.current)clearTimeout(restoreTimer.current)};
  },[phase]);
+ useEffect(()=>{
+  if(!activeRoom)return;
+  if(phase==='disconnected')recordBetaEvent('room_reconnect','offline');
+  else if(phase==='reconnecting')recordBetaEvent(audioConnected?'room_reconnect':'audio_disconnect',audioConnected?'backend_retry':'audio_retry');
+ },[phase,activeRoom?.id,audioConnected]);
  const tryAgain=async()=>{
   if(retrying)return;setRetrying(true);
   await Promise.allSettled([probe(),refreshRooms()]);
