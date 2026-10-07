@@ -16,9 +16,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout admin feature branch
         uses: actions/checkout@v4
@@ -59,6 +56,8 @@ jobs:
           fi
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload admin site
         uses: actions/upload-pages-artifact@v4
         with:
