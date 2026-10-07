@@ -5,6 +5,7 @@ import React from 'react';
 import {defaultAvatar} from '../../services/profile';
 import {loadRoomPublicProfile, seatPublicProfile, RoomPublicProfile} from '../../services/roomPublicProfile';
 import {setImageFallback} from '../../utils/imageFallback';
+import {rpc} from '../../services/backend';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
@@ -37,27 +38,39 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   const { user: currentUser, activeRoom, refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen } = useApp();
   const [actionBusy,setActionBusy]=React.useState(false);
   const targetSeat=activeRoom?.seats.find(seat=>seat.user?.id===targetUser?.id);
-  const owner=Boolean(currentUser.authId&&currentUser.authId===activeRoom?.ownerAuthId);
-  const canManage=Boolean(activeRoom?.canModerate&&targetUser&&targetUser.id!==currentUser.id&&targetUser.authId!==activeRoom.ownerAuthId&&(owner||targetUser.roomRole!=='moderator'));
+  type RoomUserPermissions = {
+    social?: {follow?:boolean;message?:boolean;gift?:boolean;mention?:boolean;is_following?:boolean};
+    moderation?: string[];
+    manage_moderators?: boolean;
+    self?: boolean;
+  };
+  const [permissions,setPermissions]=React.useState<RoomUserPermissions|null>(null);
+  const moderation=permissions?.moderation || [];
+  const canManage=moderation.length>0;
   const [banMinutes,setBanMinutes]=React.useState('60');
-  const moderate=async(action:string)=>{if(!activeRoom||!targetUser||actionBusy)return;setActionBusy(true);try{const {error}=await supabase.rpc('moderate_room_user',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id),p_action:action,...(action==='ban'?{p_duration_minutes:banMinutes==='forever'?null:Number(banMinutes)}:{})});if(error)throw error;await refreshRooms();if(action==='kick'||action==='ban')onClose()}catch{reportError('تعذر تنفيذ الإجراء. تحقق من الصلاحية والاتصال.')}finally{setActionBusy(false)}};
+  const moderate=async(action:string)=>{if(!activeRoom||!targetUser||actionBusy||!moderation.includes(action))return;setActionBusy(true);try{const {error}=await supabase.rpc('moderate_room_user',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id),p_action:action,...(action==='ban'?{p_duration_minutes:banMinutes==='forever'?null:Number(banMinutes)}:{})});if(error)throw error;await refreshRooms();if(action==='kick'||action==='ban')onClose()}catch{reportError('تعذر تنفيذ الإجراء. تحقق من الصلاحية والاتصال.')}finally{setActionBusy(false)}};
+  const toggleFollow=async()=>{if(!targetUser||actionBusy||!permissions?.social?.follow)return;setActionBusy(true);try{await rpc('social_action',{p_public_id:Number(targetUser.id),p_action:permissions.social.is_following?'unfollow':'follow'});setPermissions(previous=>previous?{...previous,social:{...previous.social,is_following:!previous.social?.is_following}}:previous);}catch{reportError('تعذر تحديث المتابعة. حاول مجدداً.')}finally{setActionBusy(false)}};
   const [loaded, setLoaded] = React.useState<{target: string; viewer: string; profile: RoomPublicProfile} | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
   React.useEffect(() => {
     let cancelled = false;
-    setLoaded(null); setError(null);
+    setLoaded(null); setPermissions(null); setError(null);
     if (!isOpen || !targetUser) {setLoading(false); return;}
     if (!/^\d+$/.test(targetUser.id)) {setLoading(false); setError('معرف المستخدم غير متاح؛ لا يمكن تحميل التفاصيل.'); return;}
     setLoading(true);
-    void loadRoomPublicProfile(targetUser.id, currentUser.id).then(profile => {
-      if (!cancelled) setLoaded({target: targetUser.id, viewer: currentUser.id, profile});
-    }).catch(() => {
-      if (!cancelled) setError('تعذر تحميل تفاصيل المستخدم. بيانات المقعد فقط متاحة حالياً.');
+    void Promise.allSettled([
+      loadRoomPublicProfile(targetUser.id, currentUser.id),
+      activeRoom ? rpc<RoomUserPermissions>('room_user_permissions',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id)}) : Promise.resolve(null),
+    ]).then(([profileResult,permissionsResult]) => {
+      if (cancelled) return;
+      if (profileResult.status==='fulfilled') setLoaded({target: targetUser.id, viewer: currentUser.id, profile:profileResult.value});
+      else setError('تعذر تحميل تفاصيل المستخدم. بيانات المقعد فقط متاحة حالياً.');
+      if (permissionsResult.status==='fulfilled') setPermissions(permissionsResult.value);
     }).finally(() => {if (!cancelled) setLoading(false);});
     return () => {cancelled = true;};
-  }, [isOpen, targetUser?.id, targetUser?.authId, currentUser.id, attempt]);
+  }, [isOpen, targetUser?.id, targetUser?.authId, currentUser.id, activeRoom?.id, attempt]);
   if (!isOpen) return null;
 
   // There is no implicit current-user fallback, even on a failed lookup.
@@ -205,16 +218,17 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
 
         <div className="grid grid-cols-2 gap-3 mt-5 text-white text-sm">
-          {onMention&&<button type="button" onClick={onMention} className="p-4 rounded-2xl bg-white/5">📣 منشن</button>}
-          {onMessage&&targetUser?.id!==currentUser.id&&<button type="button" onClick={onMessage} className="p-4 rounded-2xl bg-white/5">رسالة خاصة</button>}
-          {onGift&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
+          {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
+          {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-2xl bg-white/5">📣 منشن</button>}
+          {onMessage&&permissions?.social?.message!==false&&!permissions?.self&&<button type="button" onClick={onMessage} className="p-4 rounded-2xl bg-white/5">رسالة خاصة</button>}
+          {onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
           {canManage&&<>
-            {targetSeat&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
-            <button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>
-            <button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-2xl bg-white/5 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>
-            <div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>
+            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
+            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>}
+            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-2xl bg-white/5 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
+            {moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
           </>}
-          {owner&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-2xl bg-white/5">إدارة المشرفين</button>}
+          {permissions?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-2xl bg-white/5">إدارة المشرفين</button>}
 
         </div>
         {/* ========================================================= */}
