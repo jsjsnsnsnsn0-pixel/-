@@ -4,6 +4,8 @@ import {el,box,title,note,panel,btn,field} from './ui.js';
 import {overview,users,wallet,audit,health,settings} from './pages-core.js';
 import {roles,agencies,catalog,rooms,tickets} from './pages-admin.js';
 import {settlements} from './pages-finance.js';
+import {previewGate} from './gate.js';
+import {showDemo} from './demo.js';
 
 const root=document.getElementById('app');
 const config=window.TOTICHAT_ADMIN_CONFIG;
@@ -82,13 +84,28 @@ async function authenticate(){
   render();
  }catch(err){login(err?.message||'تعذر التحقق من الدخول.')}
 }
-async function start(){
- if(!config?.url||!config?.key){root.replaceChildren(box('message error','لم يتم ضبط عنوان Supabase ومفتاحه العام على Vercel.'));return}
- state.client=createClient(config.url,config.key,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
- state.client.auth.onAuthStateChange(event=>{
-  if(event==='SIGNED_OUT'){state.session=null;state.user=null;login()}
+function demo(){
+ showDemo(root,{
+  onRealLogin:()=>login(),
+  onReturn:()=>{void previewGate(root).then(()=>demo());}
  });
- await authenticate();
+}
+async function start(){
+ // The admin/admin gate is for a safe read-only preview, not for Supabase authorization.
+ await previewGate(root);
+ if(!config?.url||!config?.key){
+  demo();
+  return;
+ }
+ state.client=createClient(config.url,config.key,{
+  auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+ });
+ state.client.auth.onAuthStateChange(event=>{
+  if(event==='SIGNED_OUT'){state.session=null;state.user=null;demo()}
+ });
+ const {data}=await state.client.auth.getUser();
+ if(data?.user)await authenticate();
+ else demo();
  setInterval(()=>{
   if(!state.session?.allowed)return;
   void rpc('dashboard_session').then(next=>{
@@ -99,4 +116,5 @@ async function start(){
   }).catch(()=>{});
  },20000);
 }
+
 start().catch(err=>root.replaceChildren(box('message error',err?.message||'تعذر تشغيل لوحة الإدارة')));
