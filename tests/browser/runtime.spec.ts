@@ -7,7 +7,7 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = !overrides.startUnmuted;
@@ -71,6 +71,23 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/moderate_room_user')) return respond(null);
     if (path.endsWith('/couple_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({relations:overrides.roomCouple ? [{accepted_at:'2026-01-01T00:00:00Z',ended_at:null,partner:{public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0}}] : [],current:[],previous:[]});}
+    if (path.endsWith('/profile_relationships')) {
+      if(overrides.optionalProfileError)return respond({message:'unavailable'},500);
+      if(overrides.hideRelationships||!overrides.typedRelationships)return respond([]);
+      const subject=Number(body.p_public_id);
+      const ownerPartner=subject===920003
+        ? {public_id:451306,display_name:'شريك CP',avatar_url:'/assets/images/default-user.svg',level:4,vip_level:2,country_code:'IQ'}
+        : {public_id:920003,display_name:'حساب الاختبار',avatar_url:current.avatar_url,level:current.level,vip_level:current.vip_level,country_code:'IQ'};
+      return respond([
+        {relation_id:'rel-cp',type_id:'love',type_label:'CP',is_primary:true,partner:ownerPartner,days:10,experience:650,level_thresholds:[100,500,1000],presentation:{accent:'#fb7185',background:'#35102a',icon:'💗'},card:{id:'cp-card',name:'بطاقة الحب'}},
+        {relation_id:'rel-best',type_id:'best_friend',type_label:'صديق للأبد',is_primary:false,partner:{public_id:451305,display_name:'صديق طويل الأمد',avatar_url:'/assets/images/default-user.svg',level:2,vip_level:0},days:34,experience:220,level_thresholds:[100,300,700],presentation:{accent:'#8b5cf6',background:'#1f173a',icon:'🤝'}},
+        {relation_id:'rel-trusted',type_id:'trusted',type_label:'مؤتمن',is_primary:false,partner:{public_id:451307,display_name:'Trusted Friend With Long English Name',avatar_url:'/assets/images/default-user.svg',level:3,vip_level:0},days:35,experience:510,level_thresholds:[100,300,600],presentation:{accent:'#22d3ee',background:'#102a35',icon:'🛡️'}}
+      ]);
+    }
+    if (path.endsWith('/profile_agency')) {
+      if(overrides.optionalProfileError)return respond({message:'unavailable'},500);
+      return respond(overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',logo_url:null,role:'member',members_count:18}:null);
+    }
     if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
     if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'server-entrance',name:'دخول الخادم',category:'entrances',price:41,currency:'gold',icon:'✨',description:'مؤثر دخول من الخادم',duration_days:7},{id:'server-card',name:'بطاقة حب الخادم',category:'cards',price:43,currency:'gold',icon:'💗',description:'بطاقة CP من الخادم',duration_days:30,relationship_type_id:'love',preview_url:null},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
@@ -203,6 +220,90 @@ test('search uses server profiles and does not display invented accounts', async
   await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');
   await expect(page.getByText('مستخدم البحث',{exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/search_public_profiles'))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+async function openFullOtherProfile(page: Page, overrides: Parameters<typeof setup>[2] = {}) {
+  const result=await setup(page,true,{rooms:true,otherMember:true,...overrides});
+  await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByTestId('occupied-seat').nth(1).click();
+  const quick=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
+  await quick.getByRole('button',{name:'المزيد',exact:true}).click();
+  await expect(page.getByTestId('full-profile-hero')).toBeVisible();
+  return result;
+}
+
+test('search account opens the full profile instead of forcing chat',async({page})=>{
+  const {errors}=await setup(page);await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();
+  await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');
+  await page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true}).click();
+  await expect(page.getByTestId('full-profile-hero')).toHaveAttribute('data-vip-level','0');
+  await expect(page.getByTestId('cp-quick-preview')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'متابعة',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('other full profile uses real VIP, CP, agency and multiple relationship data',async({page})=>{
+  const {errors}=await openFullOtherProfile(page,{roomProfile:{display_name:'مستخدم VIP',vip_level:5,level:7,country_code:'IQ'},roomAgency:true,typedRelationships:true});
+  await expect(page.getByTestId('full-profile-hero')).toHaveAttribute('data-vip-level','5');
+  await expect(page.getByTestId('cp-quick-preview')).toBeVisible();
+  await expect(page.getByText('وكالة حقيقية للاختبار',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'علاقاتي',exact:true}).click();
+  await expect(page.getByRole('button',{name:'فتح تفاصيل CP',exact:true})).toBeVisible();
+  await expect(page.getByText('صديق للأبد',{exact:true})).toBeVisible();
+  await expect(page.getByText('مؤتمن',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'فتح تفاصيل CP',exact:true}).click();
+  const details=page.getByRole('dialog',{name:'تفاصيل CP'});
+  await expect(details).toContainText('10');
+  await expect(details).toContainText('LV3');
+  await expect(details).toContainText('650');
+  expect(errors).toEqual([]);
+});
+
+test('full profile follow state changes and message action stays real',async({page})=>{
+  const {requests,errors}=await openFullOtherProfile(page);
+  await page.getByRole('button',{name:'متابعة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();
+  expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='follow')).toBe(true);
+  await page.getByRole('button',{name:'رسالة',exact:true}).click();
+  await expect(page.locator('body')).toContainText('مشارك آخر');
+  expect(errors).toEqual([]);
+});
+
+test('full room profile gift action returns to the real gift sheet with recipient',async({page})=>{
+  const {errors}=await openFullOtherProfile(page);
+  await page.getByRole('button',{name:'هدية',exact:true}).click();
+  const gift=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
+  await expect(gift).toBeVisible();
+  await expect(gift).toContainText('مشارك آخر');
+  expect(errors).toEqual([]);
+});
+
+test('self full profile shares the same architecture with owner actions',async({page})=>{
+  const {errors}=await setup(page);await page.goto('/');await page.getByTitle('أنا').click();
+  await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();
+  await expect(page.getByTestId('full-profile-hero')).toBeVisible();
+  await expect(page.getByTestId('self-profile-actions')).toBeVisible();
+  await expect(page.getByRole('button',{name:'متابعة',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'تعديل الملف الشخصي',exact:true}).click();
+  await expect(page.getByText('تعديل الملف الشخصي',{exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('relationships privacy-shaped response hides CP and relationships without placeholders',async({page})=>{
+  const {errors}=await openFullOtherProfile(page,{hideRelationships:true});
+  await expect(page.getByTestId('cp-quick-preview')).toHaveCount(0);
+  await page.getByRole('button',{name:'علاقاتي',exact:true}).click();
+  await expect(page.getByTestId('cp-empty-state')).toBeVisible();
+  await expect(page.getByText('صديق للأبد',{exact:true})).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('full profile stays RTL-safe with a long English display name on a small screen',async({page})=>{
+  await page.setViewportSize({width:320,height:740});
+  const {errors}=await openFullOtherProfile(page,{roomProfile:{display_name:'A Very Long English Display Name For Mobile Profile Layout',vip_level:0,level:2}});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(page.getByTestId('full-profile-hero')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -755,7 +856,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
  await capture('home');
  await page.getByTitle('الرسائل',{exact:true}).click();await expect(page.getByText('لا توجد محادثات بعد',{exact:true})).toBeVisible();await capture('messages');
  await page.getByTitle('أنا',{exact:true}).click();await expect(page.getByTitle('اسم الحساب')).toBeVisible();await capture('profile');
- await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByRole('button',{name:'انضم إلى وكالة',exact:true})).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();const idBrightness=await copyId.locator('span').first().evaluate(el=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d')!;ctx.fillStyle=getComputedStyle(el).color;ctx.fillRect(0,0,1,1);return Math.min(...ctx.getImageData(0,0,1,1).data.slice(0,3));});expect(idBrightness).toBeGreaterThan(230);await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
+ await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByTestId('self-profile-actions')).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ معرف الحساب.',{exact:true})).toBeVisible();await capture('full-profile');
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد طلبات شحن',{exact:true})).toBeVisible();await capture('wallet');
