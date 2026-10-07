@@ -1,0 +1,10 @@
+{
+  "name": "totichat-standalone-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check app.js && node --check build.mjs"
+  }
+}
