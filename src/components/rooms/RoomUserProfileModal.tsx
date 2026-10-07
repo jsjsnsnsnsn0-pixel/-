@@ -24,7 +24,7 @@ const RoomProfileHeader=({profile}:{profile:RoomPublicProfile})=>{
   const activeVip=profile.vipLevel>0;
   const palette=vipPalette(profile.vipLevel);
   return <div className="relative flex justify-center items-center mt-2 mb-3" data-testid={activeVip?'vip-profile-header':'standard-profile-header'} data-vip-level={activeVip?String(profile.vipLevel):undefined}>
-    <div className={`relative w-72 h-28 flex items-center justify-center isolate ${activeVip?'':'h-24'}`}>
+    <div data-testid="profile-avatar-frame" className={`relative w-72 h-28 flex items-center justify-center isolate bg-transparent ${activeVip?'':'h-24'}`}>
       {activeVip&&<>
         <span aria-hidden="true" className="absolute left-5 top-7 w-28 h-9 rounded-[75%_18%_70%_26%] -rotate-[15deg] opacity-95 shadow-[0_0_22px_rgba(168,85,247,.22)]" style={{background:`linear-gradient(110deg,transparent 4%,${palette.from} 34%,${palette.mid} 66%,${palette.to} 100%)`}}/>
         <span aria-hidden="true" className="absolute right-5 top-7 w-28 h-9 rounded-[18%_75%_26%_70%] rotate-[15deg] opacity-95 shadow-[0_0_22px_rgba(168,85,247,.22)]" style={{background:`linear-gradient(250deg,transparent 4%,${palette.from} 34%,${palette.mid} 66%,${palette.to} 100%)`}}/>
