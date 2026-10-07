@@ -17,8 +17,8 @@ export async function change(operation,success='تم تنفيذ العملية �
  state.busy=true;
  try{
   await operation();
-  state.notify?.(success,'success');
   if(reload)state.refresh?.();
+  state.notify?.(success,'success');
   return true;
  }catch(e){
   state.notify?.(e?.message||'تعذر تنفيذ العملية.','error');
