@@ -3,7 +3,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Gift, Hand, MessageCircle, Mic, MicOff, Power, Send, Settings, Music, Users, Volume2, VolumeX, X} from 'lucide-react';
 import './room-ui.css';
 
-export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean}
+export interface RoomChatMessage {id: string; content: string; sender_display_name?: string; kind?: 'text'|'gift'; deletable?: boolean; created_at?: string}
 interface Props {
   title: string; cover: string; thumbnail?:string; count: number; welcome: string; seats: React.ReactNode;
   onDeleteMessage?:(id:string)=>void;
