@@ -206,7 +206,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/35 backdrop-blur-[1px]"
+          className="absolute inset-0 bg-black/45 backdrop-blur-[3px]"
         />
 
         {/* Bottom Sheet */}
@@ -215,12 +215,12 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-          role="dialog" aria-modal="true" aria-label="صندوق الهدايا" className="ui-sheet relative w-full max-w-md bg-[#101222]/96 border-t border-purple-500/30 rounded-t-3xl p-4 shadow-2xl z-10 max-h-[70vh] flex flex-col backdrop-blur-xl"
+          role="dialog" aria-modal="true" aria-label="صندوق الهدايا" className="ui-sheet relative w-full max-w-md bg-[linear-gradient(160deg,rgba(24,25,48,.94),rgba(9,11,24,.96))] border border-white/10 rounded-t-[30px] p-4 shadow-[0_-18px_50px_rgba(0,0,0,.45)] z-10 max-h-[74vh] flex flex-col backdrop-blur-2xl"
         >
           {/* Header & Grab handle */}
-          <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-3" />
+          <div className="w-12 h-1.5 rounded-full bg-white/25 mx-auto mb-3" />
 
-          <div className="flex items-center justify-between pb-2 border-b border-purple-500/10">
+          <div className="flex items-center justify-between pb-3 border-b border-white/8">
             <div className="flex items-center gap-2">
               <Sparkles className="text-amber-400" size={18} />
               <h3 className="font-bold text-slate-100 text-base">صندوق الهدايا</h3>
@@ -234,7 +234,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           </div>
 
           {banner && (
-            <div className="my-2 rounded-2xl border border-purple-400/20 bg-purple-950/30 overflow-hidden" aria-label="إعلان صندوق الهدايا">
+            <div className="my-2 rounded-[22px] border border-fuchsia-300/15 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 overflow-hidden shadow-lg" aria-label="إعلان صندوق الهدايا">
               {banner.image_url && <img src={banner.image_url} alt="" className="w-full h-20 object-cover" />}
               <div className="px-3 py-2">
                 <p className="text-sm font-bold text-slate-100">{banner.title}</p>
@@ -247,7 +247,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           <div className="py-2.5">
             <span className="text-xs text-slate-400 mb-1.5 block">اختر المستلم:</span>
             {potentialRecipients.length > 0 ? (
-              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                 {potentialRecipients.map((rec) => {
                   const isSelected = selectedRecipient?.id === rec.id;
                   return (
@@ -259,8 +259,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                       }}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all shrink-0 cursor-pointer ${
                         isSelected
-                          ? 'bg-purple-900/60 border-purple-400 text-white shadow-sm shadow-purple-500/30 ring-1 ring-purple-400'
-                          : 'bg-[#181a2e] border-purple-500/20 text-slate-300 hover:border-purple-500/40'
+                          ? 'bg-gradient-to-r from-violet-500/28 to-fuchsia-500/20 border-fuchsia-300/40 text-white shadow-lg shadow-fuchsia-950/25 ring-1 ring-fuchsia-300/30'
+                          : 'bg-white/[0.055] border-white/10 text-slate-300 hover:border-violet-300/30'
                       }`}
                     >
                       <UserAvatar user={rec} size="xs" />
@@ -277,14 +277,14 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           </div>
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 border-y border-purple-500/10">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 border-y border-white/8">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                   selectedCategory === cat.id
-                    ? 'bg-purple-600 text-white shadow-xs'
+                    ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-fuchsia-950/25'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -294,7 +294,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           </div>
 
           {/* Gifts Grid */}
-          <div className="grid grid-cols-4 gap-2.5 py-3 overflow-y-auto max-h-64 no-scrollbar">
+          <div className="grid grid-cols-4 gap-2 py-3 overflow-y-auto max-h-64 no-scrollbar">
             {filteredGifts.map((gift) => {
               const isSelected = selectedGift?.id === gift.id;
               return (
@@ -308,8 +308,8 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                   }}
                   className={`relative flex flex-col items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
                     isSelected
-                      ? 'bg-gradient-to-b from-purple-900/50 to-indigo-950/70 border-amber-400 shadow-md shadow-amber-500/20 ring-1 ring-amber-400 scale-[1.03]'
-                      : 'bg-[#15172b] border-purple-500/15 hover:border-purple-500/30'
+                      ? 'bg-gradient-to-b from-violet-500/22 to-fuchsia-500/10 border-amber-300/65 shadow-lg shadow-amber-950/20 ring-1 ring-amber-300/45 scale-[1.025]'
+                      : 'bg-white/[0.045] border-white/8 hover:border-violet-300/25'
                   }`}
                 >
                   {(inventoryCounts[gift.id] || 0) > 0 && (
@@ -403,7 +403,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
 
           {/* Footer: User Balance + Send CTA */}
             {selectedGift && <p className="text-center text-xs text-cyan-300 mb-2">{selectedGift.diamondSourceType === 'LUCKY_GIFT' ? 'ماس هدية الحظ يُفك بنسبة 10%' : 'ماس الهدية الثابتة يُفك بنسبة 30%'}</p>}
-          <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-3">
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
             {/* Balance + Recharge button */}
             <div className="flex items-center gap-2">
               <div className="flex flex-col">
