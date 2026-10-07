@@ -5,6 +5,7 @@ import React from 'react';
 import {defaultAvatar} from '../../services/profile';
 import {loadRoomPublicProfile, seatPublicProfile, RoomPublicProfile} from '../../services/roomPublicProfile';
 import {setImageFallback} from '../../utils/imageFallback';
+import {rpc} from '../../services/backend';
 import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
@@ -37,27 +38,39 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   const { user: currentUser, activeRoom, refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen } = useApp();
   const [actionBusy,setActionBusy]=React.useState(false);
   const targetSeat=activeRoom?.seats.find(seat=>seat.user?.id===targetUser?.id);
-  const owner=Boolean(currentUser.authId&&currentUser.authId===activeRoom?.ownerAuthId);
-  const canManage=Boolean(activeRoom?.canModerate&&targetUser&&targetUser.id!==currentUser.id&&targetUser.authId!==activeRoom.ownerAuthId&&(owner||targetUser.roomRole!=='moderator'));
+  type RoomUserPermissions = {
+    social?: {follow?:boolean;message?:boolean;gift?:boolean;mention?:boolean;is_following?:boolean};
+    moderation?: string[];
+    manage_moderators?: boolean;
+    self?: boolean;
+  };
+  const [permissions,setPermissions]=React.useState<RoomUserPermissions|null>(null);
+  const moderation=permissions?.moderation || [];
+  const canManage=moderation.length>0;
   const [banMinutes,setBanMinutes]=React.useState('60');
-  const moderate=async(action:string)=>{if(!activeRoom||!targetUser||actionBusy)return;setActionBusy(true);try{const {error}=await supabase.rpc('moderate_room_user',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id),p_action:action,...(action==='ban'?{p_duration_minutes:banMinutes==='forever'?null:Number(banMinutes)}:{})});if(error)throw error;await refreshRooms();if(action==='kick'||action==='ban')onClose()}catch{reportError('تعذر تنفيذ الإجراء. تحقق من الصلاحية والاتصال.')}finally{setActionBusy(false)}};
+  const moderate=async(action:string)=>{if(!activeRoom||!targetUser||actionBusy||!moderation.includes(action))return;setActionBusy(true);try{const {error}=await supabase.rpc('moderate_room_user',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id),p_action:action,...(action==='ban'?{p_duration_minutes:banMinutes==='forever'?null:Number(banMinutes)}:{})});if(error)throw error;await refreshRooms();if(action==='kick'||action==='ban')onClose()}catch{reportError('تعذر تنفيذ الإجراء. تحقق من الصلاحية والاتصال.')}finally{setActionBusy(false)}};
+  const toggleFollow=async()=>{if(!targetUser||actionBusy||!permissions?.social?.follow)return;setActionBusy(true);try{await rpc('social_action',{p_public_id:Number(targetUser.id),p_action:permissions.social.is_following?'unfollow':'follow'});setPermissions(previous=>previous?{...previous,social:{...previous.social,is_following:!previous.social?.is_following}}:previous);}catch{reportError('تعذر تحديث المتابعة. حاول مجدداً.')}finally{setActionBusy(false)}};
   const [loaded, setLoaded] = React.useState<{target: string; viewer: string; profile: RoomPublicProfile} | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [attempt, setAttempt] = React.useState(0);
   React.useEffect(() => {
     let cancelled = false;
-    setLoaded(null); setError(null);
+    setLoaded(null); setPermissions(null); setError(null);
     if (!isOpen || !targetUser) {setLoading(false); return;}
     if (!/^\d+$/.test(targetUser.id)) {setLoading(false); setError('معرف المستخدم غير متاح؛ لا يمكن تحميل التفاصيل.'); return;}
     setLoading(true);
-    void loadRoomPublicProfile(targetUser.id, currentUser.id).then(profile => {
-      if (!cancelled) setLoaded({target: targetUser.id, viewer: currentUser.id, profile});
-    }).catch(() => {
-      if (!cancelled) setError('تعذر تحميل تفاصيل المستخدم. بيانات المقعد فقط متاحة حالياً.');
+    void Promise.allSettled([
+      loadRoomPublicProfile(targetUser.id, currentUser.id),
+      activeRoom ? rpc<RoomUserPermissions>('room_user_permissions',{p_room_id:activeRoom.id,p_public_id:Number(targetUser.id)}) : Promise.resolve(null),
+    ]).then(([profileResult,permissionsResult]) => {
+      if (cancelled) return;
+      if (profileResult.status==='fulfilled') setLoaded({target: targetUser.id, viewer: currentUser.id, profile:profileResult.value});
+      else setError('تعذر تحميل تفاصيل المستخدم. بيانات المقعد فقط متاحة حالياً.');
+      if (permissionsResult.status==='fulfilled') setPermissions(permissionsResult.value);
     }).finally(() => {if (!cancelled) setLoading(false);});
     return () => {cancelled = true;};
-  }, [isOpen, targetUser?.id, targetUser?.authId, currentUser.id, attempt]);
+  }, [isOpen, targetUser?.id, targetUser?.authId, currentUser.id, activeRoom?.id, attempt]);
   if (!isOpen) return null;
 
   // There is no implicit current-user fallback, even on a failed lookup.
@@ -89,21 +102,21 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {/* 1. TOP WINGS & AVATAR (الأجنحة الذهبية المرصعة بالياقوت) */}
         {/* ========================================================= */}
         <div className="relative flex justify-center items-center mt-1 mb-2">
-          {/* Symmetrical Ruby Wings Banner Asset */}
-          <div className="relative w-72 h-20 flex items-center justify-center">
-            <img
-              src="/assets/images/ruby_wings_frame_1790377749780.jpg"
-              alt="Ruby Wings"
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(239,68,68,0.4)] mix-blend-screen scale-110"
-            />
+          {/* Transparent decorative wings. Avoid raster backgrounds so every account
+              keeps a clean avatar without a white rectangular plate. */}
+          <div className="relative w-72 h-20 flex items-center justify-center bg-transparent" data-testid="profile-avatar-frame">
+            <span aria-hidden="true" className="absolute left-8 top-7 w-20 h-4 rounded-full bg-gradient-to-r from-transparent via-rose-500/65 to-amber-300/80 -rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute left-5 top-10 w-20 h-3 rounded-full bg-gradient-to-r from-transparent via-fuchsia-500/55 to-amber-300/70 rotate-6" />
+            <span aria-hidden="true" className="absolute right-8 top-7 w-20 h-4 rounded-full bg-gradient-to-l from-transparent via-rose-500/65 to-amber-300/80 rotate-12 blur-[0.3px] shadow-[0_0_14px_rgba(244,63,94,0.35)]" />
+            <span aria-hidden="true" className="absolute right-5 top-10 w-20 h-3 rounded-full bg-gradient-to-l from-transparent via-fuchsia-500/55 to-amber-300/70 -rotate-6" />
 
             {/* Circular Avatar in the Center */}
-            <div className="absolute w-16 h-16 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,215,0,0.6)] overflow-hidden bg-black flex items-center justify-center z-10">
+            <div className="absolute w-16 h-16 rounded-full border-2 border-amber-200/90 shadow-[0_0_15px_rgba(255,215,0,0.45)] overflow-hidden bg-transparent flex items-center justify-center z-10">
               <img
                 src={displayUser.avatar}
                 onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}}
                 alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-cover object-center bg-transparent"
               />
             </div>
           </div>
@@ -198,23 +211,24 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
 
         {displayUser.couple && <div data-testid="profile-couple" className="mt-3 rounded-[22px] border border-pink-400/40 shadow-[0_6px_24px_rgba(244,63,94,0.25)] bg-gradient-to-r from-[#2a0820] via-[#400d33] to-[#2a0820] p-3 flex items-center justify-around gap-3">
           <button type="button" aria-label={`زيارة ملف ${displayUser.couple.partner.name}`} onClick={()=>{const partner=displayUser.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));onClose();setActiveSubScreen('user_detail_profile');}} className="min-w-0"><img src={displayUser.couple.partner.avatar} alt={displayUser.couple.partner.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.couple.partner.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-rose-300 object-cover" /><p className="text-xs text-pink-200 mt-1 truncate">{displayUser.couple.partner.name}</p>{displayUser.couple.partner.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.couple.partner.level}</span>}</button>
-          <div className="text-pink-200"><Heart className="mx-auto text-rose-400" /><p className="text-xs mt-1">رفيق الروح</p>{displayUser.couple.days !== undefined && <p className="text-xs">{displayUser.couple.days} أيام</p>}</div>
+          <div className="text-pink-200"><Heart className="mx-auto text-rose-400" /><p className="text-xs mt-1">{displayUser.couple.typeLabel||'رفيق الروح'}</p>{displayUser.couple.days !== undefined && <p className="text-xs">{displayUser.couple.days} أيام</p>}{displayUser.couple.level!==undefined&&<p className="text-[10px] text-amber-300 mt-0.5">CP LV.{displayUser.couple.level}</p>}{displayUser.couple.experience!==undefined&&<p className="text-[9px] text-slate-400">EXP {displayUser.couple.experience.toLocaleString('ar-SA')}</p>}</div>
           <div className="min-w-0"><img src={displayUser.avatar} alt={displayUser.avatar === defaultAvatar ? 'صورة افتراضية' : displayUser.name} onError={e => {e.currentTarget.alt = 'صورة افتراضية'; setImageFallback(e, defaultAvatar);}} className="w-14 h-14 mx-auto rounded-full border-2 border-amber-300 object-cover" /><p className="text-xs text-amber-200 mt-1 truncate">{displayUser.name}</p>{displayUser.level !== undefined && <span className="text-[10px] text-amber-300">LV.{displayUser.level}</span>}</div>
         </div>}
         {loading && <p role="status" className="mt-3 text-xs text-slate-300">جارٍ تحميل الملف العام…</p>}
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
 
         <div className="grid grid-cols-2 gap-3 mt-5 text-white text-sm">
-          {onMention&&<button type="button" onClick={onMention} className="p-4 rounded-2xl bg-white/5">📣 منشن</button>}
-          {onMessage&&targetUser?.id!==currentUser.id&&<button type="button" onClick={onMessage} className="p-4 rounded-2xl bg-white/5">رسالة خاصة</button>}
-          {onGift&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
+          {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
+          {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-2xl bg-white/5">📣 منشن</button>}
+          {onMessage&&permissions?.social?.message!==false&&!permissions?.self&&<button type="button" onClick={onMessage} className="p-4 rounded-2xl bg-white/5">رسالة خاصة</button>}
+          {onGift&&permissions?.social?.gift!==false&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
           {canManage&&<>
-            {targetSeat&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
-            <button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>
-            <button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-2xl bg-white/5 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>
-            <div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>
+            {targetSeat&&moderation.includes(targetSeat.isMuted?'unmute':'mute')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat.isMuted?'unmute':'mute')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat.isMuted?'فتح الصوت':'كتم الصوت'}</button>}
+            {moderation.includes(targetSeat?'down':'raise')&&<button type="button" disabled={actionBusy} onClick={()=>void moderate(targetSeat?'down':'raise')} className="p-4 rounded-2xl bg-white/5 disabled:opacity-40">{targetSeat?'النزول من المايك':'الصعود إلى المايك'}</button>}
+            {moderation.includes('kick')&&<button type="button" disabled={actionBusy} onClick={()=>{if(window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate('kick')}} className="p-4 rounded-2xl bg-white/5 text-rose-300 disabled:opacity-40">الطرد من الغرفة</button>}
+            {moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
           </>}
-          {owner&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-2xl bg-white/5">إدارة المشرفين</button>}
+          {permissions?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="p-4 rounded-2xl bg-white/5">إدارة المشرفين</button>}
 
         </div>
         {/* ========================================================= */}

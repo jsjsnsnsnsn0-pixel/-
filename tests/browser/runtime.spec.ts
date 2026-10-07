@@ -162,7 +162,7 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
-  const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
+  const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
   await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
   expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
@@ -659,7 +659,7 @@ for(const width of [320,360,430]) test(`room controls and sheets retain actions 
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.getByRole('button',{name:'إغلاق الأدوات',exact:true}).click();
  await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toHaveCount(0);
- await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();await expect(page.getByRole('dialog',{name:'صندوق الهدايا',exact:true})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'صندوق الهدايا',exact:true})).toHaveCount(0);
  await page.screenshot({path:`test-results/ui-review/room-${width}.png`,fullPage:true});expect(requests.some(r=>r.path.endsWith('/leave_room'))).toBe(false);expect(errors).toEqual([]);
 });
 
@@ -670,7 +670,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
  await capture('home');
  await page.getByTitle('الرسائل',{exact:true}).click();await expect(page.getByText('لا توجد محادثات بعد',{exact:true})).toBeVisible();await capture('messages');
  await page.getByTitle('أنا',{exact:true}).click();await expect(page.getByTitle('اسم الحساب')).toBeVisible();await capture('profile');
- await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByRole('button',{name:'تعديل الملف',exact:true})).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();const idBrightness=await copyId.locator('span').first().evaluate(el=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d')!;ctx.fillStyle=getComputedStyle(el).color;ctx.fillRect(0,0,1,1);return Math.min(...ctx.getImageData(0,0,1,1).data.slice(0,3));});expect(idBrightness).toBeGreaterThan(230);await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
+ await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByRole('button',{name:'انضم إلى وكالة',exact:true})).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();const idBrightness=await copyId.locator('span').first().evaluate(el=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=1;const ctx=canvas.getContext('2d')!;ctx.fillStyle=getComputedStyle(el).color;ctx.fillRect(0,0,1,1);return Math.min(...ctx.getImageData(0,0,1,1).data.slice(0,3));});expect(idBrightness).toBeGreaterThan(230);await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
  await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد طلبات شحن',{exact:true})).toBeVisible();await capture('wallet');

@@ -66,13 +66,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
 
   const fallbackCategories = [
     { id: 'all', label: 'الكل' },
-    { id: 'roses', label: 'ورود' },
-    { id: 'hearts', label: 'قلوب' },
-    { id: 'crowns', label: 'تيجان' },
-    { id: 'cars', label: 'سيارات' },
-    { id: 'animals', label: 'حيوانات' },
-    { id: 'games', label: 'ألعاب' },
-    { id: 'special', label: 'مميز' },
+    { id: 'luck', label: 'حظ' },
+    { id: 'custom', label: 'مخصص' },
+    { id: 'cp', label: 'CP' },
+    { id: 'nation', label: 'الأمة' },
+    { id: 'gift', label: 'هدية' },
   ];
   const categories = serverCategories.length ? [{id:'all',label:'الكل'}, ...serverCategories] : fallbackCategories;
 
@@ -208,7 +206,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+          className="absolute inset-0 bg-black/35 backdrop-blur-[1px]"
         />
 
         {/* Bottom Sheet */}
@@ -217,7 +215,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-          role="dialog" aria-modal="true" aria-label="متجر الهدايا" className="ui-sheet relative w-full max-w-md bg-[#101222] border-t border-purple-500/30 rounded-t-3xl p-4 shadow-2xl z-10 max-h-[85vh] flex flex-col"
+          role="dialog" aria-modal="true" aria-label="صندوق الهدايا" className="ui-sheet relative w-full max-w-md bg-[#101222]/96 border-t border-purple-500/30 rounded-t-3xl p-4 shadow-2xl z-10 max-h-[70vh] flex flex-col backdrop-blur-xl"
         >
           {/* Header & Grab handle */}
           <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-3" />
@@ -225,11 +223,11 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
           <div className="flex items-center justify-between pb-2 border-b border-purple-500/10">
             <div className="flex items-center gap-2">
               <Sparkles className="text-amber-400" size={18} />
-              <h3 className="font-bold text-slate-100 text-base">متجر الهدايا الفاخرة</h3>
+              <h3 className="font-bold text-slate-100 text-base">صندوق الهدايا</h3>
             </div>
             <button
               onClick={onClose}
-              aria-label="إغلاق متجر الهدايا" className="ui-icon-button rounded-full text-slate-400 hover:text-slate-200"
+              aria-label="إغلاق صندوق الهدايا" className="ui-icon-button rounded-full text-slate-400 hover:text-slate-200"
             >
               <X size={20} />
             </button>
@@ -326,8 +324,10 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                     </span>
                   )}
 
-                  {/* Icon */}
-                  <span className="text-3xl my-1 drop-shadow-sm">{gift.icon}</span>
+                  {/* Visual preview */}
+                  {gift.previewUrl
+                    ? <img src={gift.previewUrl} alt="" loading="lazy" className="w-12 h-12 my-1 rounded-xl object-cover border border-white/10" />
+                    : <span className="text-3xl my-1 drop-shadow-sm">{gift.icon}</span>}
 
                   {/* Name */}
                   <span className="text-[11px] font-medium text-slate-200 truncate w-full text-center">
@@ -342,6 +342,7 @@ export const GiftStoreModal: React.FC<GiftStoreModalProps> = ({
                 </div>
               );
             })}
+            {!filteredGifts.length && !loading && <div className="col-span-4 py-8 text-center text-xs text-slate-400">لا توجد عناصر حالياً في هذا القسم.</div>}
           </div>
 
           {selectedGift && (inventoryCounts[selectedGift.id] || 0) > 0 && (
