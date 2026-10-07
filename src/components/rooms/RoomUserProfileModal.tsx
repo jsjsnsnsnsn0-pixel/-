@@ -10,7 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { User } from '../../types';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
 import { RoyalAccountId } from '../common/RoyalAccountId';
-import {X, Heart, Crown} from 'lucide-react';
+import {X, Heart, Crown, Mic, MicOff, ArrowDownToLine} from 'lucide-react';
 
 interface RoomUserProfileModalProps {
   isOpen: boolean;
@@ -20,6 +20,9 @@ interface RoomUserProfileModalProps {
   onMessage?: () => void;
   onGift?:()=>void;
   onManage?:()=>void;
+  selfMicMuted?:boolean;
+  onToggleSelfMic?:()=>void;
+  onLeaveSelfSeat?:()=>void;
   targetUser?: User | null;
 }
 
@@ -31,6 +34,9 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   onMessage,
   onGift,
   onManage,
+  selfMicMuted,
+  onToggleSelfMic,
+  onLeaveSelfSeat,
   targetUser,
 }) => {
   const layerRef=useDismissableLayer(isOpen,onClose);
@@ -38,6 +44,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   const { user: currentUser, activeRoom, refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen } = useApp();
   const [actionBusy,setActionBusy]=React.useState(false);
   const targetSeat=activeRoom?.seats.find(seat=>seat.user?.id===targetUser?.id);
+  const isSelf=Boolean(targetUser?.authId&&targetUser.authId===currentUser.authId);
   type RoomUserPermissions = {
     social?: {follow?:boolean;message?:boolean;gift?:boolean;mention?:boolean;is_following?:boolean};
     moderation?: string[];
@@ -217,6 +224,18 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {loading && <p role="status" className="mt-3 text-xs text-slate-300">جارٍ تحميل الملف العام…</p>}
         {error && <div role="alert" className="mt-3 text-xs text-slate-300"><p>{error}</p>{displayUser.id && <button onClick={() => setAttempt(n => n + 1)} className="mt-2 text-emerald-300">إعادة المحاولة</button>}</div>}
 
+        {isSelf&&targetSeat&&<section className="mt-4 rounded-[22px] border border-cyan-400/15 bg-white/[0.045] p-3 text-center">
+          <p className="text-xs text-slate-300 mb-2">تحكم مقعدك والمايكروفون</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" disabled={actionBusy||!onToggleSelfMic} onClick={onToggleSelfMic} className="rounded-xl bg-cyan-500/10 border border-white/10 p-3 text-sm flex flex-col gap-2 items-center disabled:opacity-40">
+              {selfMicMuted?<Mic size={20}/>:<MicOff size={20}/>}
+              {selfMicMuted?'تشغيل المايك':'كتم المايك'}
+            </button>
+            <button type="button" disabled={actionBusy||!onLeaveSelfSeat} onClick={()=>{onLeaveSelfSeat?.();onClose();}} className="rounded-xl bg-rose-500/10 border border-white/10 p-3 text-sm flex flex-col gap-2 items-center disabled:opacity-40">
+              <ArrowDownToLine size={20}/>النزول من المايك
+            </button>
+          </div>
+        </section>}
         <div className="grid grid-cols-2 gap-3 mt-5 text-white text-sm">
           {permissions?.social?.follow&&<button type="button" disabled={actionBusy} onClick={()=>void toggleFollow()} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl disabled:opacity-40">{permissions.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
           {onMention&&permissions?.social?.mention!==false&&<button type="button" onClick={onMention} className="p-4 rounded-[20px] bg-white/[0.065] border border-white/8 backdrop-blur-xl">📣 منشن</button>}
