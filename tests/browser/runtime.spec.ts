@@ -162,7 +162,7 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
-  const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
+  const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
   await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
   expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
@@ -659,7 +659,7 @@ for(const width of [320,360,430]) test(`room controls and sheets retain actions 
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.getByRole('button',{name:'إغلاق الأدوات',exact:true}).click();
  await page.getByRole('button',{name:'خيارات الغرفة',exact:true}).click();await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'خيارات الغرفة'})).toHaveCount(0);
- await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'متجر الهدايا',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();await expect(page.getByRole('dialog',{name:'صندوق الهدايا',exact:true})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'صندوق الهدايا',exact:true})).toHaveCount(0);
  await page.screenshot({path:`test-results/ui-review/room-${width}.png`,fullPage:true});expect(requests.some(r=>r.path.endsWith('/leave_room'))).toBe(false);expect(errors).toEqual([]);
 });
 
