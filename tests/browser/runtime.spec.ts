@@ -165,14 +165,15 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
   await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
-  expect(requests.filter(r=>r.path.endsWith('/send_self_room_gift_quantity'))).toHaveLength(0);
+  expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
   await dialog.getByRole('button',{name:'اختيار كمية 77',exact:true}).click();
   const send=dialog.getByRole('button',{name:/إرسال الهدية/});
   await send.dblclick();
   await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
-  const calls=requests.filter(r=>r.path.endsWith('/send_self_room_gift_quantity'));
+  const calls=requests.filter(r=>r.path.endsWith('/send_room_gift_batch'));
   expect(calls).toHaveLength(1);
   expect(calls[0].body.p_quantity).toBe(77);
+  expect(calls[0].body.p_recipient_public_id).toBe(920003);
   expect(calls[0].body.p_gift_id).toBe('g1');
   expect(typeof calls[0].body.p_request_id).toBe('string');
   expect(errors).toEqual([]);
