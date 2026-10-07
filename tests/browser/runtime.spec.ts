@@ -44,6 +44,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       return respond(directMessages);
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
+    if (path.endsWith('/gift_catalog')) return respond([{id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',is_active:true}]);
     if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:overrides.listener?null:1,role:overrides.listener?'member':'owner',is_muted:currentMuted,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
@@ -154,6 +155,26 @@ test('room seats are rendered from the database and recharge opens while joined'
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   await page.getByTitle('شحن رصيد',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('gift selection waits for Send, supports agreed quantities and blocks rapid duplicates', async ({page})=>{
+  const {requests,errors}=await setup(page,true,{rooms:true}); await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
+  await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
+  await dialog.getByText('وردة الاختبار',{exact:true}).click();
+  expect(requests.filter(r=>r.path.endsWith('/send_self_room_gift_quantity'))).toHaveLength(0);
+  await dialog.getByRole('button',{name:'اختيار كمية 77',exact:true}).click();
+  const send=dialog.getByRole('button',{name:/إرسال الهدية/});
+  await send.dblclick();
+  await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
+  const calls=requests.filter(r=>r.path.endsWith('/send_self_room_gift_quantity'));
+  expect(calls).toHaveLength(1);
+  expect(calls[0].body.p_quantity).toBe(77);
+  expect(calls[0].body.p_gift_id).toBe('g1');
+  expect(typeof calls[0].body.p_request_id).toBe('string');
   expect(errors).toEqual([]);
 });
 
