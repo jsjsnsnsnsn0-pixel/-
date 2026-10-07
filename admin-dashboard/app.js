@@ -43,7 +43,7 @@ function login(message=''){
   finally{b.disabled=false}
  });
  const google=btn('الدخول عبر Google',async()=>{
-  const {error}=await state.client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
+  const {error}=await state.client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
   if(error)msg.replaceChildren(box('message error',error.message));
  });
  root.append(box('login',box('loginLogo',box('logo','T'),el('h1',{},'TotiChat Admin'),
