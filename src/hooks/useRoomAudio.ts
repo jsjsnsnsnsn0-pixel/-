@@ -40,8 +40,9 @@ export function useLiveKitRoomAudio(
   noiseSuppression = true,
 ) {
   const [musicName,setMusicName]=useState('');
+  const [musicPaused,setMusicPaused]=useState(false);
   const musicRef=useRef<RoomMusicPublisher|null>(null);
-  if(!musicRef.current)musicRef.current=new RoomMusicPublisher(setMusicName);
+  if(!musicRef.current)musicRef.current=new RoomMusicPublisher(name=>{setMusicName(name);if(!name)setMusicPaused(false)});
   const [connected, setConnected] = useState(false);
   const [speakingIds, setSpeakingIds] = useState<string[]>([]);
   const clientRef = useRef<any>(null);
@@ -306,9 +307,12 @@ export function useLiveKitRoomAudio(
     const permission=await invokeAudio('sync-permissions');
     if(permission.canPublish!==true)throw new Error('لا تملك صلاحية بث الموسيقى الآن.');
     await musicRef.current!.start(file,client.localParticipant,()=>client===clientRef.current&&hasSeatRef.current&&!mutedRef.current);
+    setMusicPaused(false);
   },[connected,invokeAudio]);
-  const stopMusic=useCallback(()=>musicRef.current?.stop(),[]);
-  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,musicName };
+  const stopMusic=useCallback(()=>{musicRef.current?.stop();setMusicPaused(false)},[]);
+  const pauseMusic=useCallback(()=>{if(musicRef.current?.pause())setMusicPaused(true)},[]);
+  const resumeMusic=useCallback(async()=>{if(await musicRef.current?.resume())setMusicPaused(false)},[]);
+  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused };
 }
 
 // main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps
