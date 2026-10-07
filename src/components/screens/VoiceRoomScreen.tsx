@@ -22,6 +22,17 @@ export const VoiceRoomScreen: React.FC = () => {
   const [micUiMuted,setMicUiMuted]=useState(isMyMicMuted);
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
+  useEffect(()=>{
+    const openGiftForUser=(event:Event)=>{
+      const userId=(event as CustomEvent<{userId?:string}>).detail?.userId;
+      if(!userId||!activeRoom)return;
+      const recipient=activeRoom.members?.find(member=>member.id===userId)||activeRoom.seats.find(seat=>seat.user?.id===userId)?.user;
+      if(!recipient)return;
+      setGiftRecipient(recipient);setGiftOpen(true);
+    };
+    window.addEventListener('totichat:open-gift-for-user',openGiftForUser as EventListener);
+    return()=>window.removeEventListener('totichat:open-gift-for-user',openGiftForUser as EventListener);
+  },[activeRoom?.id,activeRoom?.members,activeRoom?.seats]);
   const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused}=useRoomAudioContext();
   useEffect(()=>{if(!micBusy)setMicUiMuted(isMyMicMuted)},[isMyMicMuted,micBusy,activeRoom?.id]);
   useEffect(()=>{
