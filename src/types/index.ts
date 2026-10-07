@@ -148,5 +148,6 @@ export interface ActiveGiftAnimation {
   gift: Gift;
   sender: User;
   recipient: User;
+  quantity?: number;
   targetSeatIndex?: number;
 }
