@@ -458,10 +458,11 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_request_id: requestId || crypto.randomUUID()
       });
       if (error) throw error;
-      await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift:{...gift,price:gift.price*quantity}, sender: userRef.current, recipient, targetSeatIndex: seat, quantity});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
+      // The room gift feed updates counters/chat through Realtime; avoid reloading the full room after every gift.
+      void Promise.all([refreshProfile(), refreshTransactions()]).catch(fail);
       return true;
     } catch (e) { fail(e); return false; }
   };
@@ -475,10 +476,11 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_request_id: requestId || crypto.randomUUID()
       });
       if (error) throw error;
-      await Promise.all([refreshProfile(), refreshTransactions(), refreshRooms()]);
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat, quantity: 1});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
+      // Saved gifts use the same lightweight wallet refresh; room state arrives from the gift feed.
+      void Promise.all([refreshProfile(), refreshTransactions()]).catch(fail);
       return true;
     } catch (e) { fail(e); return false; }
   };
