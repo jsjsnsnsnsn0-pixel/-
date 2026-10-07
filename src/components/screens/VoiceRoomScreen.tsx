@@ -71,7 +71,19 @@ export const VoiceRoomScreen: React.FC = () => {
   },[activeRoom?.id]);
   if(!activeRoom)return null;
   const mySeat=activeRoom.seats.find(s=>s.user?.authId===user.authId);
-  const handleMic=async()=>{if(micBusy)return;if(!mySeat){reportError('اختر مقعداً أولاً لتشغيل المايكروفون.');return}setMicBusy(true);try{if(isMyMicMuted)await enableMicrophone();await toggleMyMic()}catch(error){const name=error&&typeof error==='object'&&'name'in error?String(error.name):'';if(name==='NotAllowedError'||name==='SecurityError')reportError('تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.');else reportError('تعذر تشغيل المايكروفون. تحقق من الإذن والاتصال ثم حاول مجدداً.')}finally{setMicBusy(false)}};
+  const handleMic=async()=>{if(micBusy)return;if(!mySeat){reportError('اختر مقعداً أولاً لتشغيل المايكروفون.');return}setMicBusy(true);try{
+    if(isMyMicMuted){
+      const accepted=await toggleMyMic(false);
+      if(!accepted)return;
+      try{await enableMicrophone();}
+      catch(error){
+        await toggleMyMic(true);
+        throw error;
+      }
+    }else{
+      await toggleMyMic(true);
+    }
+  }catch(error){const name=error&&typeof error==='object'&&'name'in error?String(error.name):'';if(name==='NotAllowedError'||name==='SecurityError')reportError('تم رفض إذن المايكروفون. اسمح لتوتي شات باستخدام المايكروفون من إعدادات الهاتف ثم حاول مجدداً.');else reportError('تعذر تشغيل المايكروفون. تحقق من الإذن والاتصال ثم حاول مجدداً.')}finally{setMicBusy(false)}};
   const send=async(e:React.FormEvent)=>{e.preventDefault();if(!text.trim()||sending||activeRoom.chatEnabled===false)return;setSending(true);try{const {error}=await supabase.from('room_messages').insert({room_id:activeRoom.id,content:text.trim()});if(error)throw error;setText('')}catch{reportError('تعذر إرسال الرسالة. حاول مجدداً.')}finally{setSending(false)}};
   const clickSeat=(index:number)=>{const seat=activeRoom.seats[index];if(!seat)return;if(seat.user)setSelectedUser(seat.user);else setEmptySeat(index)};
   const minimizeRoom=()=>{setExitOpen(false);setActiveSubScreen('home')}; const confirmLeaveRoom=async()=>{setExitOpen(false);await leaveRoom()};
