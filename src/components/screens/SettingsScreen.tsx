@@ -6,7 +6,6 @@ import {
   LogOut,
   PencilLine,
   ShieldCheck,
-  SlidersHorizontal,
   UserRound,
   Volume2,
   Wifi,
@@ -66,7 +65,6 @@ export const SettingsScreen: React.FC = () => {
         <div className="space-y-2">
           <SettingRow icon={<Wifi size={21}/>} title="فحص الإنترنت" description="افحص حالة الاتصال وجودته قبل دخول الغرف الصوتية" onClick={()=>setActiveSubScreen('internet_check')} accent="text-cyan-300"/>
           <SettingRow icon={<Languages size={21}/>} title="اللغة" description="العربية" onClick={()=>{}} accent="text-amber-300"/>
-          <SettingRow icon={<SlidersHorizontal size={21}/>} title="تفضيلات التطبيق" description="إعدادات العرض وتجربة الاستخدام" onClick={()=>{}} accent="text-sky-300"/>
         </div>
       </section>
 
