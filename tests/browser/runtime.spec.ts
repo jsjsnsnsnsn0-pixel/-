@@ -158,6 +158,7 @@ test('room seats are rendered from the database and recharge opens while joined'
   expect(errors).toEqual([]);
 });
 
+// Reference regression: gift send must not restore the removed center-screen luxury notice.
 test('gift selection waits for Send, supports agreed quantities and blocks rapid duplicates', async ({page})=>{
   const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
