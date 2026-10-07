@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useState} from 'react';
-import {ChevronRight,Heart,Share2,ShieldAlert,X} from 'lucide-react';
+import {ChevronRight,Heart,Share2,X} from 'lucide-react';
 import {useApp} from '../../context/AppContext';
 import {useServerData} from '../../hooks/useServerData';
 import {rpc,backendMessage} from '../../services/backend';
