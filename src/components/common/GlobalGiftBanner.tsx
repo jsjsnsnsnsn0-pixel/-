@@ -61,8 +61,10 @@ export const GlobalGiftBanner: React.FC = () => {
     } finally {setBusy(false);}
   };
 
+  const visibleAnnouncement=announcement&&announcement.room_id!==activeRoom?.id?announcement:null;
+
   return <AnimatePresence>
-    {announcement&&<motion.div
+    {visibleAnnouncement&&<motion.div
       initial={{x:'110%',opacity:0,scale:.98}}
       animate={{x:0,opacity:1,scale:1}}
       exit={{x:'-110%',opacity:0,scale:.98}}
@@ -74,11 +76,11 @@ export const GlobalGiftBanner: React.FC = () => {
       style={{top:'max(68px, calc(env(safe-area-inset-top) + 56px))'}}
     >
       <div className="pointer-events-auto rounded-[20px] border border-amber-300/35 bg-[linear-gradient(105deg,rgba(31,13,54,.94),rgba(65,20,76,.96),rgba(31,13,54,.94))] backdrop-blur-2xl shadow-[0_12px_34px_rgba(0,0,0,.34)] text-white flex items-center gap-2 p-2">
-        <button type="button" disabled={busy} onClick={()=>void openRoom()} aria-label={`فتح غرفة هدية ${announcement.gift_name}`} className="min-w-0 flex-1 flex items-center gap-2.5 text-right rounded-xl p-1 disabled:opacity-60 active:scale-[0.99] transition-transform">
+        <button type="button" disabled={busy} onClick={()=>void openRoom()} aria-label={`فتح غرفة هدية ${visibleAnnouncement.gift_name}`} className="min-w-0 flex-1 flex items-center gap-2.5 text-right rounded-xl p-1 disabled:opacity-60 active:scale-[0.99] transition-transform">
           <span className="w-10 h-10 shrink-0 rounded-[14px] bg-gradient-to-br from-amber-300/20 to-fuchsia-500/15 border border-amber-200/25 flex items-center justify-center text-amber-300 shadow-inner"><Gift size={19}/></span>
           <span className="min-w-0 flex-1">
             <span className="block text-[10px] font-black text-amber-300">هدية كبيرة · اضغط للدخول للغرفة</span>
-            <span className="block text-xs mt-0.5 truncate"><b className="text-white">{announcement.sender_name}</b> أرسل <b className="text-pink-300">{announcement.gift_name}</b> إلى <b className="text-white">{announcement.recipient_name}</b></span>
+            <span className="block text-xs mt-0.5 truncate"><b className="text-white">{visibleAnnouncement.sender_name}</b> أرسل <b className="text-pink-300">{visibleAnnouncement.gift_name}</b> إلى <b className="text-white">{visibleAnnouncement.recipient_name}</b></span>
           </span>
         </button>
         <button type="button" aria-label="إخفاء إعلان الهدية" onClick={()=>setAnnouncement(null)} className="w-9 h-9 shrink-0 rounded-full bg-white/[0.06] border border-white/[0.05] flex items-center justify-center text-slate-300"><X size={16}/></button>
