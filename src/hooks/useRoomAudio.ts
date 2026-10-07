@@ -40,8 +40,9 @@ export function useLiveKitRoomAudio(
   noiseSuppression = true,
 ) {
   const [musicName,setMusicName]=useState('');
+  const [musicPaused,setMusicPaused]=useState(false);
   const musicRef=useRef<RoomMusicPublisher|null>(null);
-  if(!musicRef.current)musicRef.current=new RoomMusicPublisher(setMusicName);
+  if(!musicRef.current)musicRef.current=new RoomMusicPublisher(setMusicName,setMusicPaused);
   const [connected, setConnected] = useState(false);
   const [speakingIds, setSpeakingIds] = useState<string[]>([]);
   const clientRef = useRef<any>(null);
@@ -308,7 +309,9 @@ export function useLiveKitRoomAudio(
     await musicRef.current!.start(file,client.localParticipant,()=>client===clientRef.current&&hasSeatRef.current&&!mutedRef.current);
   },[connected,invokeAudio]);
   const stopMusic=useCallback(()=>musicRef.current?.stop(),[]);
-  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,musicName };
+  const pauseMusic=useCallback(()=>musicRef.current?.pause(),[]);
+  const resumeMusic=useCallback(async()=>{await musicRef.current?.resume();},[]);
+  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused };
 }
 
 // main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps
