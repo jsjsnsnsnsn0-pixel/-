@@ -83,7 +83,7 @@ export const VoiceRoomScreen: React.FC = () => {
       seats={activeRoom.seats.map(seat=><MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId&&speakingIds.includes(seat.user.authId))&&!seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId===user.authId} isOwner={Boolean(seat.user?.authId&&seat.user.authId===activeRoom.ownerAuthId)} giftCount={seat.user?giftTotals[seat.user.id]||0:0}/>)}
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}
       messages={messages} chatEnabled={activeRoom.chatEnabled!==false} text={text} sending={sending}
-      muted={isMyMicMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)}
+      muted={isMyMicMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
       musicName={musicName} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic}
       onText={setText} onSend={send} onInfo={openInfo} onUsers={openMembers} onExit={()=>setExitOpen(true)} onGift={()=>{setGiftRecipient(null);setGiftOpen(true)}}
       onMic={()=>void handleMic()} onSpeaker={toggleSpeaker} onHand={()=>void toggleRaiseHand()} onLeaveSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}}
