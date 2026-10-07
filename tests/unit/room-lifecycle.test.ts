@@ -86,7 +86,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     assert.equal(context.activeRoom.id,roomId);assert.equal(context.activeRoom.description,'New welcome');
     assert.ok(dom.window.document.body.textContent?.includes('New welcome'));
     row={...row,gift_effects_enabled:true};await act(async()=>{await context.refreshRooms();});
-    assert.ok(dom.window.document.body.textContent?.includes('هدية فاخرة'));
+    assert.ok(dom.window.document.body.textContent?.includes('🌹'));
     await click('تشغيل المايكروفون');assert.equal(captures,1);
     await click('خيارات الغرفة');
     assert.ok(dom.window.document.querySelector('[role=dialog][aria-label="خيارات الغرفة"]'));
