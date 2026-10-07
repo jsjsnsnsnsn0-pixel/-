@@ -1,13 +1,31 @@
 import {User} from '../types';
 import {countryFlag, defaultAvatar} from './profile';
 
+export interface PublicRelationshipPresentation {
+  icon?: string; accent?: string; background?: string; frame?: string; effect?: string | null;
+}
+export interface RoomRelationship {
+  id: string;
+  typeId: string;
+  typeLabel: string;
+  isPrimary: boolean;
+  partner: RoomPublicProfile;
+  days?: number;
+  experience?: number;
+  levelThresholds: number[];
+  presentation?: PublicRelationshipPresentation;
+  card?: {id:string;name:string;presentation?:PublicRelationshipPresentation} | null;
+}
+
 // A presentation allowlist: never forward auth UUID, email, phone, wallet or metadata.
 export interface RoomPublicProfile {
   id: string; name: string; avatar: string; level?: number; vipLevel: number;
   charmLevel?: number; wealthLevel?: number; countryCode?: string; countryFlag?: string;
   gender?: 'male' | 'female';
-  agency?: {id: string; name: string};
-  couple?: {partner: RoomPublicProfile; days?: number};
+  agency?: {id: string; name: string; membersCount?: number};
+  relationships?: RoomRelationship[];
+  // Compatibility alias for the current primary CP UI.
+  couple?: {partner: RoomPublicProfile; days?: number; relationId?:string; typeId?:string};
 }
 const nonNegative = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
@@ -25,15 +43,48 @@ export function publicProfileCard(row: Record<string, unknown>): RoomPublicProfi
     id: publicId(row.public_id), name: typeof row.display_name === 'string' && row.display_name ? row.display_name : 'مستخدم',
     avatar: typeof row.avatar_url === 'string' && row.avatar_url ? row.avatar_url : defaultAvatar,
     level: nonNegative(row.level), vipLevel: nonNegative(row.vip_level) ?? 0,
-    // These independent ranks are not in today's public contract. Hide them
-    // unless actually provided; neither account level nor a local formula is a rank.
     charmLevel: nonNegative(row.charm_level), wealthLevel: nonNegative(row.wealth_level),
     countryCode, countryFlag: countryCode ? countryFlag(countryCode) : undefined,
     gender: row.gender === 'male' || row.gender === 'female' ? row.gender : undefined,
   };
 }
-interface Relation {accepted_at: string | null; ended_at: string | null; partner: Record<string, unknown>}
-interface AgencyState {agency: {id: unknown; name: string} | null; members: Record<string, unknown>[]}
+const presentation = (value: unknown): PublicRelationshipPresentation | undefined => {
+  if (!value || typeof value !== 'object') return undefined;
+  const row=value as Record<string,unknown>, result:PublicRelationshipPresentation={};
+  if(typeof row.icon==='string')result.icon=row.icon;
+  if(typeof row.accent==='string')result.accent=row.accent;
+  if(typeof row.background==='string')result.background=row.background;
+  if(typeof row.frame==='string')result.frame=row.frame;
+  if(typeof row.effect==='string'||row.effect===null)result.effect=row.effect as string|null;
+  return Object.keys(result).length ? result : undefined;
+};
+const relationship = (row: unknown): RoomRelationship | null => {
+  if(!row||typeof row!=='object')return null;
+  const value=row as Record<string,unknown>;
+  const partner=value.partner&&typeof value.partner==='object'?publicProfileCard(value.partner as Record<string,unknown>):null;
+  const id=typeof value.relation_id==='string'?value.relation_id:'';
+  const typeId=typeof value.type_id==='string'?value.type_id:'';
+  if(!id||!typeId||!partner?.id)return null;
+  const thresholds=Array.isArray(value.level_thresholds)
+    ? value.level_thresholds.map(Number).filter(n=>Number.isSafeInteger(n)&&n>=0).sort((a,b)=>a-b)
+    : [];
+  const cardValue=value.card&&typeof value.card==='object'?value.card as Record<string,unknown>:null;
+  const card=cardValue&&typeof cardValue.id==='string'&&typeof cardValue.name==='string'
+    ? {id:cardValue.id,name:cardValue.name,presentation:presentation(cardValue.presentation)}
+    : null;
+  return {
+    id,typeId,
+    typeLabel:typeof value.type_label==='string'&&value.type_label?value.type_label:typeId,
+    isPrimary:value.is_primary===true,
+    partner,
+    days:nonNegative(value.days),
+    experience:nonNegative(value.experience),
+    levelThresholds:thresholds,
+    presentation:presentation(value.presentation),
+    card,
+  };
+};
+
 export async function loadRoomSeatProfile(targetId: string): Promise<RoomPublicProfile> {
   const {rpc} = await import('./backend');
   const id = publicId(targetId);
@@ -42,40 +93,27 @@ export async function loadRoomSeatProfile(targetId: string): Promise<RoomPublicP
   if (!row || publicId(row.public_id) !== id) throw new Error('profile identity mismatch');
   return publicProfileCard(row);
 }
-export async function loadRoomPublicProfile(targetId: string, viewerId: string): Promise<RoomPublicProfile> {
+export async function loadRoomPublicProfile(targetId: string, _viewerId: string): Promise<RoomPublicProfile> {
   const {rpc} = await import('./backend');
   const profile = await loadRoomSeatProfile(targetId);
   const id = profile.id;
-  if (!publicId(viewerId)) return profile;
-  // Both RPCs scope membership/relationships to auth.uid(). Failure hides the
-  // optional section; it must not replace the target or break the room.
-  const [couples, agency, cp] = await Promise.allSettled([
-    rpc<{relations: Relation[]}>('couple_state'), rpc<AgencyState>('agency_state'),
-    rpc<{partner:Record<string,unknown>;days:number}|null>('profile_cp',{p_public_id:Number(id)}),
+  const [relationsResult,agencyResult]=await Promise.allSettled([
+    rpc<unknown[]>('profile_relationships',{p_public_id:Number(id)}),
+    rpc<Record<string,unknown>|null>('profile_agency',{p_public_id:Number(id)}),
   ]);
-  if (agency.status === 'fulfilled' && agency.value?.agency &&
-      (id === viewerId || (Array.isArray(agency.value.members) ? agency.value.members : []).some(member => publicId(member.public_id) === id))) {
-    profile.agency = {id: String(agency.value.agency.id), name: agency.value.agency.name};
-  }
-  if (couples.status === 'fulfilled') {
-    const relations = Array.isArray(couples.value?.relations) ? couples.value.relations : [];
-    const relation = relations.find(r => r?.partner && r.accepted_at && !r.ended_at &&
-      (id === viewerId || publicId(r.partner.public_id) === id));
-    if (relation) {
-      let partner: RoomPublicProfile | undefined;
-      if (id === viewerId) partner = publicProfileCard(relation.partner);
-      else {
-        try {
-          const viewer = await rpc<Record<string, unknown>>('social_profile', {p_public_id: Number(viewerId), p_visit: false});
-          if (viewer && publicId(viewer.public_id) === viewerId) partner = publicProfileCard(viewer);
-        } catch { /* No safe public partner profile: hide CP. */ }
-      }
-      if (partner?.id) {
-        const elapsed = Date.now() - new Date(relation.accepted_at!).getTime();
-        profile.couple = {partner, days: Number.isFinite(elapsed) && elapsed >= 0 ? Math.floor(elapsed / 86400000) : undefined};
-      }
+  if(relationsResult.status==='fulfilled'&&Array.isArray(relationsResult.value)){
+    const relations=relationsResult.value.map(relationship).filter((item):item is RoomRelationship=>Boolean(item));
+    if(relations.length){
+      profile.relationships=relations;
+      const primary=relations.find(item=>item.isPrimary)||relations[0];
+      profile.couple={partner:primary.partner,days:primary.days,relationId:primary.id,typeId:primary.typeId};
     }
   }
-  if(cp.status==='fulfilled'&&cp.value?.partner){const partner=publicProfileCard(cp.value.partner);if(partner.id)profile.couple={partner,days:cp.value.days};}
+  if(agencyResult.status==='fulfilled'&&agencyResult.value){
+    const agency=agencyResult.value;
+    const idValue=String(agency.id??'');
+    const name=typeof agency.name==='string'?agency.name:'';
+    if(idValue&&name)profile.agency={id:idValue,name,membersCount:nonNegative(agency.members_count)};
+  }
   return profile;
 }
