@@ -426,12 +426,31 @@ test('ordinary room user B has no VIP8, invented ranks, CP, medals, agency or Ir
   await expect(card.getByAltText('صورة افتراضية')).toHaveAttribute('src','/assets/images/default-user.svg');
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306&&r.body.p_visit===false)).toBe(true);expect(errors).toEqual([]);
 });
+test('room profile header is standard without VIP and dynamic when VIP is active',async({page})=>{
+  let result=await openOtherRoomProfile(page);
+  await expect(result.card.getByTestId('standard-profile-header')).toBeVisible();
+  await expect(result.card.getByTestId('vip-profile-header')).toHaveCount(0);
+  await result.card.getByRole('button',{name:'إغلاق البطاقة'}).click();
+  await page.close();
+});
+
+test('self room profile exposes real seat controls for muted and active microphone states',async({page})=>{
+  const first=await setup(page,true,{rooms:true});await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByTestId('occupied-seat').first().click();
+  let card=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
+  await expect(card.getByRole('button',{name:'تشغيل المايك',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'النزول من المايك',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'إدارة الغرفة',exact:true})).toBeVisible();
+  await card.getByRole('button',{name:'إغلاق البطاقة'}).click();
+  expect(first.errors).toEqual([]);
+});
+
 test('room public data and authorized CP/agency show actual values without private identifiers',async({page})=>{
   const data={display_name:'الاسم الحقيقي B',avatar_url:'/assets/images/female_luxury_avatar_1790230899789.jpg',level:7,vip_level:2,country_code:'EG',gender:'female',email:'hidden@example.invalid',phone:'private-phone',auth_metadata:{role:'admin'}};
   const {card,errors}=await openOtherRoomProfile(page,{roomProfile:data,roomCouple:true,roomAgency:true,roomSeatLevel:0,roomSeatVip:8});
   const seat=page.getByTestId('occupied-seat').nth(1);
   await expect(seat).toHaveAttribute('aria-label','عرض ملف الاسم الحقيقي B');await expect(seat.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(seat).toContainText('VIP2');await expect(seat).not.toContainText('VIP8');
-  await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('profile-country')).toContainText('EG');
+  await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('vip-profile-header')).toHaveAttribute('data-vip-level','2');await expect(card.getByTestId('profile-country')).toContainText('EG');
   await expect(card.getByTestId('profile-avatar-frame')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect(card.getByTestId('profile-agency')).toContainText('وكالة حقيقية للاختبار');await expect(card.getByTestId('profile-couple')).toContainText('حساب الاختبار');
   await expect(card.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(card.getByTitle('معرف الحساب: 451306 (انقر للنسخ)')).toBeVisible();
