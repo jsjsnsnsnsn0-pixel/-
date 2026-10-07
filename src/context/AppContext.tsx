@@ -1,4 +1,3 @@
-import {sampleGifts} from '../data/mockData';
 import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
@@ -317,7 +316,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       const sender=profileToUser({public_id:row.sender_public_id,display_name:row.sender_name,avatar_url:row.sender_avatar});
       const recipient=profileToUser({public_id:row.recipient_public_id,display_name:row.recipient_name,avatar_url:row.recipient_avatar});
       const quantity=Math.max(1,Number(row.quantity)||1);
-      const gift:Gift={...(sampleGifts.find(item=>item.id===row.gift_id)||{id:row.gift_id,category:'all' as const,icon:'🎁',animationType:'sparkle' as const}),name:row.gift_name,price:Number(row.amount)};
+      const gift:Gift={id:String(row.gift_id),name:String(row.gift_name||'هدية'),category:'all',price:Number(row.amount||0),icon:'🎁',animationType:'sparkle'};
       if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay({id:row.id,gift,sender,recipient,quantity});overlayTimer.current=setTimeout(()=>setActiveGiftOverlay(null),3800);
     }).subscribe();return()=>{disposed=true;void supabase.removeChannel(channel);if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay(null)};
   },[activeRoom?.id]);
@@ -448,7 +447,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const sendGiftInRoom = async (gift: Gift, recipient: User, quantity = 1, seat?: number, requestId?: string): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
-    if (![1,7,17,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
+    if (![1,7,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
       const {error} = await supabase.rpc('send_room_gift_batch', {
         p_room_id: room.id,
