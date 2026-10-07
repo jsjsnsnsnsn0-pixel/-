@@ -1,8 +1,11 @@
 import { copyText } from '../../utils/clipboard';
 import { setImageFallback } from '../../utils/imageFallback';
 import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useServerData } from '../../hooks/useServerData';
+import { rpc } from '../../services/backend';
+import { supabase } from '../../services/supabase';
 import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
 import { VIPBadge } from '../common/VIPBadge';
@@ -44,6 +47,18 @@ export const ProfileScreen: React.FC = () => {
   } = useApp();
   const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
+  const loadAgency = useCallback(() => rpc<{id:string|number;name:string;members_count?:number}|null>('profile_agency',{p_public_id:Number(user.id)}), [user.id,user.authId]);
+  const {data:agency,loading:agencyLoading,error:agencyError,reload:reloadAgency}=useServerData(loadAgency,null);
+  useEffect(()=>{
+    if(!user.authId)return;
+    const refresh=()=>{void reloadAgency();};
+    const channel=supabase.channel(`profile-agency:${user.authId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'agency_members'},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'agencies'},refresh)
+      .subscribe();
+    window.addEventListener('focus',refresh);
+    return ()=>{window.removeEventListener('focus',refresh);void supabase.removeChannel(channel);};
+  },[user.authId,reloadAgency]);
 
   const copyUserId = async () => {
     if (!await copyText(user.id)) return;
@@ -246,9 +261,22 @@ export const ProfileScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Circular Action Buttons: محفظة | غرفتي | المتجر | وكالة */}
+      <section data-testid="profile-agency-summary" className="px-5 mt-4">
+        <div className="rounded-3xl border border-emerald-200/70 bg-white p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Bookmark size={19}/></div>
+              <div className="min-w-0"><h2 className="font-black text-slate-900">الوكالة</h2>{agencyLoading&&<p role="status" className="text-xs text-slate-400 mt-1">جارٍ تحديث الوكالة…</p>}{agencyError&&<button type="button" onClick={()=>void reloadAgency()} className="text-xs text-rose-600 mt-1">تعذر التحديث — إعادة المحاولة</button>}</div>
+            </div>
+            {!agencyLoading&&!agencyError&&agency&&<button type="button" aria-label={`فتح وكالة ${agency.name}`} onClick={()=>setActiveSubScreen('agency')} className="ui-control px-3 rounded-xl bg-emerald-600 text-white text-xs font-bold">فتح</button>}
+          </div>
+          {!agencyLoading&&!agencyError&&(agency ? <div className="mt-3 rounded-2xl bg-emerald-50/70 p-3"><p className="font-bold text-emerald-900 break-words">{agency.name}</p><div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-500"><span className="ui-id">Agency ID: {agency.id}</span>{agency.members_count!==undefined&&<span>الأعضاء: {agency.members_count}</span>}</div></div> : <div className="mt-3"><p className="text-sm text-slate-500">لست منضماً إلى وكالة</p><button type="button" onClick={()=>setActiveSubScreen('agency')} className="mt-2 rounded-xl bg-emerald-600 text-white font-bold text-xs px-4 py-2">انضم إلى وكالة</button></div>)}
+        </div>
+      </section>
+
+      {/* 3 Circular Action Buttons: محفظة | غرفتي | المتجر */}
       <div className="px-5 mt-4">
-        <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="grid grid-cols-3 gap-2 text-center">
           {/* 1. محفظة / شحن */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('recharge')}
@@ -283,16 +311,6 @@ export const ProfileScreen: React.FC = () => {
             <span className="text-xs font-bold text-slate-800 mt-1.5">المتجر</span>
           </div>
 
-          {/* 4. وكالة */}
-          <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
-            onClick={() => setActiveSubScreen('agency')}
-            className="flex flex-col items-center cursor-pointer group"
-          >
-            <div className="w-14 h-14 rounded-full bg-[#e6f9fa] text-[#06b6d4] flex items-center justify-center shadow-xs group-hover:scale-105 active:scale-95 transition-all">
-              <Bookmark size={24} className="stroke-[2.2]" />
-            </div>
-            <span className="text-xs font-bold text-slate-800 mt-1.5">وكالة</span>
-          </div>
         </div>
       </div>
 
