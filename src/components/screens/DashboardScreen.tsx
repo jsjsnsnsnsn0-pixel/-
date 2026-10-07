@@ -7,6 +7,7 @@ import {useServerData} from '../../hooks/useServerData';
 import {EmptyState,ErrorState,InlineLoading} from '../common/UIState';
 import {MonthlySettlementPanel} from './MonthlySettlementPanel';
 import {AdminCatalogPanel} from './AdminCatalogPanel';
+import {AdminModerationPanel} from './AdminModerationPanel';
 
 type Session={allowed:boolean;owner?:boolean;role?:string;permissions?:string[]};
 type Summary={users:number;active_users:number;active_rooms:number;gifts_today:number;coins_in_circulation:number;agencies:number;hosts:number;pending_agency_registrations:number};
@@ -26,6 +27,8 @@ const sections=[
  {id:'settlements',name:'التسويات الشهرية',perm:'settlements.view',Icon:Coins},
  {id:'gifts',name:'إدارة الهدايا',perm:'gifts.manage',Icon:ClipboardList},
  {id:'store',name:'إدارة المتجر',perm:'store.manage',Icon:ClipboardList},
+ {id:'rooms',name:'إدارة الغرف',perm:'rooms.view',Icon:Users},
+ {id:'tickets',name:'بلاغات ودعم',perm:'reports.view',Icon:ClipboardList},
  {id:'audit',name:'سجل الإدارة',perm:'audit.view',Icon:ShieldCheck},
  {id:'health',name:'صحة Beta',perm:'reports.view',Icon:RefreshCw},
  {id:'settings',name:'إعدادات Beta',perm:'system.settings',Icon:Settings2},
@@ -219,6 +222,8 @@ export const DashboardScreen:React.FC=()=>{
    {active==='settlements'&&<MonthlySettlementPanel owner={Boolean(session.data.owner)}/>}
    {active==='gifts'&&<AdminCatalogPanel kind="gifts"/>}
    {active==='store'&&<AdminCatalogPanel kind="store"/>}
+   {active==='rooms'&&<AdminModerationPanel kind="rooms" canAct={can('rooms.close')}/>}
+   {active==='tickets'&&<AdminModerationPanel kind="tickets" canAct={can('reports.manage')}/>}
    {active==='audit'&&<section className="space-y-3"><h2 className="font-black text-lg">سجل الإجراءات الإدارية</h2>
     {audit.loading?<InlineLoading>تحميل السجل…</InlineLoading>:audit.error?<ErrorState message={audit.error} onRetry={()=>void audit.reload()}/>:audit.data.length===0?<EmptyState title="السجل فارغ"/>:audit.data.map(a=><article key={a.id} className="border border-white/10 rounded-xl bg-white/5 p-3 text-sm"><strong>{a.action}</strong><p>{a.operator_name} · {date(a.created_at)}</p><pre className="text-xs text-slate-400 mt-2 whitespace-pre-wrap break-all">{JSON.stringify(a.metadata)}</pre></article>)}
    </section>}
