@@ -54,7 +54,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/social_profile') && body.p_public_id===451306) {
       if(overrides.roomProfileError)return respond({message:'profile unavailable'},500);
-      return respond({id:other,public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0,...overrides.roomProfile});
+      return respond({id:other,public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0,is_following:followed,is_blocked:false,friend_status:friendStatus,...overrides.roomProfile});
     }
     if (path.endsWith('/social_profile')) return respond(body.p_public_id===920003 ? {...current,friends_count:0,following_count:followed?1:0,followers_count:0} : {id:other,public_id:body.p_public_id,display_name:body.p_public_id===451306?'مشارك آخر':'مستخدم البحث',level:1,vip_level:0,is_following:followed,is_blocked:false,friend_status:friendStatus});
     if (path.endsWith('/social_list')) return respond(overrides.social ? [{id:other,public_id:451305,display_name:'مستخدم العلاقة',level:1,vip_level:0}] : []);
@@ -376,7 +376,7 @@ test('store exposes server-backed entrance and CP card tabs and inventory stays 
   await expect(page.getByText('دخول الخادم',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
   await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
-  await expect(page.getByText('لا توجد مقتنيات في هذا القسم',{exact:true})).toBeVisible();
+  await expect(page.getByText('الحقيبة فارغة',{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -508,7 +508,7 @@ test('failed store purchase retains retry identifier and never displays success'
 test('real relationships record visits and persist follow/friend requests via RPC', async ({page})=>{
   const {requests,errors}=await setup(page,true,{social:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('متابعين',{exact:true}).click();
   await page.getByRole('button').filter({hasText:'مستخدم العلاقة'}).click();await page.getByRole('button',{name:'متابعة',exact:true}).click();
-  await expect(page.getByRole('button',{name:'إلغاء المتابعة',exact:true})).toBeVisible();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
   await expect(page.getByRole('button',{name:'إلغاء الطلب',exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_visit&&r.body.p_public_id===451305)).toBe(true);
   expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='request')).toBe(true);expect(errors).toEqual([]);
