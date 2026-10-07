@@ -77,7 +77,7 @@ export const UserDetailProfileScreen: React.FC = () => {
           {data.publicProfile.agency.logoUrl?<img src={data.publicProfile.agency.logoUrl} alt="" loading="lazy" className="w-11 h-11 shrink-0 rounded-full object-cover border border-emerald-300/20"/>:<span className="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-300/20 flex items-center justify-center text-xl" aria-hidden="true">🏛️</span>}
         </button>
       ) : (
-        <button type="button" onClick={() => setActiveSubScreen('agency')} className="w-full rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 p-4 text-center font-black text-white shadow-lg active:scale-[0.99] transition-transform">
+        <button type="button" aria-label="انضم إلى وكالة" onClick={() => setActiveSubScreen('agency')} className="w-full rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 p-4 text-center font-black text-white shadow-lg active:scale-[0.99] transition-transform">
           <span className="block text-sm">لست منضماً إلى وكالة</span>
           <span className="block text-xs text-emerald-100 mt-1">انضم إلى وكالة</span>
         </button>
