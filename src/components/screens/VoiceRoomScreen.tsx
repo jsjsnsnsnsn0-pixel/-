@@ -26,31 +26,34 @@ export const VoiceRoomScreen: React.FC = () => {
     if(!activeRoom)return;
     const roomId=activeRoom.id;
     setMessages([]);setGiftTotals({});setSelectedUser(null);
-    let disposed=false;let loading=false;
+    let disposed=false;let loading=false;let pendingMessages:RoomChatMessage[]=[];let pendingGifts:any[]=[];
     const normalizeGift=(row:any):RoomChatMessage=>{
       const quantity=Math.max(1,Number(row.quantity)||1);
       return {id:`gift:${row.id}`,sender_display_name:row.sender_name||'مستخدم',content:`أرسل ${row.gift_name||'هدية'}${quantity>1?` ×${quantity}`:''} إلى ${row.recipient_name||'مستخدم'}`,kind:'gift',deletable:false,created_at:row.created_at};
     };
     const load=async()=>{
-      if(loading)return;loading=true;
-      const [chat,gifts,totals]=await Promise.all([
+      if(loading)return;loading=true;pendingMessages=[];pendingGifts=[];
+      const [chat,gifts]=await Promise.all([
         supabase.from('room_messages').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(100),
-        supabase.from('room_gift_feed').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(50),
-        supabase.rpc('room_gift_totals',{p_room_id:roomId})
+        supabase.from('room_gift_feed').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(1000)
       ]);
       loading=false;if(disposed)return;
       if(chat.error||gifts.error){reportError('تعذر تحميل دردشة الغرفة.');return;}
-      const textMessages:RoomChatMessage[]=(chat.data||[]).map((row:any)=>({...row,kind:'text',deletable:true}));
-      const giftMessages:RoomChatMessage[]=(gifts.data||[]).map(normalizeGift);
+      const textMessages:RoomChatMessage[]=[...(chat.data||[]).map((row:any)=>({...row,kind:'text',deletable:true})),...pendingMessages];
+      const giftRows=[...new Map([...(gifts.data||[]),...pendingGifts].map((row:any)=>[String(row.id),row])).values()];
+      const giftMessages:RoomChatMessage[]=giftRows.slice(0,100).map(normalizeGift);
       const combined=[...textMessages,...giftMessages].sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||'')));
       setMessages([...new Map(combined.map(message=>[message.id,message])).values()].slice(-100));
-      if(!totals.error)setGiftTotals(Object.fromEntries((totals.data||[]).map((row:any)=>[String(row.recipient_public_id),Number(row.quantity)||0])));
+      const totals:Record<string,number>={};
+      for(const row of giftRows){const recipient=String((row as any).recipient_public_id);totals[recipient]=(totals[recipient]||0)+Math.max(1,Number((row as any).quantity)||1);}
+      setGiftTotals(totals);
     };
     void load();
     const channel=supabase.channel(`chat:${roomId}`)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_messages',filter:`room_id=eq.${roomId}`},event=>{
         if(disposed)return;
         const next:RoomChatMessage={...(event.new as any),kind:'text',deletable:true};
+        if(loading)pendingMessages.push(next);
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
       })
       .on('postgres_changes',{event:'DELETE',schema:'public',table:'room_messages'},event=>{
@@ -59,6 +62,7 @@ export const VoiceRoomScreen: React.FC = () => {
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
         if(disposed)return;
         const row=event.new as any;const next=normalizeGift(row);const quantity=Math.max(1,Number(row.quantity)||1);const recipient=String(row.recipient_public_id);
+        if(loading)pendingGifts.push(row);
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
         setGiftTotals(prev=>({...prev,[recipient]:(prev[recipient]||0)+quantity}));
       }).subscribe();
