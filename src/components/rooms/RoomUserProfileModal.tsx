@@ -46,6 +46,9 @@ interface RoomUserProfileModalProps {
   onMessage?: () => void;
   onGift?:()=>void;
   onManage?:()=>void;
+  onToggleSelfMic?:()=>void;
+  onLeaveSelfSeat?:()=>void;
+  selfMicMuted?:boolean;
   targetUser?: User | null;
 }
 
@@ -57,11 +60,14 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   onMessage,
   onGift,
   onManage,
+  onToggleSelfMic,
+  onLeaveSelfSeat,
+  selfMicMuted,
   targetUser,
 }) => {
   const layerRef=useDismissableLayer(isOpen,onClose);
 
-  const {user:currentUser,activeRoom,refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen,isMyMicMuted,toggleMyMic,leaveSeat}=useApp();
+  const {user:currentUser,activeRoom,refreshRooms,reportError,setSelectedChatUser,setActiveSubScreen}=useApp();
   const [actionBusy,setActionBusy]=React.useState(false);
   const targetSeat=activeRoom?.seats.find(seat=>seat.user?.id===targetUser?.id);
   const isSelf=Boolean(targetUser&&targetUser.id===currentUser.id);
@@ -231,11 +237,11 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
         {isSelf&&targetSeat&&<section className="mt-5 rounded-[24px] border border-white/8 bg-white/[0.045] p-3 text-right">
           <p className="px-1 pb-2 text-[11px] font-black text-slate-300">تحكم المقعد والمايك</p>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" disabled={actionBusy} onClick={()=>void toggleMyMic()} className="min-h-[68px] rounded-2xl bg-white/[0.06] border border-white/8 flex flex-col items-center justify-center gap-1.5 text-xs font-black disabled:opacity-50">
-              {isMyMicMuted?<Mic size={20} className="text-emerald-300"/>:<MicOff size={20} className="text-rose-300"/>}
-              {isMyMicMuted?'تشغيل المايك':'كتم المايك'}
+            <button type="button" disabled={actionBusy||!onToggleSelfMic} onClick={onToggleSelfMic} className="min-h-[68px] rounded-2xl bg-white/[0.06] border border-white/8 flex flex-col items-center justify-center gap-1.5 text-xs font-black disabled:opacity-50">
+              {selfMicMuted?<Mic size={20} className="text-emerald-300"/>:<MicOff size={20} className="text-rose-300"/>}
+              {selfMicMuted?'تشغيل المايك':'كتم المايك'}
             </button>
-            <button type="button" disabled={actionBusy} onClick={()=>{void leaveSeat(targetSeat.seatIndex);onClose();}} className="min-h-[68px] rounded-2xl bg-rose-500/10 border border-rose-400/15 flex flex-col items-center justify-center gap-1.5 text-xs font-black text-rose-200 disabled:opacity-50">
+            <button type="button" disabled={actionBusy||!onLeaveSelfSeat} onClick={()=>{onLeaveSelfSeat?.();onClose();}} className="min-h-[68px] rounded-2xl bg-rose-500/10 border border-rose-400/15 flex flex-col items-center justify-center gap-1.5 text-xs font-black text-rose-200 disabled:opacity-50">
               <ArrowDownToLine size={20}/>النزول من المايك
             </button>
           </div>
@@ -260,7 +266,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
             {moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/[0.055] border border-white/8"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="w-full p-2 text-rose-300 disabled:opacity-40" onClick={()=>{if(window.confirm('إضافة المستخدم إلى القائمة السوداء؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
           </div>
         </section>}
-        {permissions?.manage_moderators&&onManage&&isSelf&&<button type="button" onClick={onManage} className="mt-3 w-full min-h-[52px] rounded-2xl bg-cyan-500/10 border border-cyan-400/15 text-cyan-200 text-sm font-black">إدارة المشرفين</button>}
+        {isSelf&&activeRoom?.canModerate&&onManage&&<button type="button" onClick={onManage} className="mt-3 w-full min-h-[52px] rounded-2xl bg-cyan-500/10 border border-cyan-400/15 text-cyan-200 text-sm font-black">إدارة الغرفة</button>}
 
         {/* ========================================================= */}
         {/* 7. MINT GREEN ACTION BUTTON:  المزيد                      */}
