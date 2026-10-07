@@ -30,7 +30,7 @@ const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?
   { id: 'cars', label: 'المركبات', icon: Car },
   { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
   { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
-  { id: 'cards', label: 'بطاقات CP', icon: IdCard },
+  { id: 'cards', label: 'CP', icon: IdCard, always:true },
   { id: 'badges', label: 'الشارات', icon: Crown },
   { id: 'vip', label: 'VIP', icon: Crown },
 ];
