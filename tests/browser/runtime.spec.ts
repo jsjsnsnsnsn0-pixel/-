@@ -7,7 +7,7 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; giftShop?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; typedRelationships?: boolean; hideRelationships?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean; startUnmuted?: boolean; muteDelay?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = !overrides.startUnmuted;
@@ -21,7 +21,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     {id:'fixed-received',transaction_type:'fixed_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
     {id:'lucky-received',transaction_type:'lucky_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
   ] : [];
-  let followed=false; let friendStatus='none'; const purchased:string[]=[]; let rewardClaimed=false; let notificationRead=false;
+  let followed=false; let friendStatus='none'; const purchased:string[]=[]; let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
     const body=route.request().postDataJSON(); if (method !== 'GET') requests.push({path,body});
@@ -90,6 +90,19 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
+    if (path.endsWith('/gift_box_state') && overrides.giftShop) return respond({
+      categories:[{id:'luck',name:'هدايا الحظ',sort_order:1}],
+      gifts:[{id:'lucky-test-1',name:'هدية حظ من الخادم',price:25,icon:'✨',description:'عنصر من مصدر اختبار RPC',category_id:'luck',duration_days:null}],
+      inventory:savedGiftCount?[{id:'gift-lot',gift_id:'lucky-test-1',remaining:savedGiftCount,unit_price:25}]:[],
+      banner:null,
+    });
+    if (path.endsWith('/buy_gift_stock') && overrides.giftShop) {
+      if (!giftStockRequests.has(body.p_request_id)) {
+        if (current.gold<25)return respond({message:'insufficient gold'},400);
+        giftStockRequests.add(body.p_request_id);savedGiftCount++;current={...current,gold:current.gold-25};
+      }
+      return respond(body.p_request_id);
+    }
     if (path.endsWith('/store_catalog')) return respond(overrides.commerce ? [{id:'server-frame',name:'إطار الخادم',category:'frames',price:37,currency:'gold',icon:'🌸',description:'منتج من الخادم',duration_days:7},{id:'server-entrance',name:'دخول الخادم',category:'entrances',price:41,currency:'gold',icon:'✨',description:'مؤثر دخول من الخادم',duration_days:7},{id:'server-card',name:'بطاقة حب الخادم',category:'cards',price:43,currency:'gold',icon:'💗',description:'بطاقة CP من الخادم',duration_days:30,relationship_type_id:'love',preview_url:null},{id:'vip1',name:'VIP1',category:'vip',price:50,currency:'gold',vip_level:1,duration_days:30}] : []);
     if (path.endsWith('/store_purchases')) return respond(purchased.map(id=>({item_id:id,expires_at:null})));
     if (path.endsWith('/purchase_store_item')) {
@@ -502,6 +515,28 @@ test('store reads server prices, confirms purchase and equips only owned product
   expect(purchase.body.price).toBeUndefined();expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
   expect(requests.some(r=>r.path.endsWith('/equip_store_item'))).toBe(true);expect(errors).toEqual([]);
 });
+test('server-backed lucky gift stock purchase appears in Inventory without double deduction',async({page})=>{
+  const {requests,errors}=await setup(page,true,{commerce:true,giftShop:true});
+  await page.goto('/');
+  await page.getByTitle('أنا').click();
+  await page.getByText('المتجر',{exact:true}).click();
+  await page.getByRole('button',{name:'حظ',exact:true}).click();
+  await expect(page.getByText('هدية حظ من الخادم',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'عرض هدية حظ من الخادم',exact:true}).click();
+  const detail=page.getByRole('dialog',{name:'تفاصيل هدية حظ من الخادم',exact:true});
+  await detail.getByRole('button',{name:'شراء وحفظ في الحقيبة',exact:true}).click();
+  await expect(page.getByText('تم شراء الهدية وحفظها في الحقيبة.',{exact:true})).toBeVisible();
+  const sent=requests.filter(row=>row.path.endsWith('/buy_gift_stock'));
+  expect(sent).toHaveLength(1);
+  expect(sent[0].body.p_gift_id).toBe('lucky-test-1');
+  expect(sent[0].body.p_request_id).toMatch(/^[\da-f-]{36}$/);
+  await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
+  await expect(page.getByText('هدية حظ من الخادم',{exact:true})).toBeVisible();
+  await expect(page.getByText('×1',{exact:true}).first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('CP store purchase reaches the real inventory without fabricating relationship ownership',async({page})=>{
   const {requests,errors}=await setup(page,true,{commerce:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('المتجر',{exact:true}).click();
   await page.getByRole('button',{name:'CP',exact:true}).click();
