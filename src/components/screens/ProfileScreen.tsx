@@ -1,12 +1,15 @@
 import { copyText } from '../../utils/clipboard';
 import { setImageFallback } from '../../utils/imageFallback';
 import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
 import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
 import { VIPBadge } from '../common/VIPBadge';
 import { RoyalAccountId } from '../common/RoyalAccountId';
+import {RelationshipShowcaseCard} from '../common/RelationshipShowcaseCard';
+import {loadRoomPublicProfile,RoomRelationship} from '../../services/roomPublicProfile';
+import {profileToUser} from '../../services/profile';
 import {
   ChevronLeft,
   Copy,
@@ -44,6 +47,18 @@ export const ProfileScreen: React.FC = () => {
   } = useApp();
   const scheduleTimeout = useTimeouts();
   const [copied, setCopied] = useState(false);
+  const [primaryRelationship,setPrimaryRelationship]=useState<RoomRelationship|null>(null);
+
+  useEffect(()=>{
+    let cancelled=false;
+    if(!/^\d+$/.test(user.id)){setPrimaryRelationship(null);return;}
+    void loadRoomPublicProfile(user.id,user.id).then(profile=>{
+      if(cancelled)return;
+      const relationships=profile.relationships?.length?profile.relationships:(profile.couple?[profile.couple]:[]);
+      setPrimaryRelationship(relationships.find(item=>item.isPrimary)||relationships.find(item=>item.typeId==='love')||relationships[0]||null);
+    }).catch(()=>{if(!cancelled)setPrimaryRelationship(null);});
+    return()=>{cancelled=true;};
+  },[user.id]);
 
   const copyUserId = async () => {
     if (!await copyText(user.id)) return;
@@ -222,6 +237,19 @@ export const ProfileScreen: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {primaryRelationship&&<div className="px-5 mt-2">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <span className="text-xs font-black text-slate-800">CP</span>
+          <button type="button" onClick={()=>{setSelectedChatUser(null);setActiveSubScreen('user_detail_profile');}} className="text-[11px] font-bold text-emerald-700">عرض التفاصيل</button>
+        </div>
+        <RelationshipShowcaseCard
+          compact
+          owner={{name:user.name,avatar:user.avatar,level:user.level}}
+          relation={primaryRelationship}
+          onPartner={()=>{const partner=primaryRelationship.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));setActiveSubScreen('user_detail_profile');}}
+        />
+      </div>}
 
       {/* VIP Luxury Card Banner */}
       <div className="px-5 mt-2">
