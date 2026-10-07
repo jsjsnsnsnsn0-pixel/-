@@ -37,7 +37,24 @@ export const UserDetailProfileScreen: React.FC = () => {
     {data?.publicProfile?.couple&&<section className="p-4 rounded-2xl border border-pink-400/30 bg-pink-950/30 my-4"><h2 className="font-bold mb-4">CP</h2><div className="flex justify-around items-center gap-4"><img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full border-2 border-pink-300 object-cover"/><span className="text-pink-300 text-center">💗<br/>{data.publicProfile.couple.days??0} يوم</span><button type="button" aria-label={`زيارة ملف ${data.publicProfile.couple.partner.name}`} onClick={()=>{const partner=data.publicProfile!.couple!.partner;setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));}}><img src={data.publicProfile.couple.partner.avatar} alt={data.publicProfile.couple.partner.name} className="w-16 h-16 rounded-full border-2 border-pink-300 object-cover"/></button></div></section>}
     {data?.publicProfile?.agency&&<section className="p-4 rounded-2xl bg-emerald-900/40 my-4"><h2 className="font-bold">الوكالة</h2><p className="mt-3 text-emerald-200">{data.publicProfile.agency.name}</p></section>}
     {user.equipment && <section className="p-4 bg-white/10 rounded-2xl my-4"><h2 className="text-sm font-bold">المنتجات المجهزة</h2>{Object.values(user.equipment).map(item => item && <p key={item.id} className="my-2">{item.icon} {item.name}</p>)}</section>}
-    {mine ? <div className="grid grid-cols-2 gap-3 rounded-2xl bg-white/5 p-3"><button onClick={() => setActiveSubScreen('edit_profile')}>تعديل الملف</button><button onClick={() => setActiveSubScreen('visitors')}>الزوار</button><button onClick={() => setActiveSubScreen('friends')}>العلاقات</button><button onClick={() => setActiveSubScreen('agency')}>الوكالة</button></div> : <>
+    {mine ? <section className="my-4 rounded-2xl border border-emerald-300/15 bg-white/5 p-3">
+      {data?.publicProfile?.agency ? (
+        <button type="button" onClick={() => setActiveSubScreen('agency')} className="w-full flex items-center justify-between gap-3 rounded-2xl bg-emerald-900/40 border border-emerald-300/15 p-4 text-right active:scale-[0.99] transition-transform">
+          <span className="text-slate-300 text-xl" aria-hidden="true">‹</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] text-emerald-300 mb-1">الوكالة</span>
+            <span className="block font-black text-white truncate">{data.publicProfile.agency.name}</span>
+            <span className="block ui-id text-xs text-slate-400 mt-1">ID: {data.publicProfile.agency.id}</span>
+          </span>
+          <span className="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-300/20 flex items-center justify-center text-xl" aria-hidden="true">🏛️</span>
+        </button>
+      ) : (
+        <button type="button" onClick={() => setActiveSubScreen('agency')} className="w-full rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 p-4 text-center font-black text-white shadow-lg active:scale-[0.99] transition-transform">
+          <span className="block text-sm">لست منضماً إلى وكالة</span>
+          <span className="block text-xs text-emerald-100 mt-1">انضم إلى وكالة</span>
+        </button>
+      )}
+    </section> : <>
       <div className="grid grid-cols-2 gap-3 my-4">
         <button disabled={busy || loading || !social} onClick={() => void act(social?.friend_status === 'accepted' ? 'remove_friend':social?.friend_status === 'sent' ? 'cancel_request':social?.friend_status === 'received' ? 'accept':'request')} className="p-3 rounded-xl bg-slate-700">{social?.friend_status === 'accepted' ? 'إزالة الصديق':social?.friend_status === 'sent' ? 'إلغاء الطلب':social?.friend_status === 'received' ? 'قبول الصداقة':'طلب صداقة'}</button>
         <button disabled={busy || loading || !social} onClick={() => void act(social?.is_blocked ? 'unblock':'block')} className="p-3 rounded-xl bg-slate-700">{social?.is_blocked ? 'إلغاء الحظر':'حظر'}</button>
