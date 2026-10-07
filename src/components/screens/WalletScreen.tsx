@@ -14,6 +14,7 @@ import {
   Gift,
   Clock,
   CheckCircle2,
+  Gamepad2,
 } from 'lucide-react';
 
 export const WalletScreen: React.FC = () => {
@@ -117,6 +118,20 @@ export const WalletScreen: React.FC = () => {
         {breakdown.data && <><p>Fixed Diamonds: {Number(breakdown.data.fixed_diamonds).toLocaleString()} 💎 — 30%</p><p>Lucky Diamonds: {Number(breakdown.data.lucky_diamonds).toLocaleString()} 💎 — 10%</p><p>ماس قديم غير محدد المصدر: {Number(breakdown.data.legacy_diamonds).toLocaleString()} 💎 — يحتاج مراجعة</p></>}
       </div>
       {redeeming && <DiamondRedeemModal onClose={() => setRedeeming(false)} onRedeemed={() => void breakdown.reload()} />}
+
+      <div className="px-4 mt-3">
+        <button
+          type="button"
+          onClick={() => setActiveSubScreen('luck_games')}
+          className="w-full rounded-2xl bg-gradient-to-l from-violet-700/25 to-fuchsia-600/10 border border-violet-300/20 p-4 flex items-center gap-3 text-right shadow-lg"
+          aria-label="فتح ألعاب TotiFun"
+        >
+          <span className="w-11 h-11 rounded-xl bg-violet-400/15 flex items-center justify-center text-violet-300"><Gamepad2 size={22}/></span>
+          <span className="flex-1"><strong className="block text-sm">ألعاب TotiFun</strong><small className="text-slate-400">ألعاب ترفيهية ونقاط فقط بدون خصم Coins</small></span>
+          <ChevronRight size={18} className="text-violet-300"/>
+        </button>
+      </div>
+
       {/* Transaction History Section */}
       <div className="px-4 mt-2">
         <h3 className="text-xs font-bold text-slate-300 mb-2">سجل العمليات والتحويلات:</h3>
