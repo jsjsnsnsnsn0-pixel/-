@@ -18,6 +18,7 @@ const GiftVisual=({item}:{item:ActiveGiftAnimation})=>{
     animate={{opacity:1,scale:[.55,1.22,1],y:[55,-16,0],rotate:[-8,4,0]}}
     exit={{opacity:0,scale:.7,y:-90}}
     transition={{duration:.72,ease:'easeOut'}}
+    data-testid="room-gift-animation"
     className="fixed inset-x-0 top-[34%] z-[145] pointer-events-none flex justify-center px-4"
     aria-hidden="true"
   >
@@ -55,6 +56,7 @@ const GiftAnnouncement=({item}:{item:ActiveGiftAnimation})=>{
     animate={{x:['112%','6%','-112%'],opacity:[0,1,1,0]}}
     exit={{opacity:0}}
     transition={{duration:2.55,times:[0,.15,.88,1],ease:'linear'}}
+    data-testid="room-gift-announcement"
     dir="rtl"
     role="status"
     aria-live="polite"
