@@ -6,7 +6,7 @@ import { useServerData } from '../../hooks/useServerData';
 import { useApp } from '../../context/AppContext';
 import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen, WalletCards, Search, Play, X, Grid2X2 } from 'lucide-react';
 
-type StoreCategory = 'all' | 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges' | 'vip';
+type StoreCategory = 'all' | 'gift' | 'nation' | 'luck' | 'custom' | 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges' | 'vip';
 type ProductCategory = Exclude<StoreCategory,'all'>;
 interface StoreItem {
   id: string;
@@ -20,12 +20,18 @@ interface StoreItem {
   description: string;
   duration: string;
   isOwned?: boolean;
+  isGiftStock?: boolean;
+  savedCount?: number;
 }
 
 const equipableCategories=new Set<ProductCategory>(['frames','cars','bubbles','entrances','badges']);
 
 const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>;always?:boolean}> = [
   { id: 'all', label: 'الكل', icon: Grid2X2, always:true },
+  { id: 'gift', label: 'هدايا', icon: ShoppingBag },
+  { id: 'nation', label: 'الأعلام والأمة', icon: Crown },
+  { id: 'luck', label: 'حظ', icon: Sparkles },
+  { id: 'custom', label: 'مخصص', icon: Sparkles },
   { id: 'frames', label: 'الإطارات', icon: Sparkles },
   { id: 'cars', label: 'المركبات', icon: Car },
   { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
@@ -52,7 +58,25 @@ export const StoreScreen: React.FC = () => {
       supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId),
     ]);
     if (owned.error) throw owned.error;
-    return entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
+    // Gift stock uses the existing server-backed gift inventory and a different purchase RPC.
+    // Store cosmetics remain real store_catalog products, never fabricated display entries.
+    const box = await rpc<{gifts?:Array<{id:string;name:string;price:number;icon?:string;description?:string;preview_url?:string|null;category_id?:string;duration_days?:number|null}>;inventory?:Array<{gift_id:string;remaining:number}>}>('gift_box_state');
+    const counts = new Map<string,number>();
+    for (const lot of box.inventory || []) counts.set(String(lot.gift_id),(counts.get(String(lot.gift_id))||0)+Number(lot.remaining||0));
+    const giftItems:StoreItem[] = (box.gifts || []).filter(item=>Number(item.price)>0).map(item=>({
+      id:String(item.id),
+      name:String(item.name),
+      category:(['nation','luck','custom'].includes(String(item.category_id)) ? item.category_id : 'gift') as ProductCategory,
+      price:Number(item.price),
+      currency:'gold',
+      image:String(item.icon||'🎁'),
+      previewUrl:item.preview_url||null,
+      description:String(item.description||'هدية قابلة للحفظ والإرسال من الغرفة'),
+      duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
+      isGiftStock:true,
+      savedCount:counts.get(String(item.id))||0,
+    }));
+    const cosmetics = entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
       id:item.id,
       name:item.name,
       category:item.category as ProductCategory,
@@ -65,6 +89,7 @@ export const StoreScreen: React.FC = () => {
       duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
       isOwned:(owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
     }));
+    return [...giftItems,...cosmetics];
   }, [user.authId]);
 
   const {data: items, loading, error, reload} = useServerData(load, []);
@@ -74,21 +99,27 @@ export const StoreScreen: React.FC = () => {
 
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
-    if(item.isOwned){
+    if(item.isOwned&&!item.isGiftStock){
       if(item.category==='cards'){setSelected(null);setActiveSubScreen('inventory');return;}
       if(!equipableCategories.has(item.category))return;
     }
     setBusy(true); setPurchaseSuccess(null);
     try {
-      if(item.isOwned)await rpc('equip_store_item',{p_item_id:item.id,p_category:item.category});
+      if(item.isOwned&&!item.isGiftStock) await rpc('equip_store_item',{p_item_id:item.id,p_category:item.category});
       else {
-        const request = requests.current.get(item.id) || crypto.randomUUID();
-        requests.current.set(item.id, request);
-        const result = await rpc<{id: string}>('purchase_store_item', {p_item_id: item.id, p_request_id: request});
-        if (!result?.id) throw new Error('purchase not confirmed');
-        requests.current.delete(item.id);
+        const key=(item.isGiftStock?'gift:':'store:')+item.id;
+        const request = requests.current.get(key) || crypto.randomUUID();
+        requests.current.set(key, request);
+        if(item.isGiftStock){
+          const confirmed=await rpc<string>('buy_gift_stock',{p_gift_id:item.id,p_request_id:request});
+          if(String(confirmed)!==request)throw new Error('gift stock purchase not confirmed');
+        }else{
+          const result=await rpc<{id:string}>('purchase_store_item',{p_item_id:item.id,p_request_id:request});
+          if(!result?.id)throw new Error('purchase not confirmed');
+        }
+        requests.current.delete(key);
       }
-      setPurchaseSuccess(item.isOwned?'تم اعتماد تجهيز المنتج.':'تم اعتماد الشراء من الخادم.');
+      setPurchaseSuccess(item.isOwned&&!item.isGiftStock?'تم اعتماد تجهيز المنتج.':'تم اعتماد الشراء وإضافة الملكية من الخادم.');
       setSelected(null);
       await Promise.all([reload(),refreshWallet()]);
       scheduleTimeout(() => setPurchaseSuccess(null), 3000);
@@ -97,6 +128,7 @@ export const StoreScreen: React.FC = () => {
   };
 
   const actionLabel=(item:StoreItem)=>{
+    if(item.isGiftStock)return 'شراء وحفظ في الحقيبة';
     if(!item.isOwned)return 'شراء';
     if(item.category==='cards')return 'فتح الحقيبة';
     if(equipableCategories.has(item.category))return 'استخدام';
@@ -159,7 +191,8 @@ export const StoreScreen: React.FC = () => {
             <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="w-full text-right">
               <div className="relative aspect-square bg-black/20 flex items-center justify-center text-5xl overflow-hidden">
                 {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/>:<span aria-hidden="true">{item.image}</span>}
-                {item.isOwned&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">مملوك</span>}
+                {item.isOwned&&!item.isGiftStock&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">مملوك</span>}
+                {item.isGiftStock&&Boolean(item.savedCount)&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">بالحقيبة ×{item.savedCount}</span>}
                 <span className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center"><Play size={12} fill="currentColor"/></span>
               </div>
               <div className="p-3">
@@ -178,15 +211,17 @@ export const StoreScreen: React.FC = () => {
             {selected.previewUrl?<img src={selected.previewUrl} alt={selected.name} className="w-full h-full object-contain"/>:<span>{selected.image}</span>}
             <span className="absolute inset-0 flex items-center justify-center"><span className="w-14 h-14 rounded-full bg-black/55 border border-white/15 flex items-center justify-center"><Play size={22} fill="currentColor"/></span></span>
           </button>
-          <div className="mt-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">{selected.name}</h2><p className="mt-1 text-xs leading-6 text-slate-400">{selected.description||'عنصر تجميلي من متجر TotiChat.'}</p></div>{selected.isOwned&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">مملوك</span>}</div>
+          <div className="mt-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">{selected.name}</h2><p className="mt-1 text-xs leading-6 text-slate-400">{selected.description||'عنصر تجميلي من متجر TotiChat.'}</p></div>{selected.isOwned&&!selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">مملوك</span>}
+          {selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">بالحقيبة ×{selected.savedCount||0}</span>}</div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">السعر</span><strong className="block mt-1 text-sm text-amber-200" dir="ltr">{selected.currency==='gold'?'🪙':'🥈'} {selected.price.toLocaleString('ar-IQ')}</strong></div>
             <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">المدة</span><strong className="block mt-1 text-sm">{selected.duration}</strong></div>
           </div>
           {selected.category==='cards'&&selected.relationshipTypeId&&<p className="mt-3 rounded-xl bg-pink-500/10 border border-pink-300/10 px-3 py-2 text-[10px] text-pink-200">نوع العلاقة المطلوب: {selected.relationshipTypeId}</p>}
+          {selected.isGiftStock&&<p className="mt-3 rounded-xl bg-cyan-500/10 border border-cyan-300/10 px-3 py-2 text-[11px] text-cyan-200">ستدخل هدية واحدة إلى حقيبتك لتُرسلها من صندوق الهدايا داخل الغرفة. المعاينة لا تشتري الهدية ولا ترسلها.</p>}
           {selected.category==='vip'&&<p className="mt-3 rounded-xl bg-amber-500/10 border border-amber-300/10 px-3 py-2 text-[10px] text-amber-200">امتياز VIP يُفعّل فقط وفق بيانات المنتج وقواعد الخادم.</p>}
-          <button type="button" disabled={busy||loading||(selected.isOwned&&!equipableCategories.has(selected.category)&&selected.category!=='cards')} onClick={()=>void handleBuy(selected)} className="mt-5 w-full min-h-[50px] rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#042019] text-sm font-black disabled:opacity-45">{busy?'جارٍ التنفيذ…':actionLabel(selected)}</button>
-          {!selected.isOwned&&<p className="mt-2 text-center text-[10px] text-slate-500">الخصم وإضافة الملكية ينفذهما Backend في عملية واحدة موثقة.</p>}
+          <button type="button" disabled={busy||loading||(selected.isOwned&&!selected.isGiftStock&&!equipableCategories.has(selected.category)&&selected.category!=='cards')} onClick={()=>void handleBuy(selected)} className="mt-5 w-full min-h-[50px] rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#042019] text-sm font-black disabled:opacity-45">{busy?'جارٍ التنفيذ…':actionLabel(selected)}</button>
+          {(!selected.isOwned||selected.isGiftStock)&&<p className="mt-2 text-center text-[10px] text-slate-500">الخصم وإضافة الملكية ينفذهما Backend في عملية واحدة موثقة.</p>}
         </section>
       </div>}
 
