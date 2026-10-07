@@ -699,7 +699,7 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await expect(page.getByText('Lucky',{exact:true}).locator('..').getByText('0',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'التحويل',exact:true}).click();
  await expect(page.getByText('فك ماس ثابت — 30%',{exact:true})).toBeVisible();
- await expect(page.getByText('فك ماس الحظ — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('فك ماس هدايا الحظ الأساسي — 30%',{exact:true})).toBeVisible();
  await expect(page.getByText('Coins من فك الماس',{exact:true})).toBeVisible();
  await expect(page.getByText('40,000',{exact:false}).first()).toBeVisible();
  await page.getByRole('button',{name:'مستلمة',exact:true}).click();
