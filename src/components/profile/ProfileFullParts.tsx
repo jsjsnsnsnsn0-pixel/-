@@ -28,16 +28,17 @@ export const vipAccent=(level:number)=>{
   return 'from-white/[.08] via-white/[.035] to-transparent';
 };
 
-export function ProfileHeroFull({user,partner,onPartner,isSelf,onEdit}:{user:User;partner?:RoomPublicProfile;onPartner?:(profile:RoomPublicProfile)=>void;isSelf:boolean;onEdit?:()=>void}) {
+export function ProfileHeroFull({user,partner,onPartner,isSelf,onEdit,onEditCover}:{user:User;partner?:RoomPublicProfile;onPartner?:(profile:RoomPublicProfile)=>void;isSelf:boolean;onEdit?:()=>void;onEditCover?:()=>void}) {
   const activeVip=(user.vipLevel??0)>0;
   const cover=(user as User&{coverImage?:string}).coverImage;
-  return <section className="relative -mx-4 -mt-4 overflow-hidden" data-testid="full-profile-hero">
+  return <section className="relative -mx-4 -mt-4 overflow-hidden" data-testid="full-profile-hero" data-vip-level={String(user.vipLevel??0)}>
     <div className="relative h-[360px] overflow-hidden bg-[radial-gradient(circle_at_25%_18%,rgba(79,70,229,.45),transparent_34%),radial-gradient(circle_at_78%_24%,rgba(236,72,153,.28),transparent_32%),linear-gradient(180deg,#15152a_0%,#0d1020_58%,#080914_100%)]">
       {cover&&<img src={cover} alt="" onError={e=>setImageFallback(e,defaultAvatar)} className="absolute inset-0 w-full h-full object-cover"/>}
       <div className="absolute inset-0 bg-gradient-to-t from-[#080914] via-[#080914]/38 to-black/15"/>
       <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#080914] via-[#080914]/80 to-transparent"/>
       {activeVip&&<div className={`absolute inset-x-4 top-10 h-40 rounded-full bg-gradient-to-r ${vipAccent(user.vipLevel)} blur-3xl opacity-90`}/>}
       {isSelf&&onEdit&&<button type="button" onClick={onEdit} className="absolute top-[max(18px,env(safe-area-inset-top))] left-4 z-20 rounded-full border border-white/12 bg-black/25 backdrop-blur-xl px-3 py-2 text-[11px] font-black text-white">تعديل الملف</button>}
+      {isSelf&&onEditCover&&<button type="button" onClick={onEditCover} className="absolute top-[max(18px,env(safe-area-inset-top))] right-4 z-20 rounded-full border border-white/12 bg-black/25 backdrop-blur-xl px-3 py-2 text-[11px] font-black text-white">تعديل الغلاف</button>}
 
       <div className="absolute inset-x-0 bottom-5 z-10 px-5">
         {partner&&<div className="mb-3 flex items-center justify-center" data-testid="cp-quick-preview">
@@ -144,7 +145,7 @@ export function OtherProfileActions({following,busy,onFollow,onMessage,onGift,on
 }
 
 export function SelfProfileActions({onEdit,onShare,onInventory,onPrivacy}:{onEdit:()=>void;onShare:()=>void;onInventory:()=>void;onPrivacy:()=>void}) {
-  return <section className="grid grid-cols-2 gap-2">
+  return <section data-testid="self-profile-actions" className="grid grid-cols-2 gap-2">
     <button type="button" onClick={onEdit} className="min-h-[58px] rounded-2xl bg-violet-500/15 border border-violet-400/15 font-black text-sm">تعديل الملف الشخصي</button>
     <button type="button" onClick={onShare} className="min-h-[58px] rounded-2xl bg-white/[.055] border border-white/8 font-black text-sm">QR / مشاركة الحساب</button>
     <button type="button" onClick={onInventory} className="min-h-[58px] rounded-2xl bg-white/[.055] border border-white/8 font-black text-sm">عرض حقيبتي</button>
