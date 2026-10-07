@@ -7,12 +7,12 @@ const room = {id: roomId, owner_id: actor, name: 'غرفة الاختبار', de
 const authUser = {id: actor, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid', app_metadata: {provider: 'google'}, user_metadata: {}, created_at: new Date().toISOString()};
 const token = `${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:actor,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.dGVzdA`;
 const session = {access_token: token, refresh_token:'test-refresh', token_type:'bearer', expires_in:3600, expires_at:Math.floor(Date.now()/1000)+3600, user: authUser};
-async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean} = {}) {
+async function setup(page: Page, loggedIn = true, overrides: {country?: string; rooms?: boolean; conversionError?: boolean; currency?: boolean; conversionDelay?: boolean; quoteError?: boolean; messages?: boolean; agent?: boolean; zero?: boolean; giftFunds?: boolean; profileError?: boolean; noAgent?: boolean; otherMember?: boolean; commerce?: boolean; purchaseError?: boolean; social?: boolean; roomProfile?: Record<string,unknown>; roomProfileError?: boolean; noMemberId?: boolean; roomCouple?: boolean; roomAgency?: boolean; optionalProfileError?: boolean; roomSeatVip?: number; roomSeatLevel?: number; roomSettings?: boolean; settingsError?: boolean; listener?: boolean; economy?: boolean; tenSeats?: boolean; longText?: boolean} = {}) {
   const errors: string[]=[]; page.on('pageerror',e=>errors.push(e.message));
   let membershipRemoved = false;
   let currentMuted = true;
   let currentRoom = {...room,max_seats:overrides.tenSeats?10:room.max_seats, owner_id:overrides.listener?other:actor, welcome_message: overrides.roomSettings ? 'ترحيب محفوظ' : room.description, chat_enabled: !overrides.roomSettings, gift_effects_enabled: !overrides.roomSettings, vehicle_effects_enabled: !overrides.roomSettings, entrance_effects_enabled: !overrides.roomSettings};
-  let current = {...profile,display_name:overrides.longText?'اسم مستخدم عربي طويل جداً لاختبار المساحة وتناسق الملف الشخصي':profile.display_name, sent_gold:overrides.economy?16000:0,received_gold:overrides.economy?20000:0, gold: overrides.zero ? 0 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
+  let current = {...profile,display_name:overrides.longText?'اسم مستخدم عربي طويل جداً لاختبار المساحة وتناسق الملف الشخصي':profile.display_name, sent_gold:overrides.economy?16000:0,received_gold:overrides.economy?20000:0, gold: overrides.zero ? 0 : overrides.giftFunds ? 1000 : profile.gold, diamonds: overrides.zero ? 0 : profile.diamonds, country_code: overrides.country === '' ? '' : 'IQ'};
   const directMessages: any[] = overrides.messages ? [{id:'incoming',sender_id:other,recipient_id:actor,recipient_public_id:920003,sender_public_id:451305,sender_display_name:'مستخدم الرسائل',recipient_display_name:'حساب الاختبار',message_type:'text',content:'رسالة واردة',created_at:new Date().toISOString(),read_at:null}] : [];
   const requests: {path: string; body: any}[]=[];
   let fixed=overrides.currency?100000:60; let lucky=overrides.currency?100000:20; let legacy=overrides.currency?777:10; const redemptions = new Map<string,any>();
@@ -159,7 +159,7 @@ test('room seats are rendered from the database and recharge opens while joined'
 });
 
 test('gift selection waits for Send, supports agreed quantities and blocks rapid duplicates', async ({page})=>{
-  const {requests,errors}=await setup(page,true,{rooms:true}); await page.goto('/');
+  const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'متجر الهدايا',exact:true});
@@ -451,14 +451,20 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  await page.getByTitle('أنا').click();await page.getByText('شحن / محفظة',{exact:true}).click();
  await expect(page.getByText('الشحن للـCoins',{exact:false})).toBeVisible();
  await page.getByTitle('سجل العمليات',{exact:true}).click();
- await expect(page.getByText('Coins 🪙 — عملة الشحن والإنفاق',{exact:true})).toBeVisible();
- await expect(page.getByText('Diamonds 💎 — أرباح الهدايا',{exact:true})).toBeVisible();
- await expect(page.getByText('Fixed Diamonds: 100,000 💎 — 30%',{exact:true})).toBeVisible();
- await expect(page.getByText('Lucky Diamonds: 100,000 💎 — 10%',{exact:true})).toBeVisible();
- await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
- await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'المحفظة والسجل',exact:true})).toBeVisible();
+ await expect(page.getByText('Coins 🪙',{exact:true})).toBeVisible();
+ await expect(page.getByText('Diamonds 💎',{exact:true})).toBeVisible();
+ await expect(page.getByText('Fixed',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky',{exact:true})).toBeVisible();
+ await expect(page.getByText('Legacy',{exact:true})).toBeVisible();
+ await expect(page.getByText('100,000',{exact:true})).toHaveCount(2);
+ await expect(page.getByText('777',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'فك الماس',exact:true}).click();
- const dialog=page.getByRole('dialog');await expect(dialog.getByText(/777/)).toBeVisible();
+ const dialog=page.getByRole('dialog');
+ await expect(dialog.getByText('ماس الهدايا الثابتة: 30% · ماس هدايا الحظ: 10%',{exact:true})).toBeVisible();
+ await expect(dialog.getByText('Fixed Diamonds: 100,000 💎',{exact:true})).toBeVisible();
+ await expect(dialog.getByText('Lucky Diamonds: 100,000 💎',{exact:true})).toBeVisible();
+ await expect(dialog.getByText(/777/)).toBeVisible();
  await dialog.getByRole('button',{name:'اختيار كل الماس القابل للفك'}).click();
  await dialog.getByRole('button',{name:'معاينة الفك',exact:true}).click();
  await expect(dialog.getByTestId('diamond-quote')).toContainText('200,000');
@@ -472,12 +478,13 @@ test('wallet shows Coins, source breakdown and mixed server preview then refresh
  expect(Object.keys(request.body).sort()).toEqual(['p_diamonds','p_request_id']);
  expect(request.body.p_diamonds).toBe(200000);
  await dialog.getByRole('button',{name:'إغلاق فك الماس'}).click();
- await expect(page.getByText('Fixed Diamonds: 0 💎 — 30%',{exact:true})).toBeVisible();
- await expect(page.getByText('Lucky Diamonds: 0 💎 — 10%',{exact:true})).toBeVisible();
+ await expect(page.getByText('Fixed',{exact:true}).locator('..').getByText('0',{exact:true})).toBeVisible();
+ await expect(page.getByText('Lucky',{exact:true}).locator('..').getByText('0',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'التحويل',exact:true}).click();
  await expect(page.getByText('فك ماس ثابت — 30%',{exact:true})).toBeVisible();
  await expect(page.getByText('فك ماس الحظ — 10%',{exact:true})).toBeVisible();
  await expect(page.getByText('Coins من فك الماس',{exact:true})).toBeVisible();
- await expect(page.getByText((40100).toLocaleString('ar-SA'),{exact:true})).toBeVisible();
+ await expect(page.getByText('40,000',{exact:false}).first()).toBeVisible();
  await page.getByRole('button',{name:'مستلمة',exact:true}).click();
  await expect(page.getByText('ماس هدية ثابتة',{exact:true})).toBeVisible();
  await expect(page.getByText('ماس هدية حظ',{exact:true})).toBeVisible();
