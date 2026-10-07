@@ -24,7 +24,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
   let followed=false; let friendStatus='none'; const purchased:string[]=[]; const adminAdjustments=new Map<string,any>(); let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
-    const body=route.request().postDataJSON(); if (method !== 'GET') requests.push({path,body});
+    const body=route.request().postDataJSON(); if (!['GET','HEAD'].includes(method)) requests.push({path,body});
     const headers={'access-control-allow-origin':'*','content-type':'application/json'};
     const respond=(value: any,status=200)=>route.fulfill({status,headers,body:JSON.stringify(value)});
     if (method==='OPTIONS') return route.fulfill({status:204,headers:{...headers,'access-control-allow-headers':'*','access-control-allow-methods':'*'}});
