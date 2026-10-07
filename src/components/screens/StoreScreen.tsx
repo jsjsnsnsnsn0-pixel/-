@@ -36,7 +36,7 @@ const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?
   { id: 'cars', label: 'المركبات', icon: Car },
   { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
   { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
-  { id: 'cards', label: 'بطاقات CP', icon: IdCard },
+  { id: 'cards', label: 'CP', icon: IdCard },
   { id: 'badges', label: 'الشارات', icon: Crown },
   { id: 'vip', label: 'VIP', icon: Crown },
 ];
@@ -60,10 +60,13 @@ export const StoreScreen: React.FC = () => {
     if (owned.error) throw owned.error;
     // Gift stock uses the existing server-backed gift inventory and a different purchase RPC.
     // Store cosmetics remain real store_catalog products, never fabricated display entries.
-    const box = await rpc<{gifts?:Array<{id:string;name:string;price:number;icon?:string;description?:string;preview_url?:string|null;category_id?:string;duration_days?:number|null}>;inventory?:Array<{gift_id:string;remaining:number}>}>('gift_box_state');
+    type GiftBoxProducts = {gifts?:Array<{id:string;name:string;price:number;icon?:string;description?:string;preview_url?:string|null;category_id?:string;duration_days?:number|null}>;inventory?:Array<{gift_id:string;remaining:number}>};
+    let box:GiftBoxProducts|null=null;
+    try { box=await rpc<GiftBoxProducts>('gift_box_state'); }
+    catch { /* Keep already available cosmetic categories if the optional gift catalog fails. */ }
     const counts = new Map<string,number>();
-    for (const lot of box.inventory || []) counts.set(String(lot.gift_id),(counts.get(String(lot.gift_id))||0)+Number(lot.remaining||0));
-    const giftItems:StoreItem[] = (box.gifts || []).filter(item=>Number(item.price)>0).map(item=>({
+    for (const lot of box?.inventory || []) counts.set(String(lot.gift_id),(counts.get(String(lot.gift_id))||0)+Number(lot.remaining||0));
+    const giftItems:StoreItem[] = (box?.gifts || []).filter(item=>Number(item.price)>0).map(item=>({
       id:String(item.id),
       name:String(item.name),
       category:(['nation','luck','custom'].includes(String(item.category_id)) ? item.category_id : 'gift') as ProductCategory,
@@ -119,7 +122,7 @@ export const StoreScreen: React.FC = () => {
         }
         requests.current.delete(key);
       }
-      setPurchaseSuccess(item.isOwned&&!item.isGiftStock?'تم اعتماد تجهيز المنتج.':'تم اعتماد الشراء وإضافة الملكية من الخادم.');
+      setPurchaseSuccess(item.isOwned&&!item.isGiftStock?'تم اعتماد تجهيز المنتج.':item.isGiftStock?'تم شراء الهدية وحفظها في الحقيبة.':'تم اعتماد الشراء من الخادم.');
       setSelected(null);
       await Promise.all([reload(),refreshWallet()]);
       scheduleTimeout(() => setPurchaseSuccess(null), 3000);
