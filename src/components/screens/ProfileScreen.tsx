@@ -60,22 +60,24 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eaf6ee] via-[#f4faf6] to-[#f8fafc] text-slate-800 pb-24 select-none">
+    <div className="relative min-h-screen bg-[#f4f5f8] text-slate-800 pb-28 select-none overflow-x-hidden">
+      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-52 bg-[radial-gradient(circle_at_18%_10%,rgba(250,204,21,.22),transparent_30%),radial-gradient(circle_at_86%_16%,rgba(168,85,247,.28),transparent_36%),linear-gradient(145deg,#121728_0%,#17233a_48%,#0f3f36_100%)]" />
+      <div aria-hidden="true" className="absolute top-24 -left-14 w-40 h-40 rounded-full bg-emerald-300/10 blur-3xl" />
       {/* Top Bar with Profile Edit Icon */}
-      <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+      <div className="relative z-10 px-5 pt-4 pb-2 flex items-center justify-between">
         <button
           onClick={() => setActiveSubScreen('edit_profile')}
-          className="w-10 h-10 rounded-2xl bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center cursor-pointer shadow-xs transition-transform active:scale-95 border border-slate-200/60"
+          className="w-11 h-11 rounded-2xl bg-white/12 hover:bg-white/18 text-white flex items-center justify-center cursor-pointer shadow-lg transition-transform active:scale-95 border border-white/15 backdrop-blur-xl"
           title="تعديل الملف الشخصي والصورة والاسم"
         >
-          <Edit3 size={20} className="stroke-[2] text-slate-700" />
+          <Edit3 size={20} className="stroke-[2] text-white" />
         </button>
 
         <div className="w-10" />
       </div>
 
       {/* Main Profile Info Section (Avatar on the Right, Info on the Left) */}
-      <div className="px-5 pt-1 pb-4 flex items-center justify-between gap-4">
+      <div className="relative z-10 mx-4 mt-8 p-4 flex items-center justify-between gap-4 rounded-[28px] bg-white/90 border border-white/80 shadow-[0_18px_45px_rgba(15,23,42,.16)] backdrop-blur-xl">
         {/* Left Info Column */}
         <div className="flex-1 min-w-0">
           {/* Row 1: Name, Gender & Detail Profile Chevron */}
@@ -155,7 +157,7 @@ export const ProfileScreen: React.FC = () => {
           className="relative shrink-0 cursor-pointer group"
           title="عرض الملف الشخصي"
         >
-          <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-900 ring-2 ring-slate-200/60 relative">
+          <div className="w-[92px] h-[92px] rounded-full overflow-hidden border-[3px] border-white shadow-[0_10px_28px_rgba(15,23,42,.24)] bg-transparent ring-4 ring-amber-300/35 relative">
             <img
               src={user.avatar || '/assets/images/default_arab_user_avatar_1790806239365.jpg'}
               onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')}
@@ -167,8 +169,8 @@ export const ProfileScreen: React.FC = () => {
       </div>
 
       {/* Statistics Row: زائر | متابعين | متابعة */}
-      <div className="px-6 py-3">
-        <div className="grid grid-cols-4 text-center">
+      <div className="relative z-10 mx-4 mt-3 p-3 rounded-3xl bg-white/92 border border-slate-200/70 shadow-sm">
+        <div className="grid grid-cols-4 text-center divide-x divide-x-reverse divide-slate-100">
           {/* Column 1: زائر */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => {
@@ -224,10 +226,10 @@ export const ProfileScreen: React.FC = () => {
       </div>
 
       {/* VIP Luxury Card Banner */}
-      <div className="px-5 mt-2">
+      <div className="relative z-10 px-4 mt-3">
         <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
           onClick={() => setActiveSubScreen('vip')}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-100 p-5 text-amber-950 flex items-center justify-between shadow-md cursor-pointer hover:shadow-lg transition-all border border-amber-500/20"
+          className="relative overflow-hidden rounded-[26px] bg-[radial-gradient(circle_at_88%_20%,rgba(251,191,36,.30),transparent_30%),linear-gradient(135deg,#151827,#28213d_55%,#4a3214)] p-5 text-white flex items-center justify-between shadow-[0_16px_34px_rgba(15,23,42,.18)] cursor-pointer hover:shadow-xl transition-all border border-amber-300/25"
 
         >
           {/* Left: عرض المزايا link */}
@@ -238,7 +240,7 @@ export const ProfileScreen: React.FC = () => {
 
           {/* Right: VIP Diamond */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xl font-black text-amber-900 tracking-wider">
+            <span className="text-xl font-black text-amber-200 tracking-wider">
               {user.vipLevel && user.vipLevel > 0 ? `VIP ${user.vipLevel}` : 'VIP'}
             </span>
             <span className="text-lg">💎</span>
@@ -247,7 +249,7 @@ export const ProfileScreen: React.FC = () => {
       </div>
 
       {/* 4 Circular Action Buttons: محفظة | غرفتي | المتجر | وكالة */}
-      <div className="px-5 mt-4">
+      <div className="relative z-10 mx-4 mt-4 rounded-[28px] bg-white/88 border border-white shadow-sm p-4 backdrop-blur-xl">
         <div className="grid grid-cols-4 gap-2 text-center">
           {/* 1. محفظة / شحن */}
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
@@ -297,8 +299,8 @@ export const ProfileScreen: React.FC = () => {
       </div>
 
       {/* Menu List Items Card */}
-      <div className="px-5 mt-5">
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs divide-y divide-slate-50 overflow-hidden">
+      <div className="relative z-10 px-4 mt-4">
+        <div className="bg-white/92 rounded-[28px] border border-white shadow-[0_12px_32px_rgba(15,23,42,.07)] divide-y divide-slate-100/80 overflow-hidden backdrop-blur-xl">
           <div role="button" tabIndex={0} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==="Enter"||event.key===" ")){event.preventDefault();event.currentTarget.click();}}}
             onClick={() => setActiveSubScreen('inventory')}
             className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
