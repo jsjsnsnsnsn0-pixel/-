@@ -54,8 +54,9 @@ export const UserDetailProfileScreen: React.FC = () => {
             <span className="block text-[11px] text-emerald-300 mb-1">الوكالة</span>
             <span className="block font-black text-white truncate">{data.publicProfile.agency.name}</span>
             <span className="block ui-id text-xs text-slate-400 mt-1">ID: {data.publicProfile.agency.id}</span>
+            <span className="block text-[10px] text-emerald-200/80 mt-1">{data.publicProfile.agency.role==='owner'?'مالك الوكالة':'عضو'}{data.publicProfile.agency.membersCount!==undefined? ` · ${data.publicProfile.agency.membersCount} عضو` : ''}</span>
           </span>
-          <span className="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-300/20 flex items-center justify-center text-xl" aria-hidden="true">🏛️</span>
+          {data.publicProfile.agency.logoUrl?<img src={data.publicProfile.agency.logoUrl} alt="" loading="lazy" className="w-11 h-11 shrink-0 rounded-full object-cover border border-emerald-300/20"/>:<span className="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-300/20 flex items-center justify-center text-xl" aria-hidden="true">🏛️</span>}
         </button>
       ) : (
         <button type="button" onClick={() => setActiveSubScreen('agency')} className="w-full rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-700 p-4 text-center font-black text-white shadow-lg active:scale-[0.99] transition-transform">
