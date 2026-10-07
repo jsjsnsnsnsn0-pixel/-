@@ -86,14 +86,14 @@ export const StoreScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#081510] text-slate-100 pb-28" dir="rtl">
-      <header className="sticky top-0 z-30 bg-[#081510]/95 backdrop-blur-md border-b border-emerald-300/10 px-4 py-3 flex items-center justify-between shadow-xs">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(124,58,237,.20),transparent_28%),radial-gradient(circle_at_90%_10%,rgba(16,185,129,.13),transparent_30%),#090b12] text-slate-100 pb-28" dir="rtl">
+      <header className="sticky top-0 z-30 bg-[#090b12]/72 backdrop-blur-2xl border-b border-white/8 px-4 py-3 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-2">
           <button onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 text-slate-100">
             <ChevronRight size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-emerald-400/10 text-emerald-300 flex items-center justify-center"><ShoppingBag size={18}/></div>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500/25 to-emerald-400/15 text-amber-200 border border-white/10 flex items-center justify-center shadow-inner"><ShoppingBag size={18}/></div>
             <div><h1 className="text-base font-black">متجر TotiChat</h1><p className="text-[10px] text-emerald-300/70">مقتنيات تجميلية مرتبطة بحسابك</p></div>
           </div>
         </div>
@@ -114,7 +114,7 @@ export const StoreScreen: React.FC = () => {
           {tabs.map(tab => {
             const Icon=tab.icon; const active=activeTab===tab.id;
             return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
-              className={`min-h-11 px-3 rounded-xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/15 border-emerald-300/35 text-emerald-200':'bg-white/5 border-white/10 text-slate-400'}`}>
+              className={`min-h-11 px-3 rounded-2xl flex items-center gap-1.5 border text-xs font-bold transition-all ${active?'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/15 border-violet-300/35 text-white shadow-lg shadow-violet-950/20':'bg-white/[0.045] border-white/8 text-slate-400'}`}>
               <Icon size={15}/><span>{tab.label}</span>
             </button>;
           })}
@@ -131,9 +131,9 @@ export const StoreScreen: React.FC = () => {
 
       <div className="p-4 grid grid-cols-2 gap-3">
         {filteredItems.map(item => (
-          <article key={item.id} className="rounded-3xl p-3 border border-white/10 bg-white/[0.045] flex flex-col justify-between min-h-56">
+          <article key={item.id} className="rounded-[26px] p-3 border border-white/10 bg-white/[0.055] backdrop-blur-xl flex flex-col justify-between min-h-56 shadow-[0_14px_32px_rgba(0,0,0,.18)]">
             <div>
-              <div className="h-28 rounded-2xl bg-black/20 flex items-center justify-center text-4xl mb-3 border border-emerald-300/10 overflow-hidden">
+              <div className="h-28 rounded-[20px] bg-gradient-to-br from-white/[0.07] to-black/25 flex items-center justify-center text-4xl mb-3 border border-white/8 overflow-hidden">
                 {item.previewUrl ? <img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/> : <span aria-hidden="true">{item.image}</span>}
               </div>
               <h3 className="font-bold text-sm text-white mb-1 break-words">{item.name}</h3>
@@ -147,7 +147,7 @@ export const StoreScreen: React.FC = () => {
             <div className="pt-3 mt-3 border-t border-white/8 flex items-center justify-between gap-2">
               <span className="font-bold text-xs text-amber-200">{item.currency === 'gold' ? '🪙' : '🥈'} {item.price.toLocaleString('ar-SA')}</span>
               <button disabled={busy || loading} onClick={() => void handleBuy(item)}
-                className="min-h-10 px-3 bg-emerald-500 text-emerald-950 text-[11px] font-black rounded-xl disabled:opacity-50">
+                className="min-h-10 px-4 bg-gradient-to-r from-amber-300 to-amber-400 text-slate-950 text-[11px] font-black rounded-xl shadow-lg shadow-amber-950/20 disabled:opacity-50">
                 {busy ? 'جارٍ التنفيذ…' : item.isOwned ? (item.category==='cards'?'الحقيبة':'تجهيز') : 'شراء'}
               </button>
             </div>
