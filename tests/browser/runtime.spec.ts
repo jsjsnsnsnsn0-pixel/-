@@ -170,6 +170,7 @@ test('gift selection waits for Send, supports agreed quantities and blocks rapid
   const send=dialog.getByRole('button',{name:/إرسال الهدية/});
   await send.dblclick();
   await expect(dialog.getByText('تم الإرسال بنجاح!',{exact:true})).toBeVisible();
+  await expect(page.getByText('هدية فاخرة',{exact:true})).toHaveCount(0);
   const calls=requests.filter(r=>r.path.endsWith('/send_room_gift_batch'));
   expect(calls).toHaveLength(1);
   expect(calls[0].body.p_quantity).toBe(77);
@@ -430,6 +431,7 @@ test('room public data and authorized CP/agency show actual values without priva
   const seat=page.getByTestId('occupied-seat').nth(1);
   await expect(seat).toHaveAttribute('aria-label','عرض ملف الاسم الحقيقي B');await expect(seat.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(seat).toContainText('VIP2');await expect(seat).not.toContainText('VIP8');
   await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('profile-country')).toContainText('EG');
+  await expect(card.getByTestId('profile-avatar-frame')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect(card.getByTestId('profile-agency')).toContainText('وكالة حقيقية للاختبار');await expect(card.getByTestId('profile-couple')).toContainText('حساب الاختبار');
   await expect(card.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(card.getByTitle('معرف الحساب: 451306 (انقر للنسخ)')).toBeVisible();
   for(const privateValue of [actor,other,'hidden@example.invalid','private-phone','auth_metadata'])await expect(card).not.toContainText(privateValue);
