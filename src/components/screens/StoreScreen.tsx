@@ -22,6 +22,8 @@ interface StoreItem {
   isOwned?: boolean;
 }
 
+const equipableCategories=new Set<ProductCategory>(['frames','cars','bubbles','entrances','badges']);
+
 const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>;always?:boolean}> = [
   { id: 'all', label: 'الكل', icon: Grid2X2, always:true },
   { id: 'frames', label: 'الإطارات', icon: Sparkles },
@@ -72,13 +74,13 @@ export const StoreScreen: React.FC = () => {
 
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
-    if (item.isOwned && item.category === 'cards') {
-      setActiveSubScreen('inventory');
-      return;
+    if(item.isOwned){
+      if(item.category==='cards'){setSelected(null);setActiveSubScreen('inventory');return;}
+      if(!equipableCategories.has(item.category))return;
     }
     setBusy(true); setPurchaseSuccess(null);
     try {
-      if (item.isOwned) await rpc('equip_store_item', {p_item_id: item.id, p_category: item.category});
+      if(item.isOwned)await rpc('equip_store_item',{p_item_id:item.id,p_category:item.category});
       else {
         const request = requests.current.get(item.id) || crypto.randomUUID();
         requests.current.set(item.id, request);
@@ -86,11 +88,19 @@ export const StoreScreen: React.FC = () => {
         if (!result?.id) throw new Error('purchase not confirmed');
         requests.current.delete(item.id);
       }
-      setPurchaseSuccess(item.isOwned ? 'تم اعتماد تجهيز المنتج.' : 'تم اعتماد الشراء من الخادم.');
-      await Promise.all([reload(), refreshWallet()]);
+      setPurchaseSuccess(item.isOwned?'تم اعتماد تجهيز المنتج.':'تم اعتماد الشراء من الخادم.');
+      setSelected(null);
+      await Promise.all([reload(),refreshWallet()]);
       scheduleTimeout(() => setPurchaseSuccess(null), 3000);
     } catch (e) { reportError(backendMessage(e)); }
     finally { setBusy(false); }
+  };
+
+  const actionLabel=(item:StoreItem)=>{
+    if(!item.isOwned)return 'شراء';
+    if(item.category==='cards')return 'فتح الحقيبة';
+    if(equipableCategories.has(item.category))return 'استخدام';
+    return 'مملوك';
   };
 
   return (
