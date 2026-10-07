@@ -4,6 +4,9 @@ const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 if(!url||!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)){
  throw Error('Set VITE_SUPABASE_URL to the existing TotiChat Supabase project URL.');
 }
+if(url!=='https://bfadhdnudmsggylunhlh.supabase.co'){
+ throw Error('Refusing to connect this dashboard to any database other than TotiChat.');
+}
 if(!key||!key.startsWith('sb_publishable_')){
  throw Error('Only the sb_publishable_ public key is allowed. Never use service_role, anon JWT, or secret keys.');
 }
