@@ -1,4 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
+import {TotiArcade} from './ui/TotiArcade';
 import {ChevronRight, Dices, Gift, Hand, RefreshCw, Trophy, Gamepad2, Sparkles, ShieldCheck, History} from 'lucide-react';
 import {supabase} from '../../services/supabase';
 import {useApp} from '../../context/AppContext';
@@ -108,6 +109,8 @@ export const LuckGamesScreen: React.FC = () => {
           </section>
         </div>
       </section>
+
+      <TotiArcade/>
 
       <section aria-label="تاريخ الألعاب">
         <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><History size={19} className="text-violet-300"/><h2 className="font-black">سجل الألعاب</h2></div><button type="button" disabled={history.loading} onClick={()=>void history.reload()} className="ui-control inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-violet-200 disabled:opacity-50"><RefreshCw size={14} className={history.loading?'animate-spin':''}/> تحديث</button></div>
