@@ -5,8 +5,18 @@ export {health,settings} from './pages-monitoring.js';
 
 export function overview(work){
  const content=box('metrics');
- work.append(panel(title('مؤشرات قاعدة البيانات'),
-  note('جميع الأرقام مباشرة من دوال Supabase المحمية.'),content));
+ const hero=box('overviewHero',box('heroCopy',
+  el('span',{class:'heroEyebrow'},'TotiChat / CONTROL CENTER'),
+  el('h2',{},'إدارة المنصة بثقة ووضوح'),
+  note('البيانات أدناه تُقرأ مباشرة من قاعدة TotiChat. كل إجراء إداري يخضع لصلاحيات حسابك.')));
+ const quick=box('quickActions');
+ for(const [id,label,permission] of [['users','إدارة المستخدمين','users.view'],['rooms','متابعة الغرف','rooms.view'],['roles','الرتب والصلاحيات','roles.view']]){
+  if(!allowed(permission))continue;
+  quick.append(btn(label,()=>{state.section=id;state.refresh()},'btn ghost'));
+ }
+ if(quick.childNodes.length)hero.append(quick);
+ work.append(hero,panel(box('rowHead',title('مؤشرات المنصة'),el('span',{class:'liveLabel'},'● بيانات مباشرة')),
+  note('الأرقام الفعلية من دوال Supabase المحمية.'),content));
  load(content,()=>rpc('dashboard_overview'),data=>{
   content.append(...[
    ['المستخدمون',data.users],['النشطون',data.active_users],
