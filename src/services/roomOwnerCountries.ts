@@ -1,5 +1,3 @@
-import {supabase} from './supabase';
-
 type OwnerRef={owner_id:string;owner_public_id:number|string|null};
 type CountryLookup=(publicId:string)=>Promise<string|undefined>;
 const ttlMs=10*60*1000;
@@ -9,6 +7,8 @@ const cachedCountry=new Map<string,{code:string|undefined;expiresAt:number}>();
  * search_public_profiles RPC, which intentionally exposes country_code as
  * public metadata without granting direct reads on other profile rows. */
 const lookupPublicCountry:CountryLookup=async publicId=>{
+  // Dynamic import keeps the isolated pure unit tests independent of Vite env.
+  const {supabase}=await import('./supabase');
   const {data,error}=await supabase.rpc('search_public_profiles',{p_query:publicId,p_limit:1});
   if(error)throw error;
   const exact=(Array.isArray(data)?data:[]).find(row=>String(row.public_id)===publicId);
