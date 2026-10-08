@@ -50,6 +50,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [profileReady, setProfileReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const roomsRef = useRef(rooms); roomsRef.current = rooms;
   const [ownedClosedRooms,setOwnedClosedRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
@@ -153,10 +154,14 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
       supabase.from('user_room_links').select('*').eq('user_id',id),
     ]);
-    for (const result of [rs, ms, ls, links]) if (result.error) throw result.error;
+    // Rooms are essential; seat locks, members and follows are optional metadata.
+    // A timeout in any optional request must not make every active room vanish.
+    if (rs.error) throw rs.error;
     if (id !== authRef.current) return [];
+    const priorRooms = new Map(roomsRef.current.map(room => [room.id, room]));
     const mapped: Room[] = (rs.data || []).map(row => {
-      const members = (ms.data || []).filter(m => m.room_id === row.id);
+      const prior = priorRooms.get(row.id) || (activeRef.current?.id === row.id ? activeRef.current : null);
+      const members = ms.error ? [] : (ms.data || []).filter(m => m.room_id === row.id);
       const memberUser = (m: Record<string, unknown>): User => m.user_id === id ? userRef.current : roomMemberToUser(m);
       const owner = row.owner_id === id ? userRef.current : profileToUser({
         id: row.owner_id, public_id: row.owner_public_id, display_name: row.owner_display_name,
@@ -167,25 +172,32 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
-        isFollowed:(links.data||[]).some(link=>link.room_id===row.id&&link.followed),
-        lastVisitedAt:(links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
+        isFollowed:links.error ? (prior?.isFollowed ?? false) : (links.data||[]).some(link=>link.room_id===row.id&&link.followed),
+        lastVisitedAt:links.error ? prior?.lastVisitedAt : (links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
         internalBackground:row.internal_background_url||'/assets/images/room_screen_bg_1790556227206.jpg',
         description: row.welcome_message ?? row.description ?? '', coverImage: row.external_image_url || row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
-        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
-        canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
-        members: members.map(m=>({...memberUser(m),roomRole:m.role})),
-        seats: Array.from({length: row.max_seats}, (_, index) => {
+        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: ms.error ? (prior?.usersCount ?? 0) : members.length,
+        canModerate: row.owner_id === id || (ms.error ? Boolean(prior?.canModerate) : members.some(m => m.user_id === id && m.role === 'moderator')),
+        members: ms.error ? (prior?.members || []) : members.map(m=>({...memberUser(m),roomRole:m.role})),
+        seats: ms.error && prior ? prior.seats : Array.from({length: row.max_seats}, (_, index) => {
           const member = members.find(m => m.seat_number === index + 1);
-          return {seatIndex: index, isLocked: (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
+          return {seatIndex: index, isLocked: ls.error ? (prior?.seats[index]?.isLocked ?? false) : (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
             isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? {...memberUser(member),roomRole:member.role} : undefined};
         }),
       };
     });
     const liveRooms = mapped.filter(room => room.isActive);
     setOwnedClosedRooms(mapped.filter(room => !room.isActive && room.ownerAuthId === id));
+    roomsRef.current = liveRooms;
     setRooms(liveRooms);
-    setActiveRoom(prev => prev ? liveRooms.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
+    setActiveRoom(prev => {
+      if (!prev) return null;
+      const latest = liveRooms.find(r => r.id === prev.id);
+      // Keep the currently connected room while membership retrieval recovers.
+      if (ms.error) return latest ? prev : null;
+      return latest?.members?.some(m => m.authId === id) ? latest : null;
+    });
     return liveRooms;
   }, []);
 
