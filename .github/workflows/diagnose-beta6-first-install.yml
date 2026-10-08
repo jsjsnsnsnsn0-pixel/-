@@ -60,14 +60,7 @@ jobs:
               cat "$evidence/install-result.txt"
               exit 1
             fi
-            grep -q '^Success      - name: Preserve clean-install evidence, including failures
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: beta6-android14-first-install-diagnostic
-          path: beta6-diagnostic/*.txt
-          if-no-files-found: ignore
- "$evidence/install-result.txt"
+            grep -qx Success "$evidence/install-result.txt"
             adb shell pm path com.totichat.app > "$evidence/package-path.txt"
             cat "$evidence/package-path.txt"
             grep -q '^package:' "$evidence/package-path.txt"
