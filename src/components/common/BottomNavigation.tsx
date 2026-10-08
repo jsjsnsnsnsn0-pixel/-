@@ -28,7 +28,7 @@ export const BottomNavigation: React.FC = () => {
   return (
     <nav
       aria-label="التنقل الرئيسي"
-      className="fixed bottom-3 inset-x-3 z-40 max-w-[calc(28rem-1.5rem)] mx-auto rounded-[24px] bg-[#121726]/88 backdrop-blur-2xl border border-white/10 text-white shadow-[0_14px_40px_rgba(0,0,0,.34)] pb-safe"
+      className="fixed bottom-3 inset-x-3 z-40 max-w-[calc(28rem-1.5rem)] mx-auto rounded-[24px] bg-[#0e302a]/75 backdrop-blur-[10px] border border-emerald-100/25 text-white shadow-[0_10px_26px_rgba(7,43,35,.24)] pb-safe"
       dir="rtl"
     >
       <div className="flex items-center justify-around h-[66px] px-2">
