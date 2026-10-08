@@ -32,13 +32,13 @@ if (process.env.TOTICHAT_BETA === '1') {
   if (!/versionCode\s+\d+/.test(gradle) || !/versionName\s+["'][^"']+["']/.test(gradle)) {
     throw new Error('Android beta version markers missing');
   }
-  gradle=gradle.replace(/versionCode\s+\d+/,'versionCode 900002')
-    .replace(/versionName\s+["'][^"']+["']/,'versionName "0.9.0-beta.2"');
+  gradle=gradle.replace(/versionCode\s+\d+/,'versionCode 900003')
+    .replace(/versionName\s+["'][^"']+["']/,'versionName "0.9.0-beta.3"');
   await writeFile(gradlePath,gradle);
   const stringsPath='android/app/src/main/res/values/strings.xml';
   let strings=await readFile(stringsPath,'utf8');
   if(!strings.includes('name="app_name"'))throw new Error('Android app name resource missing');
   strings=strings.replace(/(<string name="app_name">)[^<]*(<\/string>)/,'$1TotiChat Beta$2');
   await writeFile(stringsPath,strings);
-  console.log('TotiChat Beta 0.9.0-beta.2 is configured; package ID kept for existing OAuth.');
+  console.log('TotiChat Beta 0.9.0-beta.3 is configured; package ID kept for existing OAuth.');
 }
