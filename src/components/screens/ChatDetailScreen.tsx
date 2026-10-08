@@ -4,6 +4,7 @@ import { useTimeouts } from '../../hooks/useTimeouts';
 import React, { useState, useEffect, useRef } from 'react';
 import { copyText } from '../../utils/clipboard';
 import { useApp } from '../../context/AppContext';
+import { recentChatMessages } from '../../services/chatWindow';
 import { UserAvatar } from '../common/UserAvatar';
 import { VIPBadge } from '../common/VIPBadge';
 import {
@@ -48,6 +49,11 @@ export const ChatDetailScreen: React.FC = () => {
   const isOfficial = selectedChatUser?.id === officialSupportPublicId;
   const isSystem = selectedChatUser?.id === 'system_official_bot';
   const allMessages = conversation ? conversation.messages : isSystem ? [...systemMsgs].reverse() : [];
+  // Keep long chats responsive on low-memory Android devices without deleting history.
+  const [historyWindow,setHistoryWindow]=useState<{chatId:string;count:number}>({chatId:'',count:80});
+  const pageSize=historyWindow.chatId===selectedChatUser?.id?historyWindow.count:80;
+  const visibleMessages=recentChatMessages(allMessages,pageSize);
+  const olderCount=allMessages.length-visibleMessages.length;
 
   const [sending, setSending] = useState(false);
   useEffect(() => {
@@ -170,7 +176,12 @@ export const ChatDetailScreen: React.FC = () => {
 
       {/* Messages Feed */}
       <div ref={feedRef} className="flex-1 min-h-0 p-4 overflow-y-auto space-y-3">
-        {!allMessages.length && <div className="text-slate-600 py-6"><EmptyState title={isSystem?"لا توجد إشعارات حالياً":"ابدأ المحادثة برسالة"} /></div>}{allMessages.map((msg) => (
+        {olderCount>0&&<button type="button" aria-label="عرض المزيد من الرسائل القديمة"
+          onClick={()=>setHistoryWindow({chatId:selectedChatUser.id,count:pageSize+80})}
+          className="mx-auto block rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-cyan-700 shadow-sm">
+          عرض رسائل أقدم ({olderCount})
+        </button>}
+        {!allMessages.length && <div className="text-slate-600 py-6"><EmptyState title={isSystem?"لا توجد إشعارات حالياً":"ابدأ المحادثة برسالة"} /></div>}{visibleMessages.map((msg) => (
           <div
             key={msg.id}
             className={`flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : 'flex-row'}`}
