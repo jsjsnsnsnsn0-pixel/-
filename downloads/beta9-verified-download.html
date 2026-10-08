@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TotiChat Beta 9 Fix — تنزيل مُتحقَّق منه</title>
+  <meta name="theme-color" content="#13102b">
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 70% 0,#3b1b62,#131027 50%,#0c0b16);color:#fff;min-height:100dvh;display:grid;place-items:center;padding:20px}
+    main{width:min(440px,100%);background:#211b39;border:1px solid #ffffff30;border-radius:24px;padding:25px;box-shadow:0 20px 70px #0009}
+    .logo{background:linear-gradient(130deg,#fbbf24,#a855f7);display:grid;place-items:center;border-radius:20px;font-size:28px;height:64px;width:64px}
+    h1{font-size:25px;margin:20px 0 7px}h2{font-size:15px;margin:0 0 12px;color:#d8c5ff}
+    p{color:#c8bedc;line-height:1.75;margin:9px 0 16px}
+    button,a.action{display:block;width:100%;text-align:center;border:0;border-radius:16px;padding:16px;background:#a78bfa;color:#150b35;font-weight:800;font-size:17px;text-decoration:none;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait} .minor{background:transparent!important;color:#dac9ff!important;border:1px solid #ffffff40!important;font-size:14px!important;margin-top:10px}
+    progress{width:100%;height:14px;accent-color:#a78bfa;margin:12px 0 2px}
+    #detail{font-size:13px;color:#e0d4fa;margin:7px 0;min-height:30px;word-break:break-word}
+    .box{padding:13px;border:1px solid #ffffff28;border-radius:13px;background:#0e1023;color:#c8c5db;font-size:12px;line-height:1.75;word-break:break-all;margin-top:20px}
+    strong{color:#c6f6d5} #status[role=alert]{color:#fecaca}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo" aria-hidden="true">✓</div>
+    <h1>TotiChat Beta 9 Fix</h1>
+    <h2>تحميل وفحص APK قبل تثبيته</h2>
+    <p>نزّل النسخة الجديدة بدون حذف Beta.8. تتحقق هذه الصفحة من الحجم وبصمة SHA-256 للملف كاملاً قبل حفظه. إذا كانت البيانات غير صحيحة فلن تعرضها على أنها APK سليم.</p>
+    <button id="download" type="button">تحقق وحمّل APK</button>
+    <progress id="progress" max="100" value="0" hidden aria-label="تقدم تنزيل ملف APK"></progress>
+    <div id="detail" role="status" aria-live="polite">الحجم: 32.8 MB · تنزيل مباشر من GitHub Pages</div>
+    <button id="again" type="button" class="minor" hidden>إعادة المحاولة</button>
+    <div class="box">
+      <div>النسخة: <strong>0.9.0-beta.9 Install Fix</strong></div>
+      <div>معرّف التطبيق: com.totichat.app.beta9</div>
+      <div>البصمة الأصلية:</div>
+      <code id="hash">8f10cea5efc8a5aa3bfd5e0a8bdb3f1b52a82b60bb8fe64d291ae0a4049f3778</code>
+      <div style="margin-top:9px">إذا اجتاز الملف التحقق وظل Android يقول «الحزمة غير صالحة»، افتح الملف من تطبيق الملفات، واحتفظ به حتى يمكن فحص نسخته الفعلية. نجاح البصمة يثبت سلامة التنزيل، وليس قبول Android للتثبيت.</div>
+    </div>
+  </main>
+<script>
+'use strict';
+const FILE = './TotiChat-Beta9-InstallFix.apk';
+const SIZE = 32808877;
+const SHA = '8f10cea5efc8a5aa3bfd5e0a8bdb3f1b52a82b60bb8fe64d291ae0a4049f3778';
+const btn=document.getElementById('download'),retry=document.getElementById('again');
+const bar=document.getElementById('progress'),detail=document.getElementById('detail');
+let busy=false;
+function report(message,error=false){detail.textContent=message;detail.setAttribute('role',error?'alert':'status')}
+async function getBytes(){
+  const res=await fetch(FILE,{cache:'no-store',credentials:'omit'});
+  if(!res.ok || !res.body)throw new Error('الخادم لم يرسل ملف APK بشكل كامل ('+res.status+').');
+  if(res.type==='opaque')throw new Error('تعذر قراءة الملف للتحقق.');
+  const reader=res.body.getReader(),parts=[];let length=0;
+  while(true){
+    const {done,value}=await reader.read();
+    if(done)break;
+    if(!value || value.length===0)continue;
+    length+=value.length;
+    if(length>SIZE){await reader.cancel();throw new Error('حجم الملف المستلم أكبر من الحجم الرسمي.')}
+    parts.push(value);
+    bar.value=Math.min(100,Math.floor(length/SIZE*100));
+    report('جارٍ التنزيل والفحص: '+(length/1048576).toFixed(1)+' / '+(SIZE/1048576).toFixed(1)+' MB');
+  }
+  if(length!==SIZE)throw new Error('التنزيل ناقص. وصل '+length+' بايت بدلاً من '+SIZE+'.');
+  const all=new Uint8Array(length);let index=0;
+  for(const part of parts){all.set(part,index);index+=part.length;}
+  return all;
+}
+async function download(){
+  if(busy)return;
+  busy=true;btn.disabled=true;retry.hidden=true;bar.hidden=false;bar.value=0;
+  try {
+    if(!crypto?.subtle)throw new Error('فحص SHA-256 يحتاج صفحة HTTPS في متصفح حديث.');
+    const file=await getBytes();
+    report('اكتمل التنزيل. جارٍ مقارنة بصمة SHA-256...');
+    const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',file));
+    const actual=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+    if(actual!==SHA)throw new Error('الملف غير مطابق: بصمة SHA-256 مختلفة. لا تثبّته.');
+    report('✓ تم فحص كل بايت: الحجم والبصمة صحيحان. يبدأ حفظ APK الآن.');
+    const blob=new Blob([file],{type:'application/vnd.android.package-archive'});
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement('a');
+    anchor.href=url;anchor.download='TotiChat-Beta9-InstallFix-VERIFIED.apk';
+    anchor.style.display='none';document.body.appendChild(anchor);
+    anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    btn.textContent='تنزيل نسخة سليمة مرة ثانية';btn.disabled=false;
+  } catch(e){
+    report('تعذّر التحقق: '+(e&&e.message?e.message:String(e)),true);
+    retry.hidden=false;btn.disabled=false;
+  } finally {busy=false;}
+}
+btn.addEventListener('click',download);retry.addEventListener('click',download);
+</script>
+</body>
+</html>
