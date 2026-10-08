@@ -1015,3 +1015,37 @@ test('owner dashboard uses one authenticated RPC to credit Coins with ledger res
   expect(requests.some(r=>r.path.endsWith('/profiles')&&r.body?.gold)).toBe(false);
   expect(errors).toEqual([]);
 });
+
+test('music playlist is reloaded from private account library after the panel closes and app restarts',async({page})=>{
+  const {errors}=await setup(page,true,{rooms:true});
+  let reads=0;
+  await page.route('**/rest/v1/user_music_library*',async route=>{
+    reads++;
+    await route.fulfill({status:200,
+      headers:{'access-control-allow-origin':'*','content-type':'application/json'},
+      body:JSON.stringify([{
+        id:'55555555-5555-4555-8555-555555555555',user_id:actor,
+        name:'أغنية محفوظة.mp3',
+        storage_path:actor+'/55555555-5555-4555-8555-555555555555.mp3',
+        content_type:'audio/mpeg',file_size_bytes:1536000,duration_seconds:180,
+        created_at:'2026-10-08T00:00:00Z'
+      }]),
+    });
+  });
+  await page.goto('/');
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  const panel=page.getByRole('dialog',{name:'موسيقى الغرفة'});
+  await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
+  await expect(panel.getByRole('button',{name:'تشغيل أغنية محفوظة.mp3'})).toBeVisible();
+  await panel.getByRole('button',{name:'إغلاق الموسيقى'}).click();
+  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
+  await page.reload();
+  await page.getByText('غرفة الاختبار',{exact:true}).first().click();
+  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
+  expect(reads).toBeGreaterThanOrEqual(3);
+  expect(errors).toEqual([]);
+});
+
