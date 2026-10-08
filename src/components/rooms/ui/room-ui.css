@@ -168,3 +168,8 @@
  .room-header-action{width:32px;min-width:32px;min-height:32px;height:32px}
  .room-identity{max-width:36%}
 }
+
+/* Keyboard-aware composer: toolbar must not float over Android IME. */
+.room-footer--keyboard-hidden{display:none!important}
+.room-chat-area{min-height:0;overscroll-behavior:contain}
+.room-compose input{min-width:0}
