@@ -71,6 +71,7 @@ export interface Room {
   internalBackground?: string;
   isFollowed?: boolean;
   lastVisitedAt?: string;
+  createdAt?: string;
   category: 'طرب وموسيقى' | 'سوالف وألعاب' | 'مسابقات وفعاليات' | 'شعر وأدب' | 'عامة';
   owner: User;
   usersCount: number;

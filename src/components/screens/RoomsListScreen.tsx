@@ -4,6 +4,7 @@ import { RoomCard } from '../rooms/RoomCard';
 import { SearchBar } from '../common/SearchBar';
 import { supabase } from '../../services/supabase';
 import { acceptedFriendOwnerIds } from '../../services/friendRoomOwners';
+import { newestRooms } from '../../services/newestRooms';
 import { Radio, Plus, Flame, Users, Sparkles, Heart } from 'lucide-react';
 
 export const RoomsListScreen: React.FC = () => {
@@ -73,7 +74,7 @@ export const RoomsListScreen: React.FC = () => {
       case 'popular':
         return list.sort((a, b) => b.usersCount - a.usersCount);
       case 'new':
-        return list.reverse();
+        return newestRooms(list);
       case 'friends':
         return activeFriendState && !activeFriendState.failed
           ? list.filter(room => Boolean(room.ownerAuthId) && activeFriendState.owners.has(room.ownerAuthId!))
