@@ -1,3 +1,4 @@
+import {APP_VERSION} from './release';
 import {supabase} from './supabase';
 export type BetaEvent='app_crash'|'api_error'|'audio_disconnect'|'room_reconnect'|'gift_failure'|'wallet_failure'|'music_failure'|'login_failure';
 const submitted=new Map<string,number>();
@@ -11,6 +12,6 @@ export function recordBetaEvent(category:BetaEvent,code:string):void{
  if(submitted.size>80)submitted.clear();
  const platform=typeof navigator!=='undefined'&&/android/i.test(navigator.userAgent)?'android':'web';
  void (async()=>{try{await supabase.rpc('beta_record_event',{
-   p_category:category,p_code:safe,p_platform:platform,p_version:'0.9.0-beta.4'
+   p_category:category,p_code:safe,p_platform:platform,p_version:APP_VERSION
  });}catch{/* telemetry must never break audio or a room */}})();
 }
