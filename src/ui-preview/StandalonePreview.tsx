@@ -5,6 +5,9 @@ import {AppProvider,useApp,previewRooms} from '../context/AppContext';
 import {RealtimeRankingsProvider} from '../context/RealtimeRankingsProvider';
 import {RoomAudioProvider} from '../context/RoomAudioContext';
 import {BottomNavigation} from '../components/common/BottomNavigation';
+const Admin=lazy(()=>import('./AdminPreview').then(x=>({default:x.AdminPreview})));
+const Settings=lazy(()=>import('../components/screens/SettingsScreen').then(x=>({default:x.SettingsScreen})));
+const Help=lazy(()=>import('../components/screens/HelpCenterScreen').then(x=>({default:x.HelpCenterScreen})));
 const Community=lazy(()=>import('./CommunityPreview').then(x=>({default:x.CommunityPreview})));
 const Scope=lazy(()=>import('./ScopePreview').then(x=>({default:x.ScopePreview})));
 const AuthPreview=lazy(()=>import('./AuthPreview').then(x=>({default:x.AuthPreview})));
@@ -27,6 +30,9 @@ const catalogue=[
  ['uiux_audit','مختبر مراجعة UI/UX'],
  ['auth_demo','تجربة الدخول · تصميم'],
  ['scope_v2','سجل المتطلبات والأزرار'],
+ ['admin_demo','لوحة الإدارة · واجهة'],
+ ['settings','الإعدادات'],
+ ['help_center','مركز المساعدة'],
  ['community','المجتمع'],
  ['home','الرئيسية'],['rooms','الغرف'],['voice','غرفة صوتية'],['gifts','صندوق الهدايا'],['profile','الملف الشخصي'],
  ['messages','الرسائل'],['store','المتجر'],['wallet','المحفظة'],['vip','VIP'],['create','إنشاء غرفة'],['agency','الوكالات'],['badges','الشارات'],['gift_box','حقيبتي'],['recharge','الشحن']
@@ -44,7 +50,7 @@ function ReviewPage(){
  };
  const visibleRoom=Boolean(activeRoom && (!activeSubScreen || activeSubScreen==='gift_box'));
  const active=visibleRoom?(activeSubScreen==='gift_box'?'gifts':'voice'):(activeSubScreen||activeTab);
- const render=activeSubScreen==='scope_v2'?<Scope onNavigate={select}/> :activeSubScreen==='community'?<Community/> :activeSubScreen==='uiux_audit'?<AuditLab onNavigate={select}/> :activeSubScreen==='auth_demo'?<AuthPreview onComplete={()=>select('home')}/> :visibleRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
+ const render=activeSubScreen==='admin_demo'?<Admin/> :activeSubScreen==='settings'?<Settings/> :activeSubScreen==='help_center'?<Help/> :activeSubScreen==='scope_v2'?<Scope onNavigate={select}/> :activeSubScreen==='community'?<Community/> :activeSubScreen==='uiux_audit'?<AuditLab onNavigate={select}/> :activeSubScreen==='auth_demo'?<AuthPreview onComplete={()=>select('home')}/> :visibleRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
  :activeSubScreen==='home'?<Home/>
  :activeSubScreen==='store'?<Store/>
  :activeSubScreen==='wallet'?<Wallet/>
