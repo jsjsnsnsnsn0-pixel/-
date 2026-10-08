@@ -12,8 +12,12 @@ test('production rankings expose no fabricated support controls or client increm
   assert.doesNotMatch(context,/recordGiftSupport|resetRankings/);
 });
 
-test('Android build is explicitly opt-in and never follows pushes',async()=>{
+test('Android Beta APK runs only on owner dispatch or validated Beta PR, never on pushes',async()=>{
   const workflow=await readFile('.github/workflows/main.yml','utf8');
   assert.match(workflow,/default: false/);
-  assert.match(workflow,/if: github.event_name == 'workflow_dispatch' && inputs.build_android == true/);
+  assert.ok(workflow.includes("github.event_name == 'workflow_dispatch' && inputs.build_android == true"));
+  assert.ok(workflow.includes("github.event_name == 'pull_request' && github.head_ref == 'integration/totichat-beta-20261008'"));
+  assert.ok(workflow.includes('build-apk:') && workflow.includes('needs: validate'));
+
+  assert.ok(!workflow.includes("github.event_name == 'push' && inputs.build_android"));
 });

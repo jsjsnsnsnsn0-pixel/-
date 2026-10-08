@@ -33,17 +33,17 @@ begin
  perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);
  perform public.send_room_gift(r,pb,'test-lucky-'||a,gen_random_uuid());
  perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
- result:=public.redeem_diamonds(10000,gen_random_uuid());if (result->>'coins_amount')::bigint<>1000 or (result->>'lucky_diamonds')::bigint<>10000 then raise exception 'Lucky 10k failed';end if;tests:=tests+1;
+ result:=public.redeem_diamonds(10000,gen_random_uuid());if (result->>'coins_amount')::bigint<>3000 or (result->>'lucky_diamonds')::bigint<>10000 then raise exception 'Lucky 10k failed';end if;tests:=tests+1;
  perform set_config('role','postgres',true);update public.gift_catalog set price=100000 where id='test-lucky-'||a;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);perform set_config('role','authenticated',true);
  perform public.send_room_gift(r,pb,'test-lucky-'||a,gen_random_uuid());
  perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
- result:=public.redeem_diamonds(100000,gen_random_uuid());if (result->>'coins_amount')::bigint<>10000 then raise exception 'Lucky 100k failed';end if;tests:=tests+1;
+ result:=public.redeem_diamonds(100000,gen_random_uuid());if (result->>'coins_amount')::bigint<>30000 then raise exception 'Lucky 100k failed';end if;tests:=tests+1;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);
  perform public.send_room_gift(r,pb,'test-fixed-'||a,gen_random_uuid());perform public.send_room_gift(r,pb,'test-lucky-'||a,gen_random_uuid());
  perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
- result:=public.preview_diamond_redemption(200000);if (result->>'coins_amount')::bigint<>40000 then raise exception 'mixed preview failed';end if;tests:=tests+1;
- result:=public.redeem_diamonds(200000,gen_random_uuid());if (result->>'coins_amount')::bigint<>40000 or (result->>'fixed_diamonds')::bigint<>100000 or (result->>'lucky_diamonds')::bigint<>100000 then raise exception 'mixed redemption failed';end if;tests:=tests+1;
+ result:=public.preview_diamond_redemption(200000);if (result->>'coins_amount')::bigint<>60000 then raise exception 'mixed preview failed';end if;tests:=tests+1;
+ result:=public.redeem_diamonds(200000,gen_random_uuid());if (result->>'coins_amount')::bigint<>60000 or (result->>'fixed_diamonds')::bigint<>100000 or (result->>'lucky_diamonds')::bigint<>100000 then raise exception 'mixed redemption failed';end if;tests:=tests+1;
  begin update public.profiles set gold=gold+1 where id=b;raise exception 'Coins direct edit allowed';exception when insufficient_privilege then null;end;tests:=tests+1;
  begin update public.profiles set diamonds=diamonds+1 where id=b;raise exception 'Diamonds direct edit allowed';exception when insufficient_privilege then null;end;tests:=tests+1;
  begin insert into public.diamond_lots(user_id,source_type,diamonds_amount) values(b,'LEGACY_UNKNOWN',100);raise exception 'self issuance allowed';exception when insufficient_privilege then null;end;tests:=tests+1;
@@ -86,9 +86,9 @@ begin
  perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);perform set_config('role','authenticated',true);
  perform public.send_room_gift(r,pb,'test-fixed-'||a,gen_random_uuid());perform public.send_room_gift(r,pb,'test-lucky-'||a,gen_random_uuid());
  perform set_config('request.jwt.claims',jsonb_build_object('sub',b,'role','authenticated')::text,true);
- result:=public.preview_diamond_redemption(21);if (result->>'coins_amount')::bigint<>4 or (result->>'fixed_diamonds')::bigint<>11 or (result->>'lucky_diamonds')::bigint<>10 then raise exception 'partial FIFO/floor quote failed';end if;tests:=tests+1;
+ result:=public.preview_diamond_redemption(21);if (result->>'coins_amount')::bigint<>6 or (result->>'fixed_diamonds')::bigint<>11 or (result->>'lucky_diamonds')::bigint<>10 then raise exception 'partial FIFO/floor quote failed';end if;tests:=tests+1;
  perform public.redeem_diamonds(21,gen_random_uuid());
- begin perform public.redeem_diamonds(9,gen_random_uuid());raise exception 'zero Coin payout accepted';exception when raise_exception then if sqlerrm<>'diamond amount is too small' then raise;end if;end;tests:=tests+1;
+ begin perform public.redeem_diamonds(3,gen_random_uuid());raise exception 'zero Coin payout accepted';exception when raise_exception then if sqlerrm<>'diamond amount is too small' then raise;end if;end;tests:=tests+1;
  -- Allocations cannot be injected or edited by authenticated clients.
  begin insert into public.diamond_redemption_allocations values(gen_random_uuid(),gen_random_uuid(),1);raise exception 'allocation forgery allowed';exception when insufficient_privilege then null;end;tests:=tests+1;
  perform set_config('role','postgres',true);

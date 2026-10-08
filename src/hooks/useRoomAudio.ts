@@ -1,3 +1,4 @@
+import {loadLiveKit} from '../services/livekitBootstrap';
 import {RoomMusicPublisher} from '../services/roomMusic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -41,6 +42,8 @@ export function useLiveKitRoomAudio(
 ) {
   const [musicName,setMusicName]=useState('');
   const [musicPaused,setMusicPaused]=useState(false);
+  const [musicVolume,setMusicVolume]=useState(1);
+  const musicVolumeRef=useRef(musicVolume);musicVolumeRef.current=musicVolume;
   const musicRef=useRef<RoomMusicPublisher|null>(null);
   if(!musicRef.current)musicRef.current=new RoomMusicPublisher(name=>{setMusicName(name);if(!name)setMusicPaused(false)});
   const [connected, setConnected] = useState(false);
@@ -97,16 +100,14 @@ export function useLiveKitRoomAudio(
 
   useEffect(() => {
     if (!roomId || !authId) return;
-    const SDK = liveKit();
-    const RoomCtor = SDK?.Room;
-    const Events = SDK?.RoomEvent;
-    if (!RoomCtor || !Events) {
-      onError('تعذر تحميل محرك LiveKit. تحقق من اتصال الإنترنت ثم أعد فتح التطبيق.');
-      return;
-    }
-
     const currentGeneration = ++generation.current;
     let disposed = false;
+    let stop = () => {};
+    void (async()=>{
+    const SDK = await loadLiveKit();
+    if(disposed || currentGeneration !== generation.current)return;
+    const RoomCtor = SDK.Room;
+    const Events = SDK.RoomEvent;
     playbackWarningShown.current = false;
     const client = new RoomCtor();
     clientRef.current = client;
@@ -118,6 +119,9 @@ export function useLiveKitRoomAudio(
       removeRemoteAudio(key);
       const element = track.attach?.() as HTMLMediaElement | undefined;
       if (!element) return;
+      const musicTrack=String(publication?.trackName||publication?.name||track?.name||'')==='room-music';
+      element.dataset.roomMusic=musicTrack?'true':'false';
+      element.volume=musicTrack?musicVolumeRef.current:1;
       element.autoplay = true;
       element.muted = !speakerRef.current;
       element.setAttribute('playsinline', 'true');
@@ -178,7 +182,7 @@ export function useLiveKitRoomAudio(
       }
     })();
 
-    return () => {
+    stop = () => {
       musicRef.current?.stop();
       disposed = true;
       generation.current++;
@@ -190,8 +194,13 @@ export function useLiveKitRoomAudio(
       if (clientRef.current === client) clientRef.current = null;
       try { void client.disconnect?.(); } catch {}
     };
+    })().catch(error=>{if(!disposed)onError(friendlyAudioError(error))});
+    return ()=>{disposed=true;generation.current++;stop();};
   }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError, resumePlayback]);
 
+  useEffect(()=>{
+    for(const element of remoteAudio.current.values())if(element.dataset.roomMusic==='true')element.volume=musicVolume;
+  },[musicVolume]);
   useEffect(() => {
     for (const element of remoteAudio.current.values()) element.muted = !speaker;
     if (speaker) { playbackWarningShown.current = false; void resumePlayback(); }
@@ -312,7 +321,7 @@ export function useLiveKitRoomAudio(
   const stopMusic=useCallback(()=>{musicRef.current?.stop();setMusicPaused(false)},[]);
   const pauseMusic=useCallback(()=>{if(musicRef.current?.pause())setMusicPaused(true)},[]);
   const resumeMusic=useCallback(async()=>{if(await musicRef.current?.resume())setMusicPaused(false)},[]);
-  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused };
+  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused,musicVolume,setMusicVolume };
 }
 
 // main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps
@@ -320,5 +329,5 @@ export function useLiveKitRoomAudio(
 // deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
 // prefer LiveKit whenever the SDK loaded successfully.
 const automatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
-const useLiveKitAtModuleLoad = !automatedBrowser && Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
+const useLiveKitAtModuleLoad = !automatedBrowser;
 export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;

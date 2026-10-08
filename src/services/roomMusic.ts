@@ -31,7 +31,7 @@ export class RoomMusicPublisher {
     audio.onended=()=>this.stop();audio.onerror=()=>this.stop();
     try {
       await context.resume();
-      await participant.publishTrack(track,{name:'room-music',audioPreset:{maxBitrate:128000},dtx:false});
+      await participant.publishTrack(track,{name:'room-music',source:'screen_share_audio',audioPreset:{maxBitrate:128000},dtx:false});
       if(generation!==this.generation||!allowed()){cleanup();void participant.unpublishTrack(track).catch(()=>{});return;}
       await audio.play();
       if(generation!==this.generation||!allowed()){cleanup();return;}

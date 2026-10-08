@@ -15,7 +15,7 @@ export const RealtimeRankingsProvider: React.FC<{children: ReactNode}> = ({child
     let cancelled = false;
     let pending = false;
     const refresh = async () => {
-      if (cancelled || pending) return;
+      if (cancelled || pending || document.hidden) return;
       pending = true;
       try {
       const {data, error} = await supabase.rpc('get_gift_rankings', {p_period: period});
@@ -34,8 +34,9 @@ export const RealtimeRankingsProvider: React.FC<{children: ReactNode}> = ({child
       } finally { pending = false; }
     };
     void refresh().catch(() => { if (!cancelled) reportError('تعذر تحميل التصنيفات.'); });
-    const interval = setInterval(() => { void refresh().catch(() => {}); }, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
+    const interval = setInterval(() => { void refresh().catch(() => {}); }, 60000);
+    const resume=()=>{void refresh().catch(()=>{})};document.addEventListener('visibilitychange',resume);window.addEventListener('focus',resume);
+    return () => {document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume); cancelled = true; clearInterval(interval); };
   }, [isAuthenticated, user.authId, period, user.sentGiftsCount, user.receivedTotal]);
   return <RealtimeRankingsContext.Provider value={{wealthRankings, charmRankings, roomRankings,
     period, setPeriod,

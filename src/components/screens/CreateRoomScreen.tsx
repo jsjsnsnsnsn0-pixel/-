@@ -30,7 +30,7 @@ export const CreateRoomScreen: React.FC = () => {
     setIsSubmitting(true); setLocalError(null);
     try {
       const room = await createNewRoom({ title: name, description: welcomeMessage.trim(), coverImage: selectedCover || undefined, seatsCount: 10, category: 'عامة', isPrivate: false });
-      if (!room) setLocalError('تعذر إنشاء الغرفة. تحقق من الاتصال وحاول مجدداً.');
+      if (!room) setLocalError('تحقق من تبويب «غرفي» قبل محاولة إنشاء غرفة أخرى؛ ربما تم حفظ الغرفة وتعذر تحديث القائمة فقط.');
     } finally { setIsSubmitting(false); }
   };
 
