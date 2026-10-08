@@ -14,7 +14,7 @@ interface Props {
   onInfo: () => void; onUsers: () => void; onExit: () => void; onGift: () => void;
   onMic: () => void; onSpeaker: () => void; onHand: () => void; onLeaveSeat: () => void;
   musicName?: string; musicPaused?: boolean; onMusic?: (file:File) => Promise<void>|void; onStopMusic?:()=>Promise<void>|void; onPauseMusic?:()=>Promise<void>|void; onResumeMusic?:()=>Promise<void>|void;
-  musicVolume?:number;onMusicVolume?:(volume:number)=>void;canControlMusic?:boolean;
+  musicVolume?:number;onMusicVolume?:(volume:number)=>void;canControlMusic?:boolean;musicLibraryUserId?:string;
   onManage: () => void; onMessages: () => void;
 }
 
@@ -96,7 +96,7 @@ export function RoomStage(props: Props) {
       <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
       <button type="button" aria-label="أدوات الغرفة" aria-expanded={tools} onClick={()=>setTools(value=>!value)} className="room-icon"><Settings/></button>
     </footer>
-    <RoomMusicPanel open={musicOpen} onClose={()=>setMusicOpen(false)} canControl={Boolean(props.canControlMusic&&props.onMusic)} connected={props.audioConnected} playingName={props.musicName||''} paused={Boolean(props.musicPaused)} volume={props.musicVolume??1} onVolume={props.onMusicVolume||(()=>{})} onPlay={props.onMusic||(()=>{})} onStop={props.onStopMusic||(()=>{})} onPause={props.onPauseMusic||(()=>{})} onResume={props.onResumeMusic||(()=>{})}/>
+    <RoomMusicPanel userId={props.musicLibraryUserId} open={musicOpen} onClose={()=>setMusicOpen(false)} canControl={Boolean(props.canControlMusic&&props.onMusic)} connected={props.audioConnected} playingName={props.musicName||''} paused={Boolean(props.musicPaused)} volume={props.musicVolume??1} onVolume={props.onMusicVolume||(()=>{})} onPlay={props.onMusic||(()=>{})} onStop={props.onStopMusic||(()=>{})} onPause={props.onPauseMusic||(()=>{})} onResume={props.onResumeMusic||(()=>{})}/>
     {tools&&<div ref={toolsRef} className="absolute inset-0 z-30 bg-black/50" onClick={()=>setTools(false)}><div role="dialog" aria-modal="true" aria-label="أدوات الغرفة" className="room-tools" dir="rtl" onClick={event=>event.stopPropagation()}><div className="flex items-center justify-between mb-3"><h2>أدوات الغرفة</h2><button type="button" className="room-icon" aria-label="إغلاق الأدوات" onClick={()=>setTools(false)}><X size={18}/></button></div><div className="grid grid-cols-2 gap-3">      <button type="button" aria-label={props.speaker?'كتم سماعة الغرفة':'تشغيل سماعة الغرفة'} aria-pressed={props.speaker} onClick={props.onSpeaker} className="room-icon">{props.speaker?<Volume2/>:<VolumeX/>}</button>
       <button type="button" aria-label={props.handRaised?'إنزال اليد':'رفع اليد'} aria-pressed={props.handRaised} onClick={props.onHand} className="room-icon"><Hand className={props.handRaised?'text-amber-300':''}/></button>
 {props.canModerate&&<button type="button" onClick={()=>{setTools(false);props.onManage();}}>إدارة الغرفة</button>}<button type="button" onClick={()=>{setTools(false);props.onInfo();}}>معلومات الغرفة</button><button type="button" onClick={()=>{setTools(false);props.onUsers();}}>المستخدمون</button>{props.seated&&<button type="button" aria-label="مغادرة المقعد" onClick={()=>{setTools(false);props.onLeaveSeat();}}>النزول من المايك</button>}</div></div></div>}
