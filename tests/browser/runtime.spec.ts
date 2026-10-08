@@ -59,7 +59,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       if (method==='PATCH') for (const m of directMessages) if (m.recipient_id===actor) m.read_at=new Date().toISOString();
       return respond(directMessages);
     }
-    if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
+    if (path.endsWith('/rooms') || path.endsWith('/rooms_client')) return respond(overrides.rooms ? [currentRoom] : []);
     if (path.endsWith('/gift_catalog')) return respond([{id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',is_active:true}]);
     if(path.endsWith('/send_room_gift_batch')){if(!giftFeed.some(row=>row.id===body.p_request_id))giftFeed.push({id:body.p_request_id,room_id:roomId,sender_name:'حساب الاختبار',recipient_name:'حساب الاختبار',recipient_public_id:body.p_recipient_public_id,gift_name:'وردة الاختبار',quantity:body.p_quantity,created_at:new Date().toISOString()});return respond(null)}
     if(path.endsWith('/room_gift_feed'))return respond(giftFeed);
