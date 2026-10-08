@@ -12,7 +12,8 @@ test('home country pills and discovery banners are real actionable controls',asy
  assert.match(home,/setSelectedFilter\(country\.id\)/);
  assert.doesNotMatch(home,/country\.id as any/);
  assert.match(home,/كل الغرف ←/);
- assert.match(app,/\.select\('id,country_code'\)\.in\('id',ownerIds\)/);
+ assert.match(app,/readRoomOwnerCountries\(/);
+ assert.doesNotMatch(app,/\.select\('id,country_code'\)\.in\('id',ownerIds\)/,'other users profiles are blocked by RLS');
  assert.match(app,/countryFlag:flagFromCountryCode\(countryByOwner\.get/);
  assert.ok((home.match(/<button type="button" aria-label="(?:المعرف المميز - Toti Chat|هدية مخصصة|النجم العالمي|نشاط إعادة الشحن|رفقاء الروح الأسبوعية|افتتاح الوكالة جديده)"/g)||[]).length===6);
 });
