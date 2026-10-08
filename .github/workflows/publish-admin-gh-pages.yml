@@ -4,6 +4,7 @@ on:
     branches:
       - feature/standalone-admin-dashboard-20261008
     paths:
+      - 'admin-dashboard/**'
       - '.github/workflows/publish-admin-gh-pages.yml'
   workflow_dispatch:
 permissions:
