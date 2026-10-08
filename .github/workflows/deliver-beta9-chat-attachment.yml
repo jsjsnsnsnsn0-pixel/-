@@ -1,0 +1,33 @@
+name: Deliver verified Beta9 APK for direct chat attachment
+on:
+  push:
+    branches: [delivery/beta9-chat-attachment-20261008]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verified-attachment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Get exact already-released APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release download v0.9.0-beta.9-installfix.1 --repo "$GITHUB_REPOSITORY" \
+            --pattern "TotiChat-Beta9-InstallFix.apk" --dir "$GITHUB_WORKSPACE"
+          printf '%s  %s\n' \
+            '8f10cea5efc8a5aa3bfd5e0a8bdb3f1b52a82b60bb8fe64d291ae0a4049f3778' \
+            'TotiChat-Beta9-InstallFix.apk' | sha256sum -c -
+          test "$(stat -c %s TotiChat-Beta9-InstallFix.apk)" -eq 32808877
+          unzip -tq TotiChat-Beta9-InstallFix.apk >/dev/null
+      - name: Attach verified APK unchanged
+        uses: actions/upload-artifact@v4
+        with:
+          name: totichat-beta9-exact-apk-for-chat
+          path: TotiChat-Beta9-InstallFix.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
