@@ -1,5 +1,6 @@
 import {createRefreshQueue} from '../services/refreshQueue';
 import {flagFromCountryCode} from '../services/roomDiscovery';
+import {readRoomOwnerCountries} from '../services/roomOwnerCountries';
 import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
@@ -160,21 +161,14 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     // A timeout in any optional request must not make every active room vanish.
     if (rs.error) throw rs.error;
     if (id !== authRef.current) return [];
-    // Only owner country ISO codes are read for discovery (no contact/private data).
-    // This optional profile metadata may fail under RLS; never hide actual rooms.
-    const countryByOwner=new Map<string,string>();
-    const ownerIds=[...new Set((rs.data||[]).map(row=>String(row.owner_id)).filter(Boolean))];
-    if(ownerIds.length){
-      try{
-        const {data:ownerProfiles,error:countryError}=await supabase.from('profiles')
-          .select('id,country_code').in('id',ownerIds);
-        if(!countryError){
-          for(const profile of ownerProfiles||[])if(typeof profile.country_code==='string'){
-            countryByOwner.set(String(profile.id),profile.country_code);
-          }
-        }
-      }catch{/* Missing optional metadata must not remove a room. */}
-    }
+    // This public metadata is intentionally fetched through the existing
+    // authorized search_public_profiles RPC. Direct reads of other users'
+    // profiles are blocked by RLS and would produce incorrect country chips.
+    const countryByOwner=await readRoomOwnerCountries(
+      (rs.data||[]).map(row=>({owner_id:String(row.owner_id),owner_public_id:row.owner_public_id})),
+      id,
+      userRef.current.countryCode,
+    );
     if(id!==authRef.current)return [];
     const priorRooms = new Map(roomsRef.current.map(room => [room.id, room]));
     const membersByRoom=new Map<string,any[]>();for(const member of ms.data||[]){const group=membersByRoom.get(member.room_id)||[];group.push(member);membersByRoom.set(member.room_id,group)}
