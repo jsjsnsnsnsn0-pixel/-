@@ -265,7 +265,7 @@ test('gift send disables when the selected total exceeds the real coin balance',
 test('search uses server profiles and does not display invented accounts', async ({page})=>{
   const {requests,errors}=await setup(page); await page.goto('/');
   await page.getByTitle('بحث',{exact:true}).click();
-  await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');
+  await page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...').fill('451305');
   await expect(page.getByText('مستخدم البحث',{exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/search_public_profiles'))).toBe(true);
   expect(errors).toEqual([]);
@@ -281,9 +281,27 @@ async function openFullOtherProfile(page: Page, overrides: Parameters<typeof set
   return result;
 }
 
+test('search keeps user public IDs separate from room UUIDs',async({page})=>{
+  const {errors}=await setup(page,true,{rooms:true});
+  await page.goto('/');
+  await page.getByTitle('بحث',{exact:true}).click();
+  const account=page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...');
+  await account.fill('451305');
+  await expect(page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'البحث عن غرفة',exact:true}).click();
+  const rooms=page.getByPlaceholder('ابحث عن غرفة باسمها أو معرفها UUID...');
+  await rooms.fill('451305');
+  await expect(page.getByRole('button',{name:'دخول غرفة غرفة الاختبار',exact:true})).toHaveCount(0);
+  await rooms.fill(roomId);
+  await expect(page.getByRole('button',{name:'دخول غرفة غرفة الاختبار',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'البحث عن حساب',exact:true}).click();
+  await expect(page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('search account opens the full profile instead of forcing chat',async({page})=>{
   const {errors}=await setup(page);await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();
-  await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');
+  await page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...').fill('451305');
   await page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true}).click();
   await expect(page.getByTestId('full-profile-hero')).toHaveAttribute('data-vip-level','0');
   await expect(page.getByTestId('cp-quick-preview')).toHaveCount(0);
@@ -949,7 +967,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
  await page.getByTitle('الرسائل',{exact:true}).click();await expect(page.getByText('لا توجد محادثات بعد',{exact:true})).toBeVisible();await capture('messages');
  await page.getByTitle('أنا',{exact:true}).click();await expect(page.getByTitle('اسم الحساب')).toBeVisible();await capture('profile');
  await page.getByTitle('عرض الملف الشخصي الكامل والشارات').click();await expect(page.getByTestId('self-profile-actions')).toBeVisible();const copyId=page.getByRole('button',{name:'نسخ معرف الحساب 920003',exact:true});await expect(copyId).toBeVisible();await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await copyId.focus();await page.keyboard.press('Enter');await expect(page.getByText('تم نسخ المعرف!',{exact:true})).toBeVisible();await capture('full-profile');
- await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
+ await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();await page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...').fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();await capture('search');
  await page.goto('/');await page.getByText('الثروة',{exact:true}).first().click();await expect(page.getByText('لا توجد عمليات مؤهلة في هذه الفترة',{exact:true})).toBeVisible();await capture('wealth');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('شحن / محفظة',{exact:true}).click();await page.getByTitle('سجل العمليات',{exact:true}).click();await expect(page.getByText('لا توجد طلبات شحن',{exact:true})).toBeVisible();await capture('wallet');
  await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByText('وكالة',{exact:true}).click();await expect(page.getByText('بوابة الوكالات',{exact:true})).toBeVisible();await capture('agency');
@@ -959,7 +977,7 @@ for(const width of [320,360,430]) test(`UI review keeps Arabic screens within ${
 test('edit profile sheet dismisses first and search remains usable in a short keyboard-sized viewport',async({page})=>{
  const {errors}=await setup(page);await page.setViewportSize({width:320,height:480});await page.goto('/');await page.getByTitle('أنا',{exact:true}).click();await page.getByTitle('تعديل الملف الشخصي والصورة والاسم').click();
  await page.getByText('اسم الكنية',{exact:true}).click();await expect(page.getByRole('dialog',{name:'تعديل بيانات الملف'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'تعديل بيانات الملف'})).toHaveCount(0);
- await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();const input=page.getByPlaceholder('ابحث عن غرفة، اسم مستخدم، أو رقم ID...');await input.fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();const box=await input.boundingBox();expect(box!.y+box!.height).toBeLessThanOrEqual(480);await page.screenshot({path:'test-results/ui-review/search-short-viewport.png',fullPage:true});expect(errors).toEqual([]);
+ await page.goto('/');await page.getByTitle('بحث',{exact:true}).click();const input=page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...');await input.fill('451305');await expect(page.getByRole('button',{name:'مراسلة مستخدم البحث',exact:true})).toBeVisible();const box=await input.boundingBox();expect(box!.y+box!.height).toBeLessThanOrEqual(480);await page.screenshot({path:'test-results/ui-review/search-short-viewport.png',fullPage:true});expect(errors).toEqual([]);
 });
 
 test('banner indicators retain small visual dots inside full touch targets',async({page})=>{
