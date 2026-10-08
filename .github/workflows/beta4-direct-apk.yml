@@ -1,0 +1,102 @@
+name: TotiChat Beta 0.9.0-beta.4 Direct APK
+on:
+  push:
+    branches:
+      - release/beta-0.9.0-beta.4-ux-20261008
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify-build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout pinned beta commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned dependencies and verify real backend configuration
+        run: |
+          npm ci
+          node scripts/check-env.mjs
+      - name: Run project checks
+        run: |
+          npm audit --audit-level=high
+          npm run check
+      - name: Verify requested user-visible fixes are in this build
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'room-footer--keyboard-hidden' src/components/rooms/ui/room-ui.css
+          grep -F 'تسجيل الدخول' src/components/screens/AgencyScreen.tsx >/dev/null || grep -F 'سجل الدخول' src/components/screens/AgencyScreen.tsx
+          grep -F 'grid-cols-3' src/components/screens/StoreScreen.tsx
+          grep -F '0.9.0-beta.4' scripts/configure-android.mjs
+          grep -F "bucket='user-music'" src/services/userMusic.ts
+          grep -F "source:'screen_share_audio'" src/services/roomMusic.ts
+          test -f supabase/migrations/20261008053000_user_music_library.sql
+      - name: Browser integration tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Build Capacitor Android project
+        env:
+          TOTICHAT_BETA: '1'
+        run: |
+          npx cap add android
+          node scripts/configure-android.mjs
+          npx cap sync android
+          npx cap doctor android
+      - name: Assemble Android APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Verify APK is installable archive and not GitHub artifact ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -tq "$apk" >/dev/null
+          unzip -Z1 "$apk" | grep -q '^AndroidManifest.xml$'
+          unzip -Z1 "$apk" | grep -q '^classes.dex$'
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -name aapt -type f | sort -V | tail -n1)"
+          test -x "$aapt_bin"
+          "$aapt_bin" dump badging "$apk" | head -n 1 | tee apk-badging.txt
+          grep -F "name='com.totichat.app'" apk-badging.txt
+          grep -F "versionName='0.9.0-beta.4'" apk-badging.txt
+          grep -F "versionCode='900004'" apk-badging.txt
+          sha256sum "$apk" | tee apk-sha256.txt
+          stat -c '%s bytes' "$apk"
+      - name: Publish direct-download APK on GitHub Releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='v0.9.0-beta.4'
+          asset='TotiChat-Beta-0.9.0-beta.4.apk'
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release tag already exists; refusing to overwrite immutable build."
+            exit 1
+          fi
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$asset"
+          gh release create "$tag" "$asset" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'TotiChat Beta 0.9.0-beta.4 — Direct APK' \
+            --prerelease \
+            --notes "Download the .apk attachment below directly on Android. Do NOT download a GitHub Actions artifact ZIP. This is a debug-signed testing build, not a Play Store release. Uses the existing TotiChat Supabase project and includes no secret server keys. Previous APK artifacts required extraction on some phones."
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json tagName,assets,url \
+            --jq '{tag:.tagName,url:.url,assets:[.assets[].name]}'
