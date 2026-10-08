@@ -1,0 +1,169 @@
+name: TotiChat Beta9 Install Fix Side-by-Side APK
+on:
+  push:
+    branches:
+      - hotfix/beta9-side-by-side-install-20261008
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify-build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
+      GH_TOKEN: ${{ github.token }}
+      VITE_RELEASE_VERSION: '0.9.0-beta.9'
+      VITE_RELEASE_COMMIT: ${{ github.sha }}
+      VITE_PHONE_AUTH_ENABLED: 'false'
+    steps:
+      - name: Checkout pinned beta commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned dependencies and verify real backend configuration
+        run: |
+          npm ci
+          node scripts/check-env.mjs
+      - name: Optimize bundled JPG artwork for small Android download
+        run: |
+          python3 -m pip install --quiet Pillow==11.3.0
+          python3 scripts/optimize-android-images.py
+      - name: Run project checks
+        run: |
+          npm audit --audit-level=high
+          npm run check
+      - name: Verify production project and standalone dashboard
+        run: |
+          node --input-type=module -e "if(process.env.VITE_SUPABASE_URL !== 'https://bfadhdnudmsggylunhlh.supabase.co') throw Error('Unexpected backend project')"
+          npm --prefix admin-dashboard run check
+          npm --prefix admin-dashboard run build
+      - name: Verify requested user-visible fixes are in this build
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'room-footer--keyboard-hidden' src/components/rooms/ui/room-ui.css
+          grep -F 'تسجيل الدخول' src/components/screens/AgencyScreen.tsx >/dev/null || grep -F 'سجل الدخول' src/components/screens/AgencyScreen.tsx
+          grep -F 'grid-cols-3' src/components/screens/StoreScreen.tsx
+          grep -F '0.9.0-beta.9' scripts/configure-android.mjs
+          grep -F "bucket='user-music'" src/services/userMusic.ts
+          grep -F "source:'screen_share_audio'" src/services/roomMusic.ts
+          test -f supabase/migrations/20261008015743_user_music_library_private_storage_and_quota.sql
+          grep -F "from('rooms_client')" src/context/AppContext.tsx
+          test -f supabase/migrations/20261008170000_rooms_client_security_invoker_projection.sql
+          grep -F '<TotiArcade/>' src/components/screens/LuckGamesScreen.tsx
+      - name: Browser integration tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Build Capacitor Android project
+        env:
+          TOTICHAT_BETA: '1'
+          TOTICHAT_COMPANION: '1'
+        run: |
+          npx cap add android
+          node scripts/configure-android.mjs
+          npx cap sync android
+          npx cap doctor android
+      - name: Assemble Android APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Verify APK is installable archive and not GitHub artifact ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -tq "$apk" >/dev/null
+          unzip -Z1 "$apk" > apk-entries.txt
+          grep -qx 'AndroidManifest.xml' apk-entries.txt
+          grep -qx 'classes.dex' apk-entries.txt
+          aapt_bin="$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -name aapt -type f | sort -V | tail -n1)"
+          test -x "$aapt_bin"
+          "$aapt_bin" dump badging "$apk" > apk-badging.txt
+          head -n 1 apk-badging.txt
+          grep -F "name='com.totichat.app.beta9'" apk-badging.txt
+          grep -F "versionName='0.9.0-beta.9'" apk-badging.txt
+          grep -F "versionCode='900009'" apk-badging.txt
+          apksigner_bin="$(dirname "$aapt_bin")/apksigner"
+          "$apksigner_bin" verify --verbose --print-certs "$apk" > apk-signature.txt
+          cat apk-signature.txt
+          sha256sum "$apk" | tee apk-sha256.txt
+          stat -c '%s bytes' "$apk"
+      - name: Confirm Beta.9 is significantly smaller
+        shell: bash
+        run: |
+          set -euo pipefail
+          size="$(stat -c '%s' android/app/build/outputs/apk/debug/app-debug.apk)"
+          echo "APK bytes: $size"
+          test "$size" -lt 94371840
+      - name: Enable KVM acceleration for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Download and verify exact Beta.8 baseline for side-by-side test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p previous
+          gh release download v0.9.0-beta.8 --repo "$GITHUB_REPOSITORY" --pattern 'TotiChat-Beta-0.9.0-beta.8.apk' --dir previous
+          printf '%s  %s\n' 'ffc7bcec593cf9868c40a6fd4e6f5ac58ed1d00a2757230f577105f7bb28ad7d' 'previous/TotiChat-Beta-0.9.0-beta.8.apk' | sha256sum -c -
+      - name: Install Beta.8 and new Beta.9 companion together on Android 14
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -e
+            adb install "$GITHUB_WORKSPACE/previous/TotiChat-Beta-0.9.0-beta.8.apk"
+            adb install "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+            adb shell pm path com.totichat.app
+            adb shell pm path com.totichat.app.beta9
+            adb shell monkey -p com.totichat.app.beta9 -c android.intent.category.LAUNCHER 1
+      - name: Publish direct-download APK on GitHub Releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='v0.9.0-beta.9-installfix.1'
+          asset='TotiChat-Beta9-InstallFix.apk'
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release tag already exists; refusing to overwrite immutable build."
+            exit 1
+          fi
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$asset"
+          sha256sum "$asset" > "$asset.sha256"
+          gh release create "$tag" "$asset" "$asset.sha256" apk-signature.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'TotiChat Beta 9 Install Fix — Safe Side-by-Side APK' \
+            --prerelease \
+            --notes-file docs/BETA9_INSTALL_FIX_NOTES.md
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json tagName,assets,url \
+            --jq '{tag:.tagName,url:.url,assets:[.assets[].name]}'
+      - name: Preserve verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta9-installfix-verification-${{ github.sha }}
+          path: |
+            apk-badging.txt
+            apk-sha256.txt
+            apk-signature.txt
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
