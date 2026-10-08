@@ -30,6 +30,7 @@ export interface User {
   receivedGiftsCount: number;
   sentGiftsCount?: string;
   receivedTotal?: string;
+  roomReceivedGold?:number;
   isHost?: boolean;
   roomRole?: 'owner'|'moderator'|'member';
   agencyName?: string;
@@ -89,7 +90,7 @@ export interface Room {
 export interface Gift {
   id: string;
   name: string;
-  category: 'all' | 'roses' | 'hearts' | 'crowns' | 'cars' | 'animals' | 'games' | 'special';
+  category: string;
   price: number;
   icon: string;
   animationType: 'pulse' | 'rocket' | 'lion' | 'car' | 'crown' | 'sparkle';

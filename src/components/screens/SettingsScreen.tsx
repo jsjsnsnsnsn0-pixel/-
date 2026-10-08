@@ -1,20 +1,21 @@
-import React from 'react';
+import React,{useState} from 'react';
 import {useApp} from '../../context/AppContext';
-import {ChevronRight, LogOut, User, Headphones} from 'lucide-react';
-export const SettingsScreen: React.FC = () => {
-  const {setActiveSubScreen,logout,isSpeakerOn,toggleSpeaker,noiseSuppression,toggleNoiseSuppression}=useApp();
-  return <div dir="rtl" className="min-h-screen bg-[#f5f6f7] text-slate-800 pb-20">
-    <header className="flex items-center gap-3 p-4 border-b border-slate-200"><button onClick={()=>setActiveSubScreen(null)} aria-label="الرجوع"><ChevronRight/></button><h1 className="font-bold">الإعدادات</h1></header>
-    <div className="p-4 space-y-4">
-      <button onClick={()=>setActiveSubScreen('edit_profile')} className="w-full p-4 rounded-2xl bg-white flex gap-3"><User size={20}/>معلومات الحساب الشخصي</button>
-      <section className="rounded-2xl bg-white p-4 space-y-5"><h2 className="font-bold text-sm text-slate-800">إعدادات الصوت</h2>
-        <label className="flex justify-between items-center gap-3 text-sm"><span>تشغيل صوت الغرفة</span><input type="checkbox" checked={isSpeakerOn} onChange={toggleSpeaker} className="w-5 h-5 accent-emerald-500"/></label>
-        <label className="flex justify-between items-center gap-3 text-sm"><span>تقليل ضوضاء المايكروفون</span><input type="checkbox" checked={noiseSuppression} onChange={toggleNoiseSuppression} className="w-5 h-5 accent-emerald-500"/></label>
-      </section>
-      <section className="rounded-2xl bg-white p-4 text-sm"><h2 className="font-bold mb-2">اللغة</h2><p>العربية</p></section>
-      <button onClick={()=>setActiveSubScreen('help_center')} className="w-full p-4 rounded-2xl bg-white flex gap-3"><Headphones size={20}/>مركز المساعدة</button>
-      <p className="text-xs text-slate-400">خيارات أمان تسجيل الدخول تُدار من حساب Google أو مزود تسجيل الدخول.</p>
-      <button onClick={logout} className="w-full p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 flex justify-center gap-2"><LogOut size={18}/>تسجيل الخروج</button>
-    </div>
-  </div>;
+import {ChevronRight,LogOut,ShieldCheck,Headphones,Volume2,Eye,Languages,UserRound,Info} from 'lucide-react';
+import {AccountSecurityScreen} from './AccountSecurityScreen';
+import {useDismissableLayer} from '../../hooks/useDismissableLayer';
+import {getReducedMotion,setReducedMotion} from '../../services/displayPreferences';
+export const SettingsScreen:React.FC=()=>{
+ const {setActiveSubScreen,logout,isSpeakerOn,toggleSpeaker,noiseSuppression,toggleNoiseSuppression}=useApp();
+ const [security,setSecurity]=useState(false),[confirmLogout,setConfirmLogout]=useState(false),[busy,setBusy]=useState(false),[reduced,setReduced]=useState(getReducedMotion),[storageError,setStorageError]=useState('');
+ const dialogRef=useDismissableLayer(confirmLogout,()=>{if(!busy)setConfirmLogout(false)});
+ if(security)return <AccountSecurityScreen onBack={()=>setSecurity(false)}/>;
+ const row='w-full min-h-14 p-4 flex items-center gap-3 text-right text-sm';
+ return <div dir="rtl" className="min-h-screen bg-[#f5f6f7] text-slate-800 pb-28"><header className="flex items-center gap-3 p-4 border-b border-slate-200"><button type="button" onClick={()=>setActiveSubScreen(null)} aria-label="الرجوع" className="w-11 h-11 flex items-center justify-center"><ChevronRight/></button><h1 className="font-bold">الإعدادات</h1></header><div className="p-4 space-y-4">
+ <section className="rounded-2xl bg-white overflow-hidden divide-y divide-slate-100"><button type="button" onClick={()=>setSecurity(true)} className={row}><ShieldCheck size={20} className="text-emerald-600"/><span className="flex-1"><span className="block font-semibold">معلومات الحساب الشخصي</span><span className="block text-xs text-slate-500 mt-1">أمان الحساب وإدارة طرق الربط</span></span><ChevronRight size={18} className="rotate-180 text-slate-400"/></button><button type="button" onClick={()=>setActiveSubScreen('edit_profile')} className={row}><UserRound size={20} className="text-slate-500"/><span className="flex-1">تعديل بيانات الملف الشخصي</span><ChevronRight size={18} className="rotate-180 text-slate-400"/></button></section>
+ <section className="rounded-2xl bg-white p-4 space-y-5"><h2 className="font-bold text-sm flex gap-2"><Volume2 size={18} className="text-emerald-600"/>إعدادات الصوت</h2><label className="flex justify-between items-center gap-4 text-sm min-h-11"><span>تشغيل صوت الغرفة</span><input type="checkbox" role="switch" checked={isSpeakerOn} onChange={toggleSpeaker} className="w-6 h-6 accent-emerald-500"/></label><label className="flex justify-between items-center gap-4 text-sm min-h-11"><span>تقليل ضوضاء المايكروفون</span><input type="checkbox" role="switch" checked={noiseSuppression} onChange={toggleNoiseSuppression} className="w-6 h-6 accent-emerald-500"/></label><p className="text-xs leading-5 text-slate-500">هذه الخيارات محفوظة على جهازك. تغييرها لا يشغّل المايكروفون تلقائياً.</p></section>
+ <section className="rounded-2xl bg-white p-4 space-y-4"><h2 className="font-bold text-sm flex gap-2"><Eye size={18} className="text-emerald-600"/>العرض والراحة</h2><label className="flex items-center justify-between gap-4 min-h-11"><span className="text-sm">تقليل الحركة والمؤثرات<span className="block text-xs text-slate-500 mt-1">يخفف الوميض والحركة داخل التطبيق</span></span><input role="switch" type="checkbox" checked={reduced} onChange={event=>{const next=event.target.checked;setReduced(next);setStorageError(setReducedMotion(next)?'':'تم تطبيق الخيار، لكن تعذر حفظه على هذا الجهاز.')}} className="w-6 h-6 accent-emerald-500 shrink-0"/></label>{storageError&&<p role="status" className="text-xs text-amber-700">{storageError}</p>}</section>
+ <section className="rounded-2xl bg-white p-4"><h2 className="font-bold text-sm flex gap-2 mb-3"><Languages size={18} className="text-emerald-600"/>لغة التطبيق</h2><div className="flex justify-between items-center text-sm"><span>العربية</span><span className="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full text-xs">اللغة الحالية</span></div></section>
+ <section className="rounded-2xl bg-white overflow-hidden divide-y divide-slate-100"><button type="button" onClick={()=>setActiveSubScreen('help_center')} className={row}><Headphones size={20} className="text-emerald-600"/><span className="flex-1">مركز المساعدة</span><ChevronRight size={18} className="rotate-180 text-slate-400"/></button><div className={row}><Info size={20} className="text-slate-500 shrink-0"/><span className="text-xs text-slate-500 leading-5">TotiChat • غرف الدردشة الصوتية<br/>الشحن عن طريق وكلاء الشحن المعتمدين.</span></div></section>
+ <button type="button" onClick={()=>setConfirmLogout(true)} className="w-full min-h-14 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 flex justify-center gap-2"><LogOut size={18}/>تسجيل الخروج</button>
+ </div>{confirmLogout&&<div ref={dialogRef} className="fixed inset-0 z-[190] bg-black/30 flex items-center justify-center p-5" onClick={()=>{if(!busy)setConfirmLogout(false)}}><section role="dialog" aria-modal="true" aria-label="تأكيد تسجيل الخروج" onClick={event=>event.stopPropagation()} className="bg-white rounded-3xl p-5 w-full max-w-sm space-y-4"><h2 className="font-bold">تسجيل الخروج؟</h2><p className="text-sm text-slate-500">راح تغادر الغرفة الحالية. تقدر ترجع لحسابك بطريقة الدخول المربوطة.</p><button type="button" disabled={busy} onClick={async()=>{setBusy(true);try{await logout();setConfirmLogout(false)}finally{setBusy(false)}}} className="w-full p-3 bg-rose-600 text-white rounded-xl disabled:opacity-50">{busy?'جارٍ تسجيل الخروج…':'تأكيد تسجيل الخروج'}</button><button type="button" disabled={busy} onClick={()=>setConfirmLogout(false)} className="w-full p-3 bg-slate-100 rounded-xl">البقاء في الحساب</button></section></div>}</div>;
 };

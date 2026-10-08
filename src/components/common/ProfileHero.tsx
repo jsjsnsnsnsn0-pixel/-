@@ -8,8 +8,8 @@ import {LevelBadge} from './LevelBadge';
 import {Heart} from 'lucide-react';
 import {RoomPublicProfile} from '../../services/roomPublicProfile';
 export function ProfileHero({user,partner,onPartner}:{user:User;partner?:RoomPublicProfile;onPartner:(partner:RoomPublicProfile)=>void}) {
-  return <section className="relative overflow-hidden -mx-4 bg-[#00251c]">
-    <div className="relative h-72"><img src={user.avatar} alt="" className="w-full h-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-[#00251c] via-transparent to-black/10"/>
+  return <section className="relative overflow-hidden -mx-4 bg-[#100b20]">
+    <div className="relative h-[clamp(200px,34dvh,320px)]"><img src={user.avatar} alt="" className="w-full h-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-[#100b20] via-transparent to-black/10"/>
       <div className="absolute bottom-0 right-5 flex items-center gap-3"><UserAvatar user={user} size="lg"/>{partner&&<><Heart className="text-pink-400 fill-pink-400" size={28}/><button type="button" onClick={()=>onPartner(partner)} aria-label={`زيارة ملف ${partner.name}`}><img src={partner.avatar} alt={partner.name} className="w-20 h-20 rounded-full border-2 border-pink-300 object-cover"/></button></>}</div>
     </div>
     <div className="p-5 text-right"><h1 className="text-xl font-bold break-words"><ShimmeringAccountName tone="dark" name={user.name} styleKey={user.nameShimmerStyle}/></h1>

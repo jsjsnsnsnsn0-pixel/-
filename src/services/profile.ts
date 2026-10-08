@@ -3,7 +3,7 @@ import { User } from '../types';
 export const defaultAvatar = '/assets/images/default-user.svg';
 export const emptyUser: User = {
   id: '', username: '', name: 'مستخدم جديد', avatar: defaultAvatar,
-  level: 1, vipLevel: 0, wealthLevel: 1, charmLevel: 1, isOnline: false,
+  level: 0, hasPublicLevel:false, vipLevel: 0, isOnline: false,
   gold: 0, diamonds: 0, silverCoins: 0, friendsCount: 0, followersCount: 0,
   followingCount: 0, visitorsCount: 0, receivedGiftsCount: 0,
   sentGiftsCount: '0', receivedTotal: '0',
@@ -22,8 +22,9 @@ export function profileToUser(row: Record<string, any>): User {
     gender: row.gender, region: row.region || '', country: row.country_name || '',
     countryCode: row.country_code || '', countryFlag: countryFlag(row.country_code),
     equipment: row.equipment || undefined,
-    level: Number(row.level ?? 1), wealthLevel: Math.min(150, Math.floor(Number(row.sent_gold || 0) / 1000) + 1),
-    charmLevel: Math.min(150, Math.floor(Number(row.received_gold || 0) / 1000) + 1),
+    level: Number(row.level ?? 0), hasPublicLevel:typeof row.level==='number'&&Number.isFinite(row.level),
+    wealthLevel: typeof row.wealth_level==='number'?row.wealth_level:undefined,
+    charmLevel: typeof row.charm_level==='number'?row.charm_level:undefined,
     vipLevel: row.vip_expires_at && new Date(row.vip_expires_at).getTime() <= Date.now() ? 0 : Number(row.vip_level || 0), vipExpiresAt: row.vip_expires_at, gold: Number(row.gold || 0),
     diamonds: Number(row.diamonds || 0), silverCoins: Number(row.silver_coins || 0),
     sentGiftsCount: String(row.sent_gold || 0), receivedTotal: String(row.received_gold || 0),

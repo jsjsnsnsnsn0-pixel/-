@@ -20,8 +20,8 @@ export function RoomInfoModal({room,isOpen,onClose,onSelectMember,membersOnly=fa
   const {refreshRooms,reportError}=useApp();const [busy,setBusy]=React.useState(false);
   const layerRef=useDismissableLayer(isOpen,onClose);
   if (!isOpen) return null;
-  return <div ref={layerRef} className="fixed inset-0 z-[100] bg-black/70 flex items-end justify-center" onClick={onClose}>
-    <section role="dialog" aria-modal="true" aria-label="معلومات الغرفة والموجودون" dir="rtl" onClick={event=>event.stopPropagation()} className="ui-sheet w-full max-w-md bg-[#100725] rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto text-white">
+  return <div ref={layerRef} className="fixed inset-0 z-[100] bg-black/30 flex items-end justify-center" onClick={onClose}>
+    <section role="dialog" aria-modal="true" aria-label="معلومات الغرفة والموجودون" dir="rtl" onClick={event=>event.stopPropagation()} className="ui-sheet w-full max-w-md room-profile-sheet rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto text-white">
       <header className="flex items-center justify-between gap-3 mb-4">
         <h2 className="font-bold text-lg">{membersOnly?"الموجودون في الغرفة":"معلومات الغرفة"}</h2>
         <button type="button" aria-label="إغلاق معلومات الغرفة" onClick={onClose} className="ui-icon-button rounded-full bg-white/10"><X size={20}/></button>

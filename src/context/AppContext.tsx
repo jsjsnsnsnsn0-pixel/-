@@ -23,7 +23,7 @@ interface AppContextType {
   joinRoom: (room: Room) => Promise<void>; leaveRoom: () => Promise<void>;
   toggleMyMic: () => Promise<void>; toggleRaiseHand: () => Promise<void>; toggleSpeaker: () => void;
   takeSeat: (seat: number) => Promise<void>; leaveSeat: (seat: number) => Promise<void>;
-  sendGiftInRoom: (gift: Gift, recipient: User, quantity?: number, seat?: number, requestId?: string) => Promise<boolean>;
+  sendGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string, useInventory?: boolean, quantity?: number) => Promise<boolean>;
   sendSavedGiftInRoom: (gift: Gift, recipient: User, seat?: number, requestId?: string) => Promise<boolean>;
   rechargeGold: (amount: number, title?: string) => void;
   createNewRoom: (room: Partial<Room>) => Promise<Room | null>;
@@ -313,7 +313,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   useEffect(()=>{
     const roomId=activeRoom?.id;if(!roomId)return;let disposed=false;
     const channel=supabase.channel(`gifts:${roomId}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
-      const row=event.new;if(disposed||String(row.sender_public_id)===userRef.current.id)return;
+      const row=event.new;if(!disposed)window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId}}));if(disposed||String(row.sender_public_id)===userRef.current.id)return;
       const sender=profileToUser({public_id:row.sender_public_id,display_name:row.sender_name,avatar_url:row.sender_avatar});
       const recipient=profileToUser({public_id:row.recipient_public_id,display_name:row.recipient_name,avatar_url:row.recipient_avatar});
       const quantity=Math.max(1,Number(row.quantity)||1);
@@ -383,9 +383,6 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     if(activeRef.current?.id===room.id){setActiveSubScreenState(null);return;}
     if (room.isActive === false) { setError('أعد فتح الغرفة قبل الدخول إليها.'); return; }
     try {
-      if (activeRef.current && activeRef.current.id !== room.id) {
-        const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
-      }
       const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
       const next = await refreshRooms();
       setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
@@ -446,23 +443,20 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const muteSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: activeRef.current?.seats[index]?.isMuted ? 'unmute' : 'mute'});
   const kickSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: 'remove'});
 
-  const sendGiftInRoom = async (gift: Gift, recipient: User, quantity = 1, seat?: number, requestId?: string): Promise<boolean> => {
+  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string, useInventory=false, quantity=1): Promise<boolean> => {
     const room = activeRef.current; if (!room) return false;
     if (![1,7,17,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
-      const {error} = await supabase.rpc('send_room_gift_batch', {
-        p_room_id: room.id,
-        p_recipient_public_id: Number(recipient.id),
-        p_gift_id: gift.id,
-        p_quantity: quantity,
-        p_request_id: requestId || crypto.randomUUID()
-      });
+      const {error} = await supabase.rpc(useInventory?'send_inventory_room_gift':'send_room_gift_batch', {p_room_id: room.id, p_recipient_public_id:Number(recipient.id),...(!useInventory?{p_quantity:quantity}:{}), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
       if (error) throw error;
+      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id}}));
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift:{...gift,price:gift.price*quantity}, sender: userRef.current, recipient, targetSeatIndex: seat, quantity});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
-      // The room gift feed updates counters/chat through Realtime; avoid reloading the full room after every gift.
-      void Promise.all([refreshProfile(), refreshTransactions()]).catch(fail);
+      // A confirmed send remains successful even if a follow-up read fails.
+      // Playback begins on server confirmation without waiting for room refresh.
+      const reads = await Promise.allSettled([refreshProfile(), refreshTransactions()]);
+      for (const read of reads) if (read.status === 'rejected') fail(read.reason);
       return true;
     } catch (e) { fail(e); return false; }
   };
@@ -476,6 +470,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_request_id: requestId || crypto.randomUUID()
       });
       if (error) throw error;
+      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id}}));
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat, quantity: 1});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);

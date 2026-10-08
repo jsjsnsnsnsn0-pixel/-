@@ -50,7 +50,8 @@ export const CharmWealthScreen: React.FC<CharmWealthScreenProps> = ({ initialTab
   ];
 
   const maxLvl = isWealth ? 150 : 110;
-  const currentLevel = isWealth ? (user.wealthLevel ?? user.level ?? 1) : (user.charmLevel ?? 1);
+  const rank = isWealth ? user.wealthLevel : user.charmLevel;
+  const currentLevel = rank ?? 0;
   const isMax = currentLevel >= maxLvl;
   const nextLevel = isMax ? 'MAX 👑' : currentLevel + 1;
 
@@ -58,6 +59,7 @@ export const CharmWealthScreen: React.FC<CharmWealthScreenProps> = ({ initialTab
   const damaskGold = `radial-gradient(circle at 50% 10%, rgba(217,119,6,0.18) 0%, rgba(15,12,7,0.98) 55%), url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d97706' fill-opacity='0.12' fill-rule='evenodd'%3E%3Cpath d='M30 30c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm-20 0c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm10-20c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm0 40c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10z'/%3E%3C/g%3E%3C/svg%3E")`;
   const damaskPurple = `radial-gradient(circle at 50% 10%, rgba(168,85,247,0.25) 0%, rgba(18,2,23,0.98) 55%), url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c084fc' fill-opacity='0.14' fill-rule='evenodd'%3E%3Cpath d='M30 30c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm-20 0c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm10-20c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10zm0 40c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10-10-4.5-10-10z'/%3E%3C/g%3E%3C/svg%3E")`;
 
+  if(rank===undefined)return <div dir="rtl" className="min-h-screen bg-[#100b20] text-white p-5"><button type="button" onClick={()=>setActiveSubScreen(null)} className="p-3 rounded-xl bg-white/5">الرجوع</button><p className="py-8 text-slate-300">مستوى {isWealth?'الثروة':'السحر'} غير متاح من الخادم حالياً.</p></div>;
   return (
     <div
       className={`min-h-screen pb-16 select-none transition-colors duration-300 ${

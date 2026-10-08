@@ -33,3 +33,10 @@ export async function listenForNativeAuth(onError: () => void): Promise<() => vo
   if (launch?.url) void accept(launch.url).catch(onError);
   return () => { void listener.remove(); };
 }
+
+export async function linkGoogleAccount() {
+ const native=Capacitor.isNativePlatform();
+ const {data,error}=await supabase.auth.linkIdentity({provider:'google',options:{redirectTo:native?nativeAuthRedirect:import.meta.env.VITE_AUTH_REDIRECT_URL||window.location.origin,skipBrowserRedirect:native}});
+ if(error)throw error;
+ if(native&&data.url){const {Browser}=await import('@capacitor/browser');await Browser.open({url:data.url})}
+}

@@ -28,14 +28,14 @@ export const VoiceRoomScreen: React.FC = () => {
     if(!activeRoom)return;
     const roomId=activeRoom.id;
     setMessages([]);setGiftTotals({});setSelectedUser(null);
-    let disposed=false;let loading=false;let pendingMessages:RoomChatMessage[]=[];let pendingGifts:any[]=[];
+    let disposed=false;let loading=false;let again=false;const seenGifts=new Set<string>();let pendingMessages:RoomChatMessage[]=[];let pendingGifts:any[]=[];
     const normalizeGift=(row:any):RoomChatMessage=>{
       const quantity=Math.max(1,Number(row.quantity)||1);
       return {id:`gift:${row.id}`,sender_display_name:row.sender_name||'مستخدم',content:`أرسل ${row.gift_name||'هدية'}${quantity>1?` ×${quantity}`:''} إلى ${row.recipient_name||'مستخدم'}`,kind:'gift',deletable:false,created_at:row.created_at};
     };
     const load=async()=>{
-      if(loading)return;loading=true;pendingMessages=[];pendingGifts=[];
-      const [chat,gifts]=await Promise.all([
+      if(disposed)return;if(loading){again=true;return;}loading=true;pendingMessages=[];pendingGifts=[];
+      try{const [chat,gifts]=await Promise.all([
         supabase.from('room_messages').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(100),
         supabase.from('room_gift_feed').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(1000)
       ]);
@@ -48,7 +48,8 @@ export const VoiceRoomScreen: React.FC = () => {
       setMessages([...new Map(combined.map(message=>[message.id,message])).values()].slice(-100));
       const totals:Record<string,number>={};
       for(const row of giftRows){const recipient=String((row as any).recipient_public_id);totals[recipient]=(totals[recipient]||0)+Math.max(1,Number((row as any).quantity)||1);}
-      setGiftTotals(totals);
+      setGiftTotals(totals);giftRows.forEach(row=>seenGifts.add(String(row.id)));
+      }catch{if(!disposed)reportError("تعذر تحميل دردشة الغرفة.");}finally{loading=false;if(again&&!disposed){again=false;void load();}}
     };
     void load();
     const channel=supabase.channel(`chat:${roomId}`)
@@ -62,14 +63,15 @@ export const VoiceRoomScreen: React.FC = () => {
         if(!disposed)setMessages(previous=>previous.filter(message=>message.id!==event.old.id));
       })
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
-        if(disposed)return;
+        if(disposed||seenGifts.has(String(event.new.id)))return;seenGifts.add(String(event.new.id));
         const row=event.new as any;const next=normalizeGift(row);const quantity=Math.max(1,Number(row.quantity)||1);const recipient=String(row.recipient_public_id);
         if(loading)pendingGifts.push(row);
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
         setGiftTotals(prev=>({...prev,[recipient]:(prev[recipient]||0)+quantity}));
       }).subscribe();
+    const confirmed=(event:Event)=>{if((event as CustomEvent).detail?.roomId===roomId)void load()};window.addEventListener('toti:gift-confirmed',confirmed);
     const timer=setInterval(()=>{void load()},15000);
-    return()=>{disposed=true;clearInterval(timer);void supabase.removeChannel(channel)};
+    return()=>{disposed=true;clearInterval(timer);window.removeEventListener('toti:gift-confirmed',confirmed);void supabase.removeChannel(channel)};
   },[activeRoom?.id]);
   if(!activeRoom)return null;
   const mySeat=activeRoom.seats.find(s=>s.user?.authId===user.authId);
@@ -80,7 +82,7 @@ export const VoiceRoomScreen: React.FC = () => {
   const openInfo=()=>{setMembersOnly(false);setInfoOpen(true)};
   const openMembers=()=>{setMembersOnly(true);setInfoOpen(true)};
   return <>
-    <RoomStage title={activeRoom.title} cover={activeRoom.internalBackground||'/assets/images/room_screen_bg_1790556227206.jpg'} thumbnail={activeRoom.coverImage} count={activeRoom.usersCount}
+    <RoomStage roomId={activeRoom.id} title={activeRoom.title} cover={activeRoom.internalBackground||'/assets/images/room_screen_bg_1790556227206.jpg'} thumbnail={activeRoom.coverImage} count={activeRoom.usersCount}
       welcome={(activeRoom.welcomeMessage ?? activeRoom.description)||'أهلاً وسهلاً بكم ❤️'}
       seats={activeRoom.seats.map(seat=><MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId&&speakingIds.includes(seat.user.authId))&&!seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId===user.authId} isOwner={Boolean(seat.user?.authId&&seat.user.authId===activeRoom.ownerAuthId)} giftCount={seat.user?giftTotals[seat.user.id]||0:0}/>)}
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}

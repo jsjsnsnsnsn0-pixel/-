@@ -356,3 +356,8 @@
 
 .ui-page input:not([type="file"]):not([type="checkbox"]), .ui-page textarea, .ui-page select { font-size: 1rem; }
 .ui-page label:has(input[type="checkbox"]) { min-block-size: var(--toti-touch); }
+
+html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}
+
+/* A temporary global gift lane reserves space instead of covering room controls. */
+html:has(.global-gift-lane) .min-h-screen { min-height: calc(100dvh - var(--toti-gift-banner-space, 0px)); }

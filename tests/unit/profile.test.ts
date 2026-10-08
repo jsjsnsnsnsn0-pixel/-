@@ -14,7 +14,7 @@ test('editable profile excludes financial and privileged fields', () => {
 test('optional fields use safe defaults and raw numeric totals', () => {
   const user = profileToUser({public_id: 1, sent_gold: 1000, received_gold: 2500});
   assert.equal(user.gold,0); assert.equal(user.sentGiftsCount,'1000'); assert.equal(user.receivedTotal,'2500');
-  assert.equal(user.charmLevel,3); assert.equal(user.vipLevel,0);
+  assert.equal(user.charmLevel,undefined); assert.equal(user.vipLevel,0);
 });
 test('country flags reject invalid codes', () => {
   assert.equal(countryFlag('IQ'),'🇮🇶'); assert.equal(countryFlag('INVALID'),'');
@@ -25,8 +25,8 @@ test('expired VIP does not display an active privilege and social counters are s
   assert.equal(user.vipLevel,0);assert.equal(user.friendsCount,2);assert.equal(user.followersCount,0);assert.equal(user.visitorsCount,3);
 });
 
-test('wealth and charm keep the existing gift thresholds rather than unrelated profile level',()=>{
+test('wealth and charm ranks remain hidden unless the server supplies them',()=>{
   const user=profileToUser({level:99,sent_gold:16000,received_gold:20000});
-  assert.equal(user.wealthLevel,17);assert.equal(user.charmLevel,21);
-  const zero=profileToUser({level:99});assert.equal(zero.sentGiftsCount,'0');assert.equal(zero.receivedTotal,'0');assert.equal(zero.wealthLevel,1);assert.equal(zero.charmLevel,1);
+  assert.equal(user.wealthLevel,undefined);assert.equal(user.charmLevel,undefined);
+  const zero=profileToUser({level:99});assert.equal(zero.sentGiftsCount,'0');assert.equal(zero.receivedTotal,'0');assert.equal(zero.wealthLevel,undefined);assert.equal(zero.charmLevel,undefined);
 });

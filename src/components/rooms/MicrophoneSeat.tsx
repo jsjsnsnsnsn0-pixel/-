@@ -5,7 +5,7 @@ import { UserAvatar } from '../common/UserAvatar';
 import { LevelBadge } from '../common/LevelBadge';
 import { VIPBadge } from '../common/VIPBadge';
 import { VIPUsernameColors } from '../common/VIPAssets';
-import { Mic, MicOff, Lock, Plus } from 'lucide-react';
+import { Mic, MicOff, Lock, Armchair } from 'lucide-react';
 
 interface MicrophoneSeatProps {
   seat: MicrophoneSeatState;
@@ -37,20 +37,20 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
         <div
           className={`w-14 h-14 rounded-full flex flex-col items-center justify-center border transition-all ${
             isLocked
-              ? 'bg-[#121324] border-red-500/30 text-rose-400'
-              : 'bg-[#15172b]/80 border-dashed border-purple-500/30 text-purple-300 hover:border-purple-400 hover:bg-[#1d203b]'
+              ? 'room-seat-empty room-seat-locked border-rose-300/30 text-rose-200'
+              : 'room-seat-empty border-white/20 text-purple-100 hover:border-purple-300'
           }`}
         >
           {isLocked ? (
             <Lock size={18} className="text-rose-400" />
           ) : (
-            <Plus size={20} className="group-hover:scale-110 transition-transform" />
+            <Armchair size={20} className="group-hover:scale-110 transition-transform" />
           )}
         </div>
 
         <div className="mt-1.5 flex items-center justify-center">
-          <span className="text-[11px] text-slate-400 font-mono">
-            {seatIndex + 1}{isLocked ? ' • مقفل' : ''}
+          <span className="room-seat-number text-[11px] text-slate-200 font-mono">
+            {seatIndex + 1}
           </span>
         </div>
       </div>
@@ -62,7 +62,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
     <div
       onClick={() => onSeatClick(seatIndex)}
       role="button" tabIndex={0} aria-label={`عرض ملف ${user.name}`} onKeyDown={event => {if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();onSeatClick(seatIndex);}}}
-      data-testid="occupied-seat"
+      data-testid="occupied-seat" data-seat-state={isMuted?'muted':isSpeaking?'speaking':'occupied'}
       className="flex flex-col items-center cursor-pointer select-none relative group"
     >
       {/* Speaking Soundwave Pulse Ring */}
@@ -92,7 +92,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
         )}
       </div>
 
-      <span className="absolute top-0 left-0 text-[9px] text-slate-300">{seatIndex+1}</span>
+      <span className="room-seat-number absolute -top-1 left-0 text-[9px] text-slate-200">{seatIndex+1}</span>
       {seat.user?.roomRole==='moderator'&&<span className="text-[9px] text-cyan-300">مشرف</span>}
       {isOwner&&<span className="text-[9px] text-amber-300">المضيف</span>}
       {giftCount > 0 && <span aria-label={`هدايا المقعد ${giftCount}`} className="text-[9px] text-pink-300 font-bold">🎁 {giftCount.toLocaleString('ar-SA')}</span>}
@@ -112,6 +112,7 @@ export const MicrophoneSeat: React.FC<MicrophoneSeatProps> = ({
         {user.hasPublicLevel !== false && <div aria-label={`المستوى ${user.level}`} className="mt-0.5 scale-75 origin-center">
           <LevelBadge level={user.level} size="sm" />
         </div>}
+        {user.roomReceivedGold!==undefined&&<span aria-label="قيمة الهدايا المستلمة" className="text-[9px] text-amber-200/90">🎁 {user.roomReceivedGold.toLocaleString('ar-IQ')}</span>}
       </div>
     </div>
   );

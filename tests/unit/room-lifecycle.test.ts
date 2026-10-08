@@ -48,7 +48,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
   const temp=await mkdtemp(join(process.cwd(),'.room-test-'));
   let root:ReturnType<typeof createRoot>|undefined;
   try{
-    await build({stdin:{contents:`import React from 'react';import {AppProvider,useApp} from './src/context/AppContext';import {RoomAudioProvider} from './src/context/RoomAudioContext';import {VoiceRoomScreen} from './src/components/screens/VoiceRoomScreen';import {RoomsListScreen} from './src/components/screens/RoomsListScreen';export function Harness({capture}){const context=useApp();capture(context);return React.createElement(context.activeRoom?VoiceRoomScreen:RoomsListScreen);}export {AppProvider,RoomAudioProvider};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:join(temp,'bundle.mjs'),plugins:[{name:'test-server',setup(b){
+    await build({stdin:{contents:`import React from 'react';import {AppProvider,useApp} from './src/context/AppContext';import {RoomAudioProvider} from './src/context/RoomAudioContext';import {VoiceRoomScreen} from './src/components/screens/VoiceRoomScreen';import {RoomsListScreen} from './src/components/screens/RoomsListScreen';export function Harness({capture}){const context=useApp();capture(context);return React.createElement(context.activeRoom?VoiceRoomScreen:RoomsListScreen);}export {AppProvider,RoomAudioProvider};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,loader:{'.png':'dataurl'},platform:'node',format:'esm',packages:'external',outfile:join(temp,'bundle.mjs'),plugins:[{name:'test-server',setup(b){
       b.onResolve({filter:/\/services\/supabase$|^\.\/supabase$/},()=>({path:'supabase',namespace:'test'}));
       b.onResolve({filter:/\/services\/nativeAuth$/},()=>({path:'native',namespace:'test'}));
       b.onResolve({filter:/^motion\/react$/},()=>({path:'motion',namespace:'test'}));
@@ -86,7 +86,8 @@ test('room settings round trip, failed save, membership removal and close', asyn
     assert.equal(context.activeRoom.id,roomId);assert.equal(context.activeRoom.description,'New welcome');
     assert.ok(dom.window.document.body.textContent?.includes('New welcome'));
     row={...row,gift_effects_enabled:true};await act(async()=>{await context.refreshRooms();});
-    assert.ok(dom.window.document.body.textContent?.includes('هدية فاخرة'));
+    assert.equal(dom.window.document.body.textContent?.includes('هدية فاخرة'),false);
+    assert.ok(dom.window.document.body.textContent?.includes('🌹'));
     await click('تشغيل المايكروفون');assert.equal(captures,1);
     await click('خيارات الغرفة');
     assert.ok(dom.window.document.querySelector('[role=dialog][aria-label="خيارات الغرفة"]'));
