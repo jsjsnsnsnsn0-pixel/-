@@ -1,0 +1,31 @@
+name: TotiChat Beta UX Reliability QA (no deployment)
+on:
+  push:
+    branches: [fix/beta-room-ux-search-reliability-20261008]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify pinned dependencies
+        run: npm ci
+      - name: Static, types, assets, unit and production web build
+        run: npm run check
+      - name: Browser integration tests on mobile viewport
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Verify no Android package is built or released
+        run: |
+          echo 'Test-only feature branch. No gradle assemble, no APK, no Supabase writes, no deployment.'
