@@ -173,7 +173,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         avatar_url: row.owner_avatar_url,
       });
       return {
-        id: row.id, owner, ownerAuthId: row.owner_id, title: row.name,
+        id: row.id, owner, ownerAuthId: row.owner_id, createdAt: row.created_at, title: row.name,
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
