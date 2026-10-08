@@ -74,7 +74,7 @@ export const RoomsListScreen: React.FC = () => {
       case 'popular':
         return list.sort((a, b) => b.usersCount - a.usersCount);
       case 'new':
-        return newestRooms(list).slice(0, 12);
+        return newestRooms(list);
       case 'friends':
         return activeFriendState && !activeFriendState.failed
           ? list.filter(room => Boolean(room.ownerAuthId) && activeFriendState.owners.has(room.ownerAuthId!))
