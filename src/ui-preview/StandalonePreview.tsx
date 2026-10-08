@@ -1,8 +1,9 @@
-import React,{lazy,Suspense} from 'react';
+import React,{lazy,Suspense,useState} from 'react';
 import {AppProvider,useApp,previewRooms} from '../context/AppContext';
 import {RealtimeRankingsProvider} from '../context/RealtimeRankingsProvider';
 import {RoomAudioProvider} from '../context/RoomAudioContext';
 import {BottomNavigation} from '../components/common/BottomNavigation';
+const AuditLab=lazy(()=>import('./AuditLab').then(x=>({default:x.AuditLab})));
 const Home=lazy(()=>import('../components/screens/HomeScreen').then(x=>({default:x.HomeScreen})));
 const Rooms=lazy(()=>import('../components/screens/RoomsListScreen').then(x=>({default:x.RoomsListScreen})));
 const Room=lazy(()=>import('../components/screens/VoiceRoomScreen').then(x=>({default:x.VoiceRoomScreen})));
@@ -18,11 +19,14 @@ const Recharge=lazy(()=>import('../components/screens/RechargeScreen').then(x=>(
 const Agency=lazy(()=>import('../components/screens/AgencyScreen').then(x=>({default:x.AgencyScreen})));
 const Badges=lazy(()=>import('../components/screens/BadgesScreen').then(x=>({default:x.BadgesScreen})));
 const catalogue=[
+ ['uiux_audit','مختبر مراجعة UI/UX'],
  ['home','الرئيسية'],['rooms','الغرف'],['voice','غرفة صوتية'],['gifts','صندوق الهدايا'],['profile','الملف الشخصي'],
  ['messages','الرسائل'],['store','المتجر'],['wallet','المحفظة'],['vip','VIP'],['create','إنشاء غرفة'],['agency','الوكالات'],['badges','الشارات'],['gift_box','حقيبتي'],['recharge','الشحن']
 ] as const;
 function ReviewPage(){
  const {activeTab,activeSubScreen,activeRoom,setActiveTab,setActiveSubScreen,joinRoom,leaveRoom,error,dismissError}=useApp();
+ const [width,setWidth]=useState(390);
+ const [sizesOpen,setSizesOpen]=useState(false);
  const select=(v:string)=>{
    if(v==='voice'||v==='gifts'){void joinRoom(previewRooms[0]);if(v==='gifts')setTimeout(()=>setActiveSubScreen('gift_box'),0);return;}
    void leaveRoom();
@@ -30,7 +34,7 @@ function ReviewPage(){
    else setActiveSubScreen(v);
  };
  const active=activeRoom?(activeSubScreen==='gift_box'?'gifts':'voice'):(activeSubScreen||activeTab);
- const render=activeRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
+ const render=activeSubScreen==='uiux_audit'?<AuditLab onNavigate={select}/> :activeRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
  :activeSubScreen==='store'?<Store/>
  :activeSubScreen==='wallet'?<Wallet/>
  :activeSubScreen==='vip'?<Vip/>
@@ -51,9 +55,10 @@ function ReviewPage(){
  className="flex-1 min-w-0 text-sm bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 outline-none text-white">
  {catalogue.map(([key,title])=><option key={key} value={key} className="text-slate-900">{title}</option>)}
  </select>
- <span className="text-[10px] opacity-80 whitespace-nowrap">TotiChat</span>
+ <button type="button" onClick={()=>setSizesOpen(v=>!v)} className="min-h-9 text-xs px-2 rounded-lg border border-white/30" aria-label="عرض خيارات عرض الشاشة">{width}dp</button>
  </div>
- <div className="pt-[48px] ui-page max-w-md mx-auto min-h-screen shadow-xl bg-white relative">
+ {sizesOpen&&<div className="fixed top-12 inset-x-2 max-w-md mx-auto z-[999] rounded-xl bg-white shadow-xl flex items-center justify-around p-2" role="group" aria-label="مقاسات الهاتف">{[320,360,390,430].map(w=><button type="button" aria-pressed={w===width} onClick={()=>{setWidth(w);setSizesOpen(false)}} key={w} className={"min-h-12 min-w-12 rounded-xl font-semibold text-xs "+(w===width?"bg-[#1b7050] text-white":"bg-slate-100 text-slate-800")}>{w}</button>)}</div>}
+ <div className="pt-[48px] ui-page mx-auto min-h-screen shadow-xl bg-white relative" style={{width:"100%",maxWidth:width}}>
  <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-slate-600">تحميل الواجهة…</div>}>{render}</Suspense>
  {!activeRoom&&!activeSubScreen&&<BottomNavigation/>}
  </div>
