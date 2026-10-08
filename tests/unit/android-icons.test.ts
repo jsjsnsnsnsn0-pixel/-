@@ -49,3 +49,24 @@ test('Android configuration installs official assets repeatedly and preserves ap
   assert.deepEqual(await readFile(join(dir,'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png')),await readFile('resources/android-launcher/mipmap-xxxhdpi/ic_launcher_foreground.png'));
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('install-fix variant has a different package ID without changing the existing OAuth scheme',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'totichat-companion-'));
+ try{
+   await mkdir(join(dir,'android/app/src/main/res/values'),{recursive:true});
+   await writeFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'<manifest package="com.totichat.app"><uses-permission android:name="android.permission.INTERNET"/><application><activity android:launchMode="singleTask"></activity></application></manifest>');
+   await cp('resources',join(dir,'resources'),{recursive:true});
+   await writeFile(join(dir,'android/app/build.gradle'),'android { defaultConfig { applicationId "com.totichat.app"; versionCode 1; versionName "1.0" }}');
+   await writeFile(join(dir,'android/app/src/main/res/values/strings.xml'),'<resources><string name="app_name">TotiChat</string></resources>');
+   const script=join(process.cwd(),'scripts/configure-android.mjs');
+   execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1',TOTICHAT_COMPANION:'1'}});
+   const gradle=await readFile(join(dir,'android/app/build.gradle'),'utf8');
+   assert.match(gradle,/applicationId "com\.totichat\.app\.beta9"/);
+   assert.doesNotMatch(gradle,/applicationId "com\.totichat\.app"/);
+   assert.match(gradle,/versionCode 900009/);
+   const manifest=await readFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'utf8');
+   assert.match(manifest,/android:scheme="com\.totichat\.app"/,'preserve already configured Supabase OAuth redirect');
+   const labels=await readFile(join(dir,'android/app/src/main/res/values/strings.xml'),'utf8');
+   assert.match(labels,/>TotiChat Beta 9 Fix</);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
