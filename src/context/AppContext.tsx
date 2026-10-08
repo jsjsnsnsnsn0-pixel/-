@@ -90,7 +90,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       'private room requires an invitation': 'تحتاج دعوة لدخول هذه الغرفة.',
       'VIP membership required': 'هذه الغرفة تتطلب عضوية VIP.',
       'no official recharge agent is configured for this country': 'لا يوجد وكيل شحن رسمي لبلدك حالياً.',
-      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من قسم ملكي.',
+      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من تبويب غرفي في قائمة الغرف.',
       'authentication required': 'يرجى تسجيل الدخول مجدداً.',
     };
     if(typeof navigator!=='undefined'&&navigator.onLine===false){setError('خطأ اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.');return;}
@@ -398,8 +398,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
       }
       const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
-      const next = await refreshRooms();
-      setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
+      // Successful backend join must not be discarded if the subsequent
+      // room-directory refresh temporarily times out.
+      let joinedRoom: Room = room;
+      try {
+        const next = await refreshRooms();
+        joinedRoom = next.find(r => r.id === room.id) || room;
+      } catch {
+        setError('تم الدخول إلى الغرفة، لكن تعذر تحديث قائمة الغرف مؤقتاً.');
+      }
+      setActiveRoom(joinedRoom); setActiveSubScreenState(null); setIsHandRaised(false);
     } catch (e) { fail(e); }
   };
   const leaveRoom = async () => {
@@ -416,8 +424,21 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
         p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
       if (error) throw error;
-      const next = await refreshRooms(); const room = next.find(r => r.id === data) || null;
-      setActiveRoom(room); setActiveSubScreenState(null); return room;
+      // Creation already committed at this point. Never suggest creating
+      // again merely because a follow-up room-list refresh timed out.
+      try {
+        const next = await refreshRooms();
+        const room = next.find(r => r.id === data) || null;
+        if (room) {
+          setActiveRoom(room); setActiveSubScreenState(null);
+          return room;
+        }
+      } catch {
+        // The room is still present in the backend; avoid another create RPC.
+      }
+      setError('تم إنشاء الغرفة، لكن تعذر إظهارها حالياً. افتح تبويب غرفي بعد تحديث القائمة ولا تُنشئ غرفة ثانية.');
+      setActiveTab('rooms');
+      return null;
     } catch (e) { fail(e); return null; }
   };
 
