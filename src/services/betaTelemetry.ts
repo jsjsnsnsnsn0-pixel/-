@@ -11,6 +11,6 @@ export function recordBetaEvent(category:BetaEvent,code:string):void{
  if(submitted.size>80)submitted.clear();
  const platform=typeof navigator!=='undefined'&&/android/i.test(navigator.userAgent)?'android':'web';
  void (async()=>{try{await supabase.rpc('beta_record_event',{
-   p_category:category,p_code:safe,p_platform:platform,p_version:'0.9.0-beta.2'
+   p_category:category,p_code:safe,p_platform:platform,p_version:'0.9.0-beta.3'
  });}catch{/* telemetry must never break audio or a room */}})();
 }
