@@ -1,0 +1,55 @@
+name: Browser Test Published Admin Site Files
+on:
+  push:
+    branches:
+      - feature/standalone-admin-dashboard-20261008
+    paths:
+      - '.github/workflows/test-admin-ghpages-static.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Checkout actual publish branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+      - run: npx playwright install --with-deps chromium
+      - name: Load published website as HTML and verify secure login
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8123 --bind 127.0.0.1 --directory site >/tmp/admin-http-server.log 2>&1 &
+          for i in {1..15}; do curl -sf http://127.0.0.1:8123/ >/dev/null && break; sleep 1; done
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:390,height:844}});
+          const failures=[];
+          page.on('pageerror',e=>failures.push(e.message));
+          const response=await page.goto('http://127.0.0.1:8123/',{waitUntil:'domcontentloaded'});
+          if(response?.status()!==200)throw Error('Index request failed');
+          try{
+            await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:20000});
+            await page.getByText('اسم المستخدم أو البريد الإلكتروني').waitFor();
+            await page.getByRole('button',{name:'تسجيل الدخول'}).waitFor();
+            await page.getByRole('button',{name:'الدخول عبر Google'}).waitFor();
+            if(failures.length)throw Error('Browser JavaScript failure: '+failures.join(' | '));
+            if(await page.getByText('Coins المتداولة').count())throw Error('Admin data visible before signing in');
+            console.log('PASS: The published gh-pages site displays real Owner login on Android viewport.');
+          }catch(error){
+            console.error('PAGE:',(await page.content()).slice(0,1600));
+            console.error('ERRORS:',JSON.stringify(failures));
+            throw error;
+          }finally{await browser.close()}
+          NODE
