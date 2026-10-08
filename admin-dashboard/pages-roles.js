@@ -29,18 +29,45 @@ export function roles(work){
   });
   result.append(editor);
   if(!state.session.owner)return;
-  const person=field('ID الموظف','number');
-  const rank=el('select',{},...choices.filter(x=>x.id!=='owner')
-   .map(x=>el('option',{value:x.id},x.label)));
-  const assign=el('form',{class:'stack'},box('fields',person.label,
-   el('label',{class:'field'},el('span',{},'رتبة الموظف'),rank)));
-  assign.append(btn('تعيين الصلاحيات للموظف',()=>assign.requestSubmit(),'btn primary'));
-  assign.addEventListener('submit',event=>{
-   event.preventDefault();const id=Number(person.input.value);
-   if(!Number.isSafeInteger(id)||id<1)return state.notify('ID غير صحيح','error');
-   if(!confirm('تأكيد منح رتبة '+rank.value+' للمستخدم ID '+id+'؟'))return;
-   change(()=>rpc('dashboard_assign_role',{p_public_id:id,p_role:rank.value}));
+  const staffEmail=field('البريد الإلكتروني للموظف','email');
+  staffEmail.input.required=true;
+  staffEmail.input.placeholder='employee@gmail.com';
+  staffEmail.input.autocomplete='email';
+  const rank=el('select',{},
+   ...choices.filter(x=>x.id!=='owner'&&x.id!=='user')
+     .map(x=>el('option',{value:x.id},x.label)),
+   el('option',{value:'user'},'إلغاء صلاحية الداش بورد'));
+  const assign=el('form',{class:'stack'},
+   staffEmail.label,
+   el('label',{class:'field'},el('span',{},'الرتبة'),rank));
+  const assignButton=btn('حفظ رتبة الموظف',()=>assign.requestSubmit(),'btn primary');
+  assign.append(assignButton);
+  assign.addEventListener('submit',async event=>{
+   event.preventDefault();
+   const email=staffEmail.input.value.trim().toLowerCase();
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return state.notify('اكتب بريداً إلكترونياً صحيحاً.','error');
+   const role=rank.value;
+   if(!confirm('تأكيد '+(role==='user'?'إلغاء صلاحيات':'منح رتبة '+role)+' للحساب '+email+'؟'))return;
+   await change(()=>rpc('dashboard_assign_role_by_email',{
+    p_email:email,p_role:role
+   }),role==='user'?'تم إلغاء صلاحيات هذا البريد.':'تم حفظ الصلاحية في قاعدة البيانات.');
   });
-  work.append(panel(title('تعيين الموظفين'),note('رابط الموقع وحده لا يمنح الصلاحيات.'),assign));
+  work.append(panel(title('تعيين الموظفين عن طريق البريد'),
+   note('حدد بريد الموظف المرتبط بحسابه في Google، ثم اختر الرتبة. إذا لم يسجل بعد، تحفظ الدعوة وتتفعل عند دخوله بنفس البريد.'),
+   assign));
+  const staffPanel=panel(title('الموظفون والدعوات'));
+  work.append(staffPanel);
+  load(staffPanel,()=>rpc('dashboard_staff_email_invites_list'),items=>{
+   staffPanel.append(title('سجل رتب الموظفين'));
+   if(!items?.length){staffPanel.append(note('لا توجد رتب موظفين معيّنة بالبريد حالياً.'));return}
+   const entries=box('list');
+   for(const item of items){
+    entries.append(box('item',
+     el('b',{},item.email),
+     note('الرتبة: '+item.role+' • '+(item.active?'مرتبطة بحساب فعلي':'بانتظار تسجيل Google'))));
+   }
+   staffPanel.append(entries);
+  });
  });
 }
