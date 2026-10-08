@@ -2,7 +2,7 @@ name: TotiChat Beta 0.9.0-beta.4 Direct APK
 on:
   push:
     branches:
-      - release/beta-0.9.0-beta.4-ux-20261008
+      - hotfix/room-music-livekit-and-cloud-playlists-20261008
   workflow_dispatch:
 permissions:
   contents: write
