@@ -39,7 +39,7 @@ export const SearchModal: React.FC = () => {
         const {data, error} = await supabase.rpc('search_public_profiles', {p_query: normalizedQuery, p_limit: 20});
         if (cancelled) return;
         if (error) throw error;
-        const profiles = (data || []).map(profileToUser);
+        const profiles: User[] = (data || []).map(profileToUser);
         // Numeric account lookups show only the exact account public ID.
         setMatchedUsers(/^\d+$/.test(normalizedQuery) ? profiles.filter(user => user.id === normalizedQuery) : profiles);
       } catch { if (!cancelled) reportError('تعذر البحث عن المستخدمين. حاول مجدداً.'); }
