@@ -16,21 +16,21 @@ Source: 19-page master handoff. Owner override: original visual identity retaine
 | UX-010 | Brand and design system | Typography specimen added; 150% full-screen audit pending |
 | UX-011 | Brand and design system | Width selector 320/360/390/430dp; native device QA pending |
 | UX-012 | Brand and design system | 24-item component index; editable variants not yet built |
-| UX-013 | Brand and design system | Pending; not implemented or verified |
-| UX-014 | Brand and design system | Pending; not implemented or verified |
-| UX-015 | Brand and design system | Pending; not implemented or verified |
-| UX-016 | Brand and design system | Pending; not implemented or verified |
-| UX-017 | Brand and design system | Pending; not implemented or verified |
-| UX-018 | Authentication | Pending; not implemented or verified |
-| UX-019 | Authentication | Pending; not implemented or verified |
-| UX-020 | Authentication | Pending; not implemented or verified |
-| UX-021 | Authentication | Pending; not implemented or verified |
-| UX-022 | Authentication | Pending; not implemented or verified |
-| UX-023 | Authentication | Pending; not implemented or verified |
-| UX-024 | Authentication | Pending; not implemented or verified |
-| UX-025 | Authentication | Pending; not implemented or verified |
-| UX-026 | Authentication | Pending; not implemented or verified |
-| UX-027 | Authentication | Pending; not implemented or verified |
+| UX-013 | Brand and design system | Partial: semantic 24dp navigation icons on preview; all screens pending audit |
+| UX-014 | Brand and design system | Draft: premium decoration must never cover mic/chat/exit; per-screen check pending |
+| UX-015 | Brand and design system | Draft: subdued transitions and reduced-motion requirement; full testing pending |
+| UX-016 | Brand and design system | Draft: error/permission/loading copy examples in audit lab; full bilingual catalogue pending |
+| UX-017 | Brand and design system | Theme change excluded without owner approval; contrast testing remains pending |
+| UX-018 | Authentication | Draft: visual splash screen with original TotiChat logo; offline recovery not yet integrated |
+| UX-019 | Authentication | Draft: non-deceptive sign-in method choice; no real provider call |
+| UX-020 | Authentication | Draft: legal preview explicitly not final published policy |
+| UX-021 | Authentication | Draft: country/number input with basic validation (prototype only) |
+| UX-022 | Authentication | Draft: 6-digit sample OTP and resend timer UI; no SMS sent |
+| UX-023 | Authentication | Draft: email input and validation in isolated preview |
+| UX-024 | Authentication | Draft: password visibility and validation in isolated preview |
+| UX-025 | Authentication | Pending: complete password-reset journey (link is explanatory only) |
+| UX-026 | Authentication | Draft: sample display name setup; not a real profile write |
+| UX-027 | Authentication | Partial: offline and invalid-code demo; full permission/server cases pending |
 | UX-028 | Home and discovery | Pending; not implemented or verified |
 | UX-029 | Home and discovery | Pending; not implemented or verified |
 | UX-030 | Home and discovery | Pending; not implemented or verified |

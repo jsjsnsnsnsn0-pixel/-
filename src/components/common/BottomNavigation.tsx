@@ -32,7 +32,7 @@ export const BottomNavigation: React.FC = () => {
       dir="rtl"
     >
       <div className="flex items-center justify-around h-[66px] px-2">
-        {/* Tab 1: الصفحة الرئيسية (Home with Golden Dome Palace) */}
+        {/* Tab 1: الصفحة الرئيسية (Home with semantic icon) */}
         <button
           type="button"
           onClick={() => setActiveTab('home')}
@@ -41,9 +41,9 @@ export const BottomNavigation: React.FC = () => {
           aria-current={isHomeActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
-            {/* Mosque / Palace 3D Icon */}
+            {/* Consistent 24dp line icon */}
             <div className="w-8 h-8 flex items-center justify-center filter drop-shadow-sm">
-              <span className="text-2xl leading-none select-none">🕌</span>
+              <Home size={24} strokeWidth={2.2} aria-hidden="true" className={isHomeActive ? "text-amber-300" : "text-slate-100"} />
             </div>
             <span
               className={`text-[11px] font-bold mt-0.5 tracking-tight transition-colors ${
@@ -64,9 +64,9 @@ export const BottomNavigation: React.FC = () => {
           aria-current={isMessagesActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
-            {/* Aladdin Brass Magic Oil Lamp */}
+            {/* Consistent 24dp line icon */}
             <div className="w-8 h-8 flex items-center justify-center filter drop-shadow-sm">
-              <span className="text-2xl leading-none select-none">🪔</span>
+              <MessageSquare size={24} strokeWidth={2.2} aria-hidden="true" className={isMessagesActive ? "text-amber-300" : "text-slate-100"} />
             </div>
             {totalUnreadMessages > 0 && (
               <span className="absolute -top-1 -right-2 min-w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
@@ -83,7 +83,7 @@ export const BottomNavigation: React.FC = () => {
           </div>
         </button>
 
-        {/* Tab 3: أنا (Profile with Green Cute Owl & Badge "2") */}
+        {/* Tab 3: أنا (Profile with semantic user icon) */}
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
@@ -92,9 +92,9 @@ export const BottomNavigation: React.FC = () => {
           aria-current={isProfileActive ? "page" : undefined}
         >
           <div className="relative flex flex-col items-center">
-            {/* Cute Green Owl Mascot */}
+            {/* Consistent 24dp line icon */}
             <div className="relative w-8 h-8 flex items-center justify-center filter drop-shadow-sm">
-              <span className="text-2xl leading-none select-none">🦉</span>
+              <UserIcon size={24} strokeWidth={2.2} aria-hidden="true" className={isProfileActive ? "text-amber-300" : "text-slate-100"} />
               {/* Notification Pill on top left if unseen */}
               {profileUnseenCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-4 h-4 bg-[#ef4444] text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
