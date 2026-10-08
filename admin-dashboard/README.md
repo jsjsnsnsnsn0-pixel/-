@@ -10,7 +10,7 @@
 
 - Owner's existing Supabase Auth account: xxjjh20@gmail.com, confirmed as the only Owner in admin_roles.
 - Username 'admin' is only an alias to this real Owner email. Its password must be the Owner's genuine Supabase Auth password, NOT 'admin'.
-- Google OAuth for the same email is also available; the dashboard URL needs to be allowlisted in Supabase Auth redirects.
+- Google OAuth for the same email is also available. The OAuth return URL is derived from the **current admin website origin and pathname**, not the TotiChat app or GitHub Pages; allowlist each actual admin URL (the deployed Supabase Edge Function path and any separate Vercel host) in Supabase Auth redirects. This source change does not itself modify Auth redirect settings or redeploy the existing Edge Function.
 - Staff use individual Supabase Auth accounts and receive permissions only through Owner-controlled server-side RBAC.
 
 ## Verified backend

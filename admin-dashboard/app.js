@@ -1,5 +1,6 @@
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import {state,rpc,allowed} from './context.js';
+import {adminOAuthRedirect} from './oauth-url.js';
 import {el,box,title,note,panel,btn,field} from './ui.js';
 import {overview,users,wallet,audit,health,settings} from './pages-core.js';
 import {roles,agencies,catalog,rooms,tickets} from './pages-admin.js';
@@ -37,7 +38,7 @@ function login(message=''){
    const {error}=await state.client.auth.signInWithOAuth({
     provider:'google',
     options:{
-     redirectTo:'https://jsjsnsnsnsn0-pixel.github.io/TotiChat/',
+     redirectTo:adminOAuthRedirect(window.location),
      queryParams:{prompt:'select_account'}
     }
    });
