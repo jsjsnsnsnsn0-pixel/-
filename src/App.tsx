@@ -3,7 +3,6 @@ import {recordBetaEvent} from './services/betaTelemetry';
 import {NativeBackNavigation} from './components/common/NativeBackNavigation';
 import {GlobalGiftBanner} from './components/common/GlobalGiftBanner';
 import React, {lazy, Suspense} from 'react';
-import {motion} from 'motion/react';
 import { RoomAudioProvider } from './context/RoomAudioContext';
 import { isSupabaseConfigured } from './services/supabase';
 import { AppProvider, useApp } from './context/AppContext';
@@ -47,31 +46,21 @@ const subScreens = ['home','rooms','profile','level','vip','wallet','recharge','
 
 const MinimizedRoomBar: React.FC = () => {
   const {activeRoom, activeSubScreen, setActiveSubScreen} = useApp();
-  const boundsRef = React.useRef<HTMLDivElement>(null);
   if (!activeRoom || !activeSubScreen) return null;
-  return <div ref={boundsRef} className="fixed inset-x-2 top-[max(8px,env(safe-area-inset-top))] bottom-[max(8px,env(safe-area-inset-bottom))] z-[40] pointer-events-none">
-    <motion.button
-      type="button"
-      dir="rtl"
-      drag
-      dragConstraints={boundsRef}
-      dragElastic={0.08}
-      dragMomentum={false}
-      whileDrag={{scale:1.035}}
-      whileTap={{scale:.98}}
-      onTap={() => setActiveSubScreen(null)}
-      aria-label={`العودة إلى غرفة ${activeRoom.title}`}
-      className="pointer-events-auto absolute bottom-20 left-1 w-[230px] max-w-[72vw] rounded-[22px] bg-[#17192a]/92 text-white shadow-[0_18px_48px_rgba(0,0,0,.42)] border border-white/12 p-2.5 flex items-center gap-2.5 text-right touch-none cursor-grab active:cursor-grabbing backdrop-blur-2xl"
+  // Compact persistent return control; does not cover the bottom navigation,
+  // drag across other content, or intercept taps outside its bounds.
+  return <div className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom))] left-3 z-[35] w-[180px] max-w-[52vw]">
+    <button
+      type="button" dir="rtl" onClick={() => setActiveSubScreen(null)}
+      aria-label={\`العودة إلى غرفة \${activeRoom.title}\`}
+      className="pointer-events-auto w-full min-w-0 rounded-2xl bg-[#17192a]/95 text-white border border-emerald-300/20 shadow-[0_10px_28px_rgba(0,0,0,.32)] px-2.5 py-2 flex items-center gap-2 text-right active:scale-95 transition-transform backdrop-blur-xl"
     >
-      <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20"/>
-      <img src={activeRoom.coverImage||activeRoom.internalBackground} alt="" className="w-12 h-12 rounded-[16px] object-cover shrink-0 border border-white/10" />
+      <img src={activeRoom.coverImage||activeRoom.internalBackground} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0 border border-white/10" />
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-300"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]"/>أنت داخل الغرفة الآن</span>
-        <span className="block mt-1 text-sm font-black truncate">{activeRoom.title}</span>
-        <span className="block mt-0.5 text-[9px] text-slate-400">اسحب البطاقة لأي مكان مناسب</span>
+        <span className="block text-[10px] text-emerald-300">العودة للغرفة</span>
+        <span className="block text-xs font-bold truncate">{activeRoom.title}</span>
       </span>
-      <span className="shrink-0 text-[10px] font-black bg-emerald-500/15 text-emerald-200 border border-emerald-400/15 rounded-full px-3 py-2">عودة</span>
-    </motion.button>
+    </button>
   </div>;
 };
 
