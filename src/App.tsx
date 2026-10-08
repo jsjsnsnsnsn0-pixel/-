@@ -52,7 +52,7 @@ const MinimizedRoomBar: React.FC = () => {
   return <div className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom))] left-3 z-[35] w-[180px] max-w-[52vw]">
     <button
       type="button" dir="rtl" onClick={() => setActiveSubScreen(null)}
-      aria-label={\`العودة إلى غرفة \${activeRoom.title}\`}
+      aria-label={`العودة إلى غرفة ${activeRoom.title}`}
       className="pointer-events-auto w-full min-w-0 rounded-2xl bg-[#17192a]/95 text-white border border-emerald-300/20 shadow-[0_10px_28px_rgba(0,0,0,.32)] px-2.5 py-2 flex items-center gap-2 text-right active:scale-95 transition-transform backdrop-blur-xl"
     >
       <img src={activeRoom.coverImage||activeRoom.internalBackground} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0 border border-white/10" />
