@@ -27,7 +27,9 @@
     <h1>TotiChat Beta 9 Fix</h1>
     <h2>تحميل وفحص APK قبل تثبيته</h2>
     <p>نزّل النسخة الجديدة بدون حذف Beta.8. تتحقق هذه الصفحة من الحجم وبصمة SHA-256 للملف كاملاً قبل حفظه. إذا كانت البيانات غير صحيحة فلن تعرضها على أنها APK سليم.</p>
-    <button id="download" type="button">تحقق وحمّل APK</button>
+    <label style="display:block;margin:0 0 10px;font-weight:700;color:#e4d5ff" for="existing">عندك ملف APK سبق ونزّلته؟ اختاره حتى نعرف هل هو تالف:</label>
+    <input id="existing" type="file" accept=".apk,application/vnd.android.package-archive" style="width:100%;padding:11px;border:1px solid #ffffff40;border-radius:14px;color:#fff;background:#101027;margin:0 0 15px">
+    <button id="download" type="button">نزّل نسخة جديدة بعد فحص البصمة</button>
     <progress id="progress" max="100" value="0" hidden aria-label="تقدم تنزيل ملف APK"></progress>
     <div id="detail" role="status" aria-live="polite">الحجم: 32.8 MB · تنزيل مباشر من GitHub Pages</div>
     <button id="again" type="button" class="minor" hidden>إعادة المحاولة</button>
@@ -48,6 +50,21 @@ const btn=document.getElementById('download'),retry=document.getElementById('aga
 const bar=document.getElementById('progress'),detail=document.getElementById('detail');
 let busy=false;
 function report(message,error=false){detail.textContent=message;detail.setAttribute('role',error?'alert':'status')}
+async function inspectExisting(file){
+  if(busy)return;
+  if(!file)return;
+  busy=true;btn.disabled=true;retry.hidden=true;bar.hidden=true;
+  try {
+    report('جارٍ فحص الملف الموجود على هاتفك…');
+    if(file.size!==SIZE)throw new Error('ملفك غير مكتمل أو ليس نسخة Install Fix الرسمية. الحجم: '+file.size+' بايت؛ المتوقع '+SIZE+'. لا تثبّته.');
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+    const actual=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+    if(actual!==SHA)throw new Error('الملف تالف أو مُختلف، رغم أن حجمه صحيح. SHA-256: '+actual+'. لا تثبّته.');
+    report('✓ الملف المحفوظ على هاتفك مطابق للأصل 100% (SHA-256 صحيح). إذا Android يرفض تثبيته فالمشكلة ليست من التنزيل؛ نحتاج سبب الرفض من سجل مثبت الحزم، وليس إعادة تحميل نفس الملف.');
+  }catch(e){report('نتيجة فحص ملفك: '+(e&&e.message?e.message:String(e)),true);}
+  finally{busy=false;btn.disabled=false;document.getElementById('existing').value='';}
+}
 async function getBytes(){
   const res=await fetch(FILE,{cache:'no-store',credentials:'omit'});
   if(!res.ok || !res.body)throw new Error('الخادم لم يرسل ملف APK بشكل كامل ('+res.status+').');
@@ -92,6 +109,7 @@ async function download(){
     retry.hidden=false;btn.disabled=false;
   } finally {busy=false;}
 }
+document.getElementById('existing').addEventListener('change',event=>inspectExisting(event.target.files&&event.target.files[0]));
 btn.addEventListener('click',download);retry.addEventListener('click',download);
 </script>
 </body>
