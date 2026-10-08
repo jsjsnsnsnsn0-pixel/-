@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoomCard } from '../rooms/RoomCard';
 import { SearchBar } from '../common/SearchBar';
+import { supabase } from '../../services/supabase';
+import { acceptedFriendOwnerIds } from '../../services/friendRoomOwners';
 import { Radio, Plus, Flame, Users, Sparkles, Heart } from 'lucide-react';
 
 export const RoomsListScreen: React.FC = () => {
@@ -9,6 +11,36 @@ export const RoomsListScreen: React.FC = () => {
   const [activeTab, setActiveTabState] = useState<'all' | 'mine' | 'live' | 'popular' | 'new' | 'friends'>('all');
   const [reopening,setReopening] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [friendsRequest, setFriendsRequest] = useState(0);
+  const [friendsState, setFriendsState] = useState<{
+    userId: string;
+    owners: ReadonlySet<string>;
+    failed: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'friends' || !user.authId) return;
+    const userId = user.authId;
+    let cancelled = false;
+    setFriendsState(null);
+    void supabase.from('friendships')
+      .select('user_a,user_b,status')
+      .eq('status', 'accepted')
+      .then(({data, error}) => {
+        if (cancelled) return;
+        setFriendsState({
+          userId,
+          owners: error ? new Set<string>() : acceptedFriendOwnerIds(userId, data || []),
+          failed: Boolean(error),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setFriendsState({userId, owners: new Set<string>(), failed: true});
+      });
+    return () => {cancelled = true;};
+  }, [activeTab, user.authId, friendsRequest]);
+
+  const activeFriendState = friendsState?.userId === user.authId ? friendsState : null;
 
   const tabs = [
     { id: 'all', label: 'الكل', icon: Sparkles },
@@ -43,7 +75,9 @@ export const RoomsListScreen: React.FC = () => {
       case 'new':
         return list.reverse();
       case 'friends':
-        return list.slice(0, 2);
+        return activeFriendState && !activeFriendState.failed
+          ? list.filter(room => Boolean(room.ownerAuthId) && activeFriendState.owners.has(room.ownerAuthId!))
+          : [];
       default:
         return list;
     }
@@ -88,7 +122,7 @@ export const RoomsListScreen: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                aria-pressed={isActive} onClick={() => setActiveTabState(tab.id as any)}
+                aria-pressed={isActive} onClick={() => { setActiveTabState(tab.id as any); if (tab.id === 'friends') setFriendsState(null); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 text-white shadow-xs'
@@ -120,7 +154,17 @@ export const RoomsListScreen: React.FC = () => {
           </span>
         </div>
 
-        {filteredRooms.length > 0 ? (
+        {activeTab === 'friends' && (!user.authId || !activeFriendState || activeFriendState.failed) ? (
+          <div role={activeFriendState?.failed ? 'alert' : 'status'} className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+            {!user.authId ? 'سجل الدخول حتى تشوف غرف أصدقائك.' : activeFriendState?.failed ? 'تعذر تحميل غرف أصدقائك. حاول مجدداً.' : 'جارٍ تحميل غرف أصدقائك...'}
+            {activeFriendState?.failed && (
+              <button type="button" onClick={() => setFriendsRequest(n => n + 1)}
+                className="mx-auto mt-3 block rounded-xl bg-cyan-600 px-4 py-2 font-bold text-white">
+                إعادة المحاولة
+              </button>
+            )}
+          </div>
+        ) : filteredRooms.length > 0 ? (
           <div className="grid grid-cols-2 gap-3">
             {filteredRooms.map((room) => (
               <RoomCard
