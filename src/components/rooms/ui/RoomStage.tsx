@@ -25,6 +25,32 @@ export function RoomStage(props: Props) {
   const toolsRef=useDismissableLayer(tools,()=>setTools(false));
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const viewport=window.visualViewport;
+    // Android keyboard can resize either the visual viewport or the layout viewport.
+    // Its dismissal sometimes keeps the input focused, so blur alone is insufficient.
+    let fullHeight=Math.max(window.innerHeight, viewport?.height||0);
+    const onResize=()=>{
+      const visible=viewport?.height||window.innerHeight;
+      fullHeight=Math.max(fullHeight,visible,window.innerHeight);
+      const shortened=fullHeight-Math.min(visible,window.innerHeight)>120;
+      setKeyboardOpen(document.activeElement===inputRef.current && shortened);
+    };
+    const onFocus=()=>setKeyboardOpen(true);
+    const onBlur=()=>setKeyboardOpen(false);
+    const input=inputRef.current;
+    viewport?.addEventListener('resize',onResize);
+    window.addEventListener('resize',onResize);
+    input?.addEventListener('focus',onFocus);
+    input?.addEventListener('blur',onBlur);
+    return ()=>{
+      viewport?.removeEventListener('resize',onResize);
+      window.removeEventListener('resize',onResize);
+      input?.removeEventListener('focus',onFocus);
+      input?.removeEventListener('blur',onBlur);
+    };
+  }, []);
   const atBottom = useRef(true);
   useEffect(() => {
     const chat = chatRef.current;
@@ -64,7 +90,7 @@ export function RoomStage(props: Props) {
         <button type="submit" aria-label="إرسال رسالة الغرفة" disabled={props.sending||!props.text.trim()||!props.chatEnabled} className="room-icon"><Send size={19}/></button>
       </form>
     </section>
-    <footer className="room-footer">
+    <footer className={keyboardOpen ? "room-footer room-footer--keyboard-hidden" : "room-footer"}>
       <button type="button" aria-label="إرسال هدية" onClick={props.onGift} className="room-icon room-gift"><Gift/></button>
       <button type="button" aria-label="كتابة رسالة" disabled={!props.chatEnabled} onClick={()=>inputRef.current?.focus()} className="room-icon"><MessageCircle/></button>
       <button type="button" aria-label={props.muted?'تشغيل المايكروفون':'كتم المايكروفون'} aria-pressed={!props.muted} aria-busy={props.micBusy} disabled={props.micBusy} onClick={props.onMic} className="room-icon">{props.muted?<MicOff className="text-rose-300"/>:<Mic className="text-emerald-300"/>}</button>
