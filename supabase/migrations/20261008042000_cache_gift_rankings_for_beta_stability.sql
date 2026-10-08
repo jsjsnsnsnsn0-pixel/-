@@ -97,5 +97,6 @@ revoke all on function private.refresh_gift_rankings_cache() from public,anon,au
 revoke all on function private.get_gift_rankings_cached(text) from public,anon;
 grant execute on function private.get_gift_rankings_cached(text) to authenticated;
 select private.refresh_gift_rankings_cache();
-select cron.schedule('totichat-gift-rankings-refresh','* * * * *','select private.refresh_gift_rankings_cache()');
+select cron.schedule('totichat-gift-rankings-refresh','* * * * *',
+  'SET statement_timeout = ''5000ms''; SET lock_timeout = ''1500ms''; SELECT private.refresh_gift_rankings_cache();');
 notify pgrst,'reload schema';
