@@ -48,7 +48,7 @@ test('music disposal cancels pending publication and cannot start playback after
     let allowed=true;
     const pending=music.start(new File(['song'],'phone.mp3',{type:'audio/mpeg'}),{publishTrack:()=>publication,unpublishTrack:async()=>{unpublished++}},()=>allowed);
     await Promise.resolve();allowed=false;music.stop();resolvePublish();await pending;
-    assert.equal(played,0);assert.equal(stopped,1);assert.equal(closed,1);assert.ok(unpublished>=1);assert.ok(names.every(name=>name===''));
+    assert.equal(played,0);assert.equal(stopped,1);assert.equal(closed,1);assert.equal(unpublished,1,'a cancelled pending publication must be unpublished exactly once');assert.ok(names.every(name=>name===''));
     await assert.rejects(()=>music.start(new File(['song'],'phone.mp3',{type:'audio/mpeg'}),{publishTrack:async()=>{},unpublishTrack:async()=>{}},()=>false),/اختر مقعداً/);
   } finally {
     if(savedAudio)Object.defineProperty(globalThis,'Audio',savedAudio);else delete(globalThis as any).Audio;
@@ -84,4 +84,36 @@ test('music pauses and resumes without touching the published voice session',asy
     if(savedContext)Object.defineProperty(globalThis,'AudioContext',savedContext);else delete(globalThis as any).AudioContext;
     URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
   }
+});
+
+test('stopping a music track before publishing does not unpublish a track that never existed',async()=>{
+ let unpublishCount=0, publishCount=0;
+ const savedAudio=Object.getOwnPropertyDescriptor(globalThis,'Audio');
+ const savedContext=Object.getOwnPropertyDescriptor(globalThis,'AudioContext');
+ const oldCreate=URL.createObjectURL,oldRevoke=URL.revokeObjectURL;
+ let releaseResume!:()=>void;
+ const resumePromise=new Promise<void>(r=>{releaseResume=r});
+ Object.defineProperty(globalThis,'Audio',{configurable:true,value:class{src='';onended:unknown;onerror:unknown;preload='';pause(){}removeAttribute(){}async play(){}}});
+ Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{
+   destination={};createGain(){return {gain:{value:1},connect(){},disconnect(){}}}
+   createMediaElementSource(){return {connect(){},disconnect(){}}}
+   createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){}}]}}}
+   resume(){return resumePromise}async close(){}
+ }});
+ URL.createObjectURL=()=> 'blob:pending';URL.revokeObjectURL=()=>{};
+ try{
+   const publisher=new RoomMusicPublisher(()=>{});
+   const pending=publisher.start(new File(['song'],'test.mp3',{type:'audio/mpeg'}),{
+     publishTrack:async()=>{publishCount++},unpublishTrack:async()=>{unpublishCount++}
+   },()=>true);
+   publisher.stop();
+   releaseResume();
+   await pending;
+   assert.equal(publishCount,0);
+   assert.equal(unpublishCount,0,'a never-published track must not be unpublished');
+ }finally{
+   if(savedAudio)Object.defineProperty(globalThis,'Audio',savedAudio);else delete(globalThis as any).Audio;
+   if(savedContext)Object.defineProperty(globalThis,'AudioContext',savedContext);else delete(globalThis as any).AudioContext;
+   URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;
+ }
 });
