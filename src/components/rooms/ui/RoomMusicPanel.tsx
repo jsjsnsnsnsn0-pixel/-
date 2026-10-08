@@ -83,7 +83,7 @@ export function RoomMusicPanel(p:Props){
      const cached={...track,file};
      setItems(previous=>previous.map(x=>x.id===track.id?cached:x));
      setSelected(cached);setTab('now');
-   }catch(e){setError(e instanceof Error?e.message:'تعذر تشغيل الأغنية');}
+   }catch(e){const message=e instanceof Error?e.message:'';setError(/insufficient permissions|failed to publish track/i.test(message)?'تعذر بث الأغنية: أعد الدخول للغرفة وتأكد أنك المالك أو مشرف مخوّل وأنك على مايك مفتوح.':message||'تعذر تشغيل الأغنية');}
    finally{setBusy(false);}
  };
  const remove=async(track:Track)=>{
