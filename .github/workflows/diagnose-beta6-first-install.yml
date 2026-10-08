@@ -1,0 +1,66 @@
+name: Diagnose Beta.6 clean Android 14 APK installation
+on:
+  push:
+    branches:
+      - diagnostics/beta6-android14-first-install-20261008
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install-published-beta6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Install Java required by Android emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Download EXACT published Beta.6 APK and check asset SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/beta6-diagnostic"
+          gh release download v0.9.0-beta.6 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'TotiChat-Beta-0.9.0-beta.6.apk' --dir "$GITHUB_WORKSPACE/beta6-diagnostic"
+          cd "$GITHUB_WORKSPACE/beta6-diagnostic"
+          printf '%s  %s\n' \
+            'da58c5a38846debc023bb64b85387273f681fa75a13b1b1a3d4adf16dc9a3b59' \
+            'TotiChat-Beta-0.9.0-beta.6.apk' | sha256sum --check -
+          test "$(stat -c '%s' TotiChat-Beta-0.9.0-beta.6.apk)" -eq 112935782
+          unzip -tq TotiChat-Beta-0.9.0-beta.6.apk
+      - name: Grant KVM access to emulator
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Fresh-install published APK on Android 14 (API 34)
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -euo pipefail
+            apk="$GITHUB_WORKSPACE/beta6-diagnostic/TotiChat-Beta-0.9.0-beta.6.apk"
+            adb wait-for-device
+            echo "Android API: $(adb shell getprop ro.build.version.sdk)"
+            if adb shell pm path com.totichat.app | grep -q package:; then
+              echo "Not a clean emulator: TotiChat is already installed" >&2
+              exit 1
+            fi
+            adb install "$apk" 2>&1 | tee "$GITHUB_WORKSPACE/beta6-diagnostic/install-result.txt"
+            adb shell pm path com.totichat.app | tee "$GITHUB_WORKSPACE/beta6-diagnostic/package-path.txt"
+            adb shell dumpsys package com.totichat.app | grep -m1 versionCode | tee "$GITHUB_WORKSPACE/beta6-diagnostic/installed-version.txt"
+            adb shell monkey -p com.totichat.app -c android.intent.category.LAUNCHER 1 | tee "$GITHUB_WORKSPACE/beta6-diagnostic/launch-result.txt"
+      - name: Preserve clean-install evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta6-android14-first-install-diagnostic
+          path: beta6-diagnostic/*.txt
+          if-no-files-found: ignore
