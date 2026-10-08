@@ -153,7 +153,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const id = authRef.current;
     if (!id) return [];
     const [rs, ms, ls, links] = await Promise.all([
-      supabase.from('rooms').select('*').or(`is_active.eq.true,owner_id.eq.${id}`).order('created_at', {ascending: false}),
+      supabase.from('rooms_client').select('*').or(`is_active.eq.true,owner_id.eq.${id}`).order('created_at', {ascending: false}),
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
       supabase.from('user_room_links').select('*').eq('user_id',id),
     ]);

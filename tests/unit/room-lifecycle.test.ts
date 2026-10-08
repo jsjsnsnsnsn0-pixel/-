@@ -31,7 +31,7 @@ test('room settings round trip, failed save, membership removal and close', asyn
     const q:any={};
     for(const name of ['select','eq','order','limit','or','is','gte'])q[name]=()=>q;
     for(const name of ['insert','update','delete'])q[name]=(value:any)=>{method=name;body=value;return q;};
-    const result=()=>({data:table==='profiles'?profile:table==='rooms'?[row]:table==='room_members'?members:[],error:null});
+    const result=()=>({data:table==='profiles'?profile:(table==='rooms'||table==='rooms_client')?[row]:table==='room_members'?members:[],error:null});
     q.single=()=>Promise.resolve(result());q.then=(resolve:any,reject:any)=>{if(method!=='select')requests.push({table,method,body});return Promise.resolve(result()).then(resolve,reject);};return q;
   };
   const client={from:query,auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getSession:async()=>({data:{session:{user:{id:actor}}},error:null})},rpc:async(name:string,body:any)=>{
