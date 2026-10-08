@@ -45,18 +45,37 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: |
-            set -euo pipefail
+            set -eu
             apk="$GITHUB_WORKSPACE/beta6-diagnostic/TotiChat-Beta-0.9.0-beta.6.apk"
+            evidence="$GITHUB_WORKSPACE/beta6-diagnostic"
             adb wait-for-device
             echo "Android API: $(adb shell getprop ro.build.version.sdk)"
             if adb shell pm path com.totichat.app | grep -q package:; then
               echo "Not a clean emulator: TotiChat is already installed" >&2
               exit 1
             fi
-            adb install "$apk" 2>&1 | tee "$GITHUB_WORKSPACE/beta6-diagnostic/install-result.txt"
-            adb shell pm path com.totichat.app | tee "$GITHUB_WORKSPACE/beta6-diagnostic/package-path.txt"
-            adb shell dumpsys package com.totichat.app | grep -m1 versionCode | tee "$GITHUB_WORKSPACE/beta6-diagnostic/installed-version.txt"
-            adb shell monkey -p com.totichat.app -c android.intent.category.LAUNCHER 1 | tee "$GITHUB_WORKSPACE/beta6-diagnostic/launch-result.txt"
+            if adb install "$apk" > "$evidence/install-result.txt" 2>&1; then
+              cat "$evidence/install-result.txt"
+            else
+              cat "$evidence/install-result.txt"
+              exit 1
+            fi
+            grep -q '^Success      - name: Preserve clean-install evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta6-android14-first-install-diagnostic
+          path: beta6-diagnostic/*.txt
+          if-no-files-found: ignore
+ "$evidence/install-result.txt"
+            adb shell pm path com.totichat.app > "$evidence/package-path.txt"
+            cat "$evidence/package-path.txt"
+            grep -q '^package:' "$evidence/package-path.txt"
+            adb shell dumpsys package com.totichat.app | grep -m1 versionCode > "$evidence/installed-version.txt"
+            cat "$evidence/installed-version.txt"
+            adb shell monkey -p com.totichat.app -c android.intent.category.LAUNCHER 1 > "$evidence/launch-result.txt"
+            cat "$evidence/launch-result.txt"
+            grep -q 'Events injected: 1' "$evidence/launch-result.txt"
       - name: Preserve clean-install evidence, including failures
         if: always()
         uses: actions/upload-artifact@v4
