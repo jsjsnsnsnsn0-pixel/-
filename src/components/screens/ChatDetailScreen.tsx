@@ -52,7 +52,7 @@ export const ChatDetailScreen: React.FC = () => {
   // Keep long chats responsive on low-memory Android devices without deleting history.
   const [historyWindow,setHistoryWindow]=useState<{chatId:string;count:number}>({chatId:'',count:80});
   const pageSize=historyWindow.chatId===selectedChatUser?.id?historyWindow.count:80;
-  const visibleMessages=recentChatMessages(allMessages,pageSize);
+  const visibleMessages=recentChatMessages<(typeof allMessages)[number]>(allMessages,pageSize);
   const olderCount=allMessages.length-visibleMessages.length;
 
   const [sending, setSending] = useState(false);
