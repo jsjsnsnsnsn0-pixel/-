@@ -45,11 +45,17 @@ const readSupabaseKey = (
   return readRequiredEnv(legacyName);
 };
 
-const microphoneOnly = (canPublish: boolean) => ({
+// Custom MediaStreamDestination tracks published by the existing beta client
+// use Track.Source.Unknown, not Microphone. Only authorized owner/moderators on
+// an unmuted seat receive the extra music source grant; all other users are mic-only.
+const audioPermissions = (canPublish: boolean, mayPublishMusic: boolean) => ({
   canSubscribe: true,
   canPublish,
   canPublishData: false,
-  canPublishSources: canPublish ? [TrackSource.MICROPHONE] : [],
+  canPublishSources: canPublish ? [
+    TrackSource.MICROPHONE,
+    ...(mayPublishMusic ? [TrackSource.UNKNOWN, TrackSource.SCREEN_SHARE_AUDIO] : []),
+  ] : [],
 });
 
 const toServerApiUrl = (url: string) =>
@@ -101,7 +107,7 @@ export default {
       });
 
       const [roomResult, membershipResult, banResult] = await Promise.all([
-        admin.from('rooms').select('id,is_active').eq('id', roomId).maybeSingle(),
+        admin.from('rooms').select('id,is_active,owner_id').eq('id', roomId).maybeSingle(),
         admin.from('room_members')
           .select('room_id,user_id,seat_number,is_muted,role')
           .eq('room_id', roomId)
@@ -138,7 +144,15 @@ export default {
       const roomName = room.id;
       const identity = user.id;
       const canPublish = membership.seat_number !== null && membership.is_muted === false;
-      const permissions = microphoneOnly(canPublish);
+      const isMusicController = room.owner_id === user.id || membership.role === 'moderator';
+      let musicEnabled = false;
+      if (canPublish && isMusicController) {
+        const {data: flag, error: flagError} = await admin.from('beta_feature_flags')
+          .select('enabled').eq('id','music_enabled').maybeSingle();
+        if (flagError) console.error('music flag lookup failed', {message:flagError.message});
+        musicEnabled = !flagError && flag?.enabled === true;
+      }
+      const permissions = audioPermissions(canPublish, musicEnabled && isMusicController);
 
       if (action === 'sync-permissions') {
         const roomService = new RoomServiceClient(livekitApiUrl, apiKey, apiSecret);
@@ -163,7 +177,7 @@ export default {
         canSubscribe: true,
         canPublish,
         canPublishData: false,
-        canPublishSources: canPublish ? [TrackSource.MICROPHONE] : [],
+        canPublishSources: permissions.canPublishSources,
         canUpdateOwnMetadata: false,
       });
 
