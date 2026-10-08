@@ -34,11 +34,19 @@ if (process.env.TOTICHAT_BETA === '1') {
   }
   gradle=gradle.replace(/versionCode\s+\d+/,'versionCode 900009')
     .replace(/versionName\s+["'][^"']+["']/,'versionName "0.9.0-beta.9"');
+  if (process.env.TOTICHAT_COMPANION === '1') {
+    // Distinct package permits installing beside the pre-existing differently
+    // signed TotiChat Beta.8 without deleting that app or its local data.
+    // Keep namespace and OAuth scheme to retain existing native callback rules.
+    const original='applicationId "com.totichat.app"';
+    if(!gradle.includes(original))throw new Error('Cannot find expected native app ID');
+    gradle=gradle.replace(original,'applicationId "com.totichat.app.beta9"');
+  }
   await writeFile(gradlePath,gradle);
   const stringsPath='android/app/src/main/res/values/strings.xml';
   let strings=await readFile(stringsPath,'utf8');
   if(!strings.includes('name="app_name"'))throw new Error('Android app name resource missing');
-  strings=strings.replace(/(<string name="app_name">)[^<]*(<\/string>)/,'$1TotiChat Beta$2');
+  strings=strings.replace(/(<string name="app_name">)[^<]*(<\/string>)/,process.env.TOTICHAT_COMPANION==='1'?'$1TotiChat Beta 9 Fix$2':'$1TotiChat Beta$2');
   await writeFile(stringsPath,strings);
-  console.log('TotiChat Beta 0.9.0-beta.9 is configured; package ID kept for existing OAuth.');
+  console.log(process.env.TOTICHAT_COMPANION==='1'?'TotiChat Beta.9 companion can coexist with Beta.8 (Google OAuth deep link may require choosing the companion app).':'TotiChat Beta 0.9.0-beta.9 configured with original app ID.');
 }
