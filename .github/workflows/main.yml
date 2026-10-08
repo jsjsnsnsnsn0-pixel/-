@@ -34,6 +34,8 @@ jobs:
       - run: npm run lint
       - run: npm run check:assets
       - run: npm run test:unit
+      - name: Check standalone admin and OAuth callbacks
+        run: npm --prefix admin-dashboard run check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
