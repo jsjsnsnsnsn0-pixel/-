@@ -1,0 +1,24 @@
+name: TotiChat Beta UX Reliability QA (no deployment)
+on:
+  push:
+    branches: [fix/beta-room-ux-search-reliability-20261008]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify pinned dependencies
+        run: npm ci
+      - name: Static, types, assets, unit and production web build
+        run: npm run check
+      - name: Verify no Android package is built or released
+        run: |
+          echo 'Test-only feature branch. No gradle assemble, no APK, no Supabase writes, no deployment.'
