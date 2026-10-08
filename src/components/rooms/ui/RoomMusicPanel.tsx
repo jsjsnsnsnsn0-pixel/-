@@ -24,7 +24,7 @@ export function RoomMusicPanel(p:Props){
  // exposed to another user and uploads persist across devices and reinstalls.
  useEffect(()=>{
    if(!p.open||!p.userId)return;
-   let disposed=false;setLoading(true);setError('');
+   let disposed=false;setLoading(true);setError('');setItems([]);setSelected(null);
    void loadUserMusic(p.userId).then(songs=>{
      if(!disposed)setItems(songs);
    }).catch(e=>{if(!disposed)setError(e instanceof Error?e.message:'تعذر تحميل الأغاني المحفوظة.');})
