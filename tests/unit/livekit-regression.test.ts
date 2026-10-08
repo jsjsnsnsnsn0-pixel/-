@@ -38,15 +38,17 @@ test('LiveKit cannot capture after leaving; mute stops locally even when server 
   for(const key of ['window','document','navigator'])Object.defineProperty(globalThis,key,{configurable:true,value:(dom.window as any)[key]});
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
   let capture=deferred();let stopped=0;let failSync=false;let audio:any;const clients:any[]=[];
+  let syncGate:ReturnType<typeof deferred>|null=null;
+  let enableGate:ReturnType<typeof deferred>|null=null;
   Object.defineProperty(dom.window.navigator,'mediaDevices',{value:{getUserMedia:()=>capture.promise}});
   class Client {
     calls:boolean[]=[];
-    localParticipant={setMicrophoneEnabled:async(enabled:boolean)=>{this.calls.push(enabled);},audioTrackPublications:new Map()};
+    localParticipant={setMicrophoneEnabled:async(enabled:boolean)=>{this.calls.push(enabled);if(enabled&&enableGate)await enableGate.promise;},audioTrackPublications:new Map()};
     on(){return this;}async connect(){}async disconnect(){}async startAudio(){}
     constructor(){clients.push(this);}
   }
   (globalThis as any).LivekitClient={Room:Client,RoomEvent:{TrackSubscribed:'track',Disconnected:'disconnected'}};
-  (globalThis as any).__livekitTestClient={functions:{invoke:async(_name:string,{body}:any)=>body.action==='token'?{data:{token:'token',url:'wss://test.invalid'},error:null}:failSync?{data:null,error:new Error('sync failed')}:{data:{canPublish:true},error:null}}};
+  (globalThis as any).__livekitTestClient={functions:{invoke:async(_name:string,{body}:any)=>body.action==='token'?{data:{token:'token',url:'wss://test.invalid'},error:null}:syncGate?syncGate.promise:failSync?{data:null,error:new Error('sync failed')}:{data:{canPublish:true},error:null}}};
   const temp=await mkdtemp(join(process.cwd(),'.livekit-hook-test-'));let root:ReturnType<typeof createRoot>|undefined;
   try {
     await build({stdin:{contents:"export {useLiveKitRoomAudio} from './src/hooks/useRoomAudio';",resolveDir:process.cwd(),loader:'tsx'},outfile:join(temp,'hook.mjs'),bundle:true,platform:'node',format:'esm',packages:'external',plugins:[{name:'mock-server',setup(b){b.onResolve({filter:/\/services\/supabase$/},()=>({path:'supabase',namespace:'mock'}));b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const supabase=globalThis.__livekitTestClient;'}));}}]});
@@ -66,6 +68,25 @@ test('LiveKit cannot capture after leaving; mute stops locally even when server 
     await act(async()=>{await audio.enableMicrophone();});assert.equal(clients[1].calls.at(-1),true);
     failSync=true;await render(room,true);
     assert.equal(clients[1].calls.at(-1),false);assert.ok(errors.length>0);
+    failSync=false;await render(room,false);
+    Object.defineProperty(dom.window.document,'visibilityState',{configurable:true,value:'visible'});
+    clients[1].localParticipant.audioTrackPublications.set('music',{source:'screen_share_audio',track:{mediaStreamTrack:{readyState:'live'}}});
+    clients[1].calls=[];
+    await act(async()=>{dom.window.dispatchEvent(new dom.window.Event('focus'));});
+    assert.deepEqual(clients[1].calls,[true],'live music is not a live microphone');
+    syncGate=deferred();const oldSync=syncGate;
+    await act(async()=>{dom.window.dispatchEvent(new dom.window.Event('focus'));});
+    syncGate=null;
+    await render({...room,id:'room-b'},false);
+    clients[2].calls=[];
+    await act(async()=>{oldSync.resolve({data:{canPublish:true},error:null});});
+    assert.deepEqual(clients[2].calls,[],'old room permissions must not enable the new room microphone');
+    enableGate=deferred();
+    await act(async()=>{dom.window.dispatchEvent(new dom.window.Event('focus'));});
+    assert.equal(clients[2].calls.at(-1),true);
+    await render({...room,id:'room-b'},true);
+    await act(async()=>{enableGate!.resolve(undefined);});
+    assert.equal(clients[2].calls.at(-1),false,'mute during pending restoration must stop the completed capture');
   } finally {
     if(root)await act(async()=>root!.unmount());await rm(temp,{recursive:true,force:true});dom.window.close();delete (globalThis as any).__livekitTestClient;
     for(const key of keys){const value=saved.get(key);if(value)Object.defineProperty(globalThis,key,value);else delete (globalThis as any)[key];}

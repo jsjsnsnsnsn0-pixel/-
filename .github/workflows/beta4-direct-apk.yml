@@ -46,7 +46,7 @@ jobs:
           grep -F '0.9.0-beta.4' scripts/configure-android.mjs
           grep -F "bucket='user-music'" src/services/userMusic.ts
           grep -F "source:'screen_share_audio'" src/services/roomMusic.ts
-          test -f supabase/migrations/20261008053000_user_music_library.sql
+          test -f supabase/migrations/20261008015743_user_music_library_private_storage_and_quota.sql
       - name: Browser integration tests
         run: |
           npx playwright install --with-deps chromium

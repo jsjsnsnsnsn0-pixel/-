@@ -38,6 +38,15 @@ Full account-wide synchronization is replaced by coalesced per-domain refreshes;
 
 ## Remaining release checks and feature limits
 
+### Continuation: music monitoring and session races
+
+- Local music monitoring now uses a separate gain node. The broadcaster's music slider and speaker toggle affect their own playback without changing the outgoing music or microphone.
+- Resuming a suspended audio context checks the current music generation before playback/publication; stopping or leaving during a pending resume cannot restart a disposed song. A terminal LiveKit disconnect stops local music.
+- Foreground microphone restoration recognizes microphone publications specifically, so a live music track no longer prevents microphone recovery. Concurrent foreground events are coalesced. Old-room permission responses cannot activate the new room, and muting during pending capture disables the completed capture.
+- Noise suppression constraints apply only to microphone publications.
+- Beta.4's build preflight now references the actual applied private music migration; the general APK artifact name identifies its commit instead of incorrectly claiming Beta.1.
+- Continuation validation: all 50 unit/DOM/lifecycle tests, TypeScript, ESLint, asset references and production build pass. The new behavioral assertions cover local-only gain routing, stopped-context resume, music-versus-microphone recovery, old-room permission responses and mute-during-recovery. Main JS is 391.10 kB (124.19 kB gzip) in this run. Device verification limitations below still apply; this pass does not claim a new APK or device measurements.
+
 This audit does not certify that every desired product feature is complete. Phone SMS provider setup, Google/native OAuth return, two-device LiveKit voice/music, actual recharge operations, Android performance and month-end settlement operations require end-to-end verification. The independent dashboard still lacks dedicated tested actions for arbitrary account level/VIP changes, general account banning and advanced CP administration. Historical schema before the first migration is not captured, so rebuilding an empty database solely from this migration history remains unsupported.
 
 Security advisors include intentionally inaccessible audit/internal tables and authenticated SECURITY DEFINER APIs; all public SECURITY DEFINER functions deny anonymous execution, but authenticated API permissions still need per-function review. Leaked-password protection remains disabled in project authentication settings. Remaining performance advisories are 31 informational [foreign-key index candidates](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) and 33 [unused-index observations](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index); these need workload evidence before adding/removing indexes. No APK is built or deployed by this audit. No real user balances, relationships or settlements were modified by fixtures.

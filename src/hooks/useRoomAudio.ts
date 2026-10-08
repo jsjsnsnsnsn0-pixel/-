@@ -142,6 +142,7 @@ export function useLiveKitRoomAudio(
     };
     const onDisconnected = () => {
       if (!disposed) {
+        musicRef.current?.stop();
         setConnected(false);
         setSpeakingIds([]);
       }
@@ -199,8 +200,9 @@ export function useLiveKitRoomAudio(
   }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError, resumePlayback]);
 
   useEffect(()=>{
+    musicRef.current?.setLocalVolume(speaker?musicVolume:0);
     for(const element of remoteAudio.current.values())if(element.dataset.roomMusic==='true')element.volume=musicVolume;
-  },[musicVolume]);
+  },[musicVolume,speaker]);
   useEffect(() => {
     for (const element of remoteAudio.current.values()) element.muted = !speaker;
     if (speaker) { playbackWarningShown.current = false; void resumePlayback(); }
@@ -254,6 +256,7 @@ export function useLiveKitRoomAudio(
     const publications = client.localParticipant?.audioTrackPublications;
     if (!publications) return;
     for (const publication of publications.values?.() || []) {
+      if(publication?.source !== 'microphone')continue;
       const mediaTrack = publication?.track?.mediaStreamTrack;
       if (mediaTrack?.applyConstraints) {
         void mediaTrack.applyConstraints({ echoCancellation: true, noiseSuppression }).catch(() => {});
@@ -263,16 +266,22 @@ export function useLiveKitRoomAudio(
 
   useEffect(() => {
     if (!connected) return;
+    const client=clientRef.current;
+    const currentGeneration=generation.current;
+    let restoring=false;
     const resume = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible'||restoring) return;
+      restoring=true;
       void resumePlayback();
       void invokeAudio('sync-permissions').then(async permission => {
-        const client = clientRef.current;
-        if (!client || !hasSeatRef.current || mutedRef.current || permission.canPublish !== true) return;
+        if (!client || client!==clientRef.current || currentGeneration!==generation.current || !hasSeatRef.current || mutedRef.current || permission.canPublish !== true) return;
         const publications = client.localParticipant?.audioTrackPublications;
-        const hasLiveTrack = publications && [...(publications.values?.() || [])].some((p:any) => p?.track?.mediaStreamTrack?.readyState === 'live');
-        if (!hasLiveTrack) await client.localParticipant?.setMicrophoneEnabled?.(true, {echoCancellation:true, noiseSuppression:noiseRef.current});
-      }).catch(() => {});
+        const hasLiveTrack = publications && [...(publications.values?.() || [])].some((p:any) => p?.source==='microphone' && p?.track?.mediaStreamTrack?.readyState === 'live');
+        if (!hasLiveTrack) {
+          await client.localParticipant?.setMicrophoneEnabled?.(true, {echoCancellation:true, noiseSuppression:noiseRef.current});
+          if(client!==clientRef.current || currentGeneration!==generation.current || !hasSeatRef.current || mutedRef.current)await client.localParticipant?.setMicrophoneEnabled?.(false);
+        }
+      }).catch(() => {}).finally(()=>{restoring=false;});
     };
     document.addEventListener('visibilitychange', resume);
     window.addEventListener('focus', resume);
@@ -312,8 +321,10 @@ export function useLiveKitRoomAudio(
 
   const startMusic=useCallback(async(file:File)=>{
     const client=clientRef.current;
+    const currentGeneration=generation.current;
     if(!client||!connected)throw new Error('انتظر اتصال صوت الغرفة.');
     const permission=await invokeAudio('sync-permissions');
+    if(client!==clientRef.current||currentGeneration!==generation.current)throw new Error('ROOM_SESSION_ENDED');
     if(permission.canPublish!==true)throw new Error('لا تملك صلاحية بث الموسيقى الآن.');
     await musicRef.current!.start(file,client.localParticipant,()=>client===clientRef.current&&hasSeatRef.current&&!mutedRef.current);
     setMusicPaused(false);

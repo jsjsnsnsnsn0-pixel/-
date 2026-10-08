@@ -2,6 +2,38 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {RoomMusicPublisher} from '../../src/services/roomMusic';
 
+test('local music volume leaves broadcast untouched and pending resume cannot revive stopped music',async()=>{
+  const originals=['Audio','AudioContext'].map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)] as const);
+  const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
+  const connections:unknown[]=[];let played=0,published=0;
+  const output={stream:{getAudioTracks:()=>[{stop(){}}]}};
+  const gain={gain:{value:1},connect(){},disconnect(){}};
+  let resume:()=>Promise<void>=async()=>{};
+  Object.defineProperty(globalThis,'Audio',{configurable:true,value:class{src='';pause(){}removeAttribute(){}async play(){played++}}});
+  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{
+    destination={};createGain(){return gain}createMediaElementSource(){return {connect(node:unknown){connections.push(node)},disconnect(){}}}
+    createMediaStreamDestination(){return output}resume(){return resume()}async close(){}
+  }});
+  URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
+  try{
+    const music=new RoomMusicPublisher(()=>{});
+    music.setLocalVolume(0.25);
+    const participant={publishTrack:async()=>{published++},unpublishTrack:async()=>{}};
+    await music.start(new File(['song'],'phone.mp3',{type:'audio/mpeg'}),participant,()=>true);
+    assert.equal(gain.gain.value,0.25);
+    assert.deepEqual(connections,[output,gain]);
+    music.setLocalVolume(0);assert.equal(gain.gain.value,0);assert.equal(published,1);
+    let release!:()=>void;resume=()=>new Promise<void>(resolve=>{release=resolve});
+    const pending=music.resume();music.stop();release();assert.equal(await pending,false);assert.equal(played,1);
+    const starting=music.start(new File(['song'],'phone.mp3',{type:'audio/mpeg'}),participant,()=>true);
+    music.stop();release();await starting;
+    assert.equal(published,1,'stopping during AudioContext resume must prevent publication');
+  }finally{
+    for(const [key,value] of originals){if(value)Object.defineProperty(globalThis,key,value);else delete(globalThis as any)[key];}
+    URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;
+  }
+});
+
 test('music disposal cancels pending publication and cannot start playback after leaving',async()=>{
   let played=0,stopped=0,closed=0,unpublished=0;const names:string[]=[];
   const savedAudio=Object.getOwnPropertyDescriptor(globalThis,'Audio');
@@ -9,7 +41,7 @@ test('music disposal cancels pending publication and cannot start playback after
   const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
   let resolvePublish!:()=>void;const publication=new Promise<void>(resolve=>{resolvePublish=resolve});
   Object.defineProperty(globalThis,'Audio',{configurable:true,value:class{onended:unknown;onerror:unknown;src='';pause(){}removeAttribute(){}async play(){played++}}});
-  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{destination={};createMediaElementSource(){return {connect(){},disconnect(){}}}createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){stopped++}}]}}}async resume(){}async close(){closed++}}});
+  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{destination={};createGain(){return {gain:{value:1},connect(){},disconnect(){}}}createMediaElementSource(){return {connect(){},disconnect(){}}}createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){stopped++}}]}}}async resume(){}async close(){closed++}}});
   URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
   try {
     const music=new RoomMusicPublisher(name=>names.push(name));
@@ -32,7 +64,7 @@ test('music pauses and resumes without touching the published voice session',asy
   const savedContext=Object.getOwnPropertyDescriptor(globalThis,'AudioContext');
   const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL;
   Object.defineProperty(globalThis,'Audio',{configurable:true,value:class{onended:unknown;onerror:unknown;src='';preload='';paused=true;pause(){paused++;this.paused=true}removeAttribute(){}async play(){played++;this.paused=false}}});
-  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{destination={};createMediaElementSource(){return {connect(){},disconnect(){}}}createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){}}]}}}async resume(){}async close(){}}});
+  Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:class{destination={};createGain(){return {gain:{value:1},connect(){},disconnect(){}}}createMediaElementSource(){return {connect(){},disconnect(){}}}createMediaStreamDestination(){return {stream:{getAudioTracks:()=>[{stop(){}}]}}}async resume(){}async close(){}}});
   URL.createObjectURL=()=> 'blob:test';URL.revokeObjectURL=()=>{};
   try {
     const music=new RoomMusicPublisher(name=>names.push(name));
