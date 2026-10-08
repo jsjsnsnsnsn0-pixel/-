@@ -3,6 +3,7 @@ import {AppProvider,useApp,previewRooms} from '../context/AppContext';
 import {RealtimeRankingsProvider} from '../context/RealtimeRankingsProvider';
 import {RoomAudioProvider} from '../context/RoomAudioContext';
 import {BottomNavigation} from '../components/common/BottomNavigation';
+const AuthPreview=lazy(()=>import('./AuthPreview').then(x=>({default:x.AuthPreview})));
 const AuditLab=lazy(()=>import('./AuditLab').then(x=>({default:x.AuditLab})));
 const Home=lazy(()=>import('../components/screens/HomeScreen').then(x=>({default:x.HomeScreen})));
 const Rooms=lazy(()=>import('../components/screens/RoomsListScreen').then(x=>({default:x.RoomsListScreen})));
@@ -20,6 +21,7 @@ const Agency=lazy(()=>import('../components/screens/AgencyScreen').then(x=>({def
 const Badges=lazy(()=>import('../components/screens/BadgesScreen').then(x=>({default:x.BadgesScreen})));
 const catalogue=[
  ['uiux_audit','مختبر مراجعة UI/UX'],
+ ['auth_demo','تجربة الدخول · تصميم'],
  ['home','الرئيسية'],['rooms','الغرف'],['voice','غرفة صوتية'],['gifts','صندوق الهدايا'],['profile','الملف الشخصي'],
  ['messages','الرسائل'],['store','المتجر'],['wallet','المحفظة'],['vip','VIP'],['create','إنشاء غرفة'],['agency','الوكالات'],['badges','الشارات'],['gift_box','حقيبتي'],['recharge','الشحن']
 ] as const;
@@ -34,7 +36,7 @@ function ReviewPage(){
    else setActiveSubScreen(v);
  };
  const active=activeRoom?(activeSubScreen==='gift_box'?'gifts':'voice'):(activeSubScreen||activeTab);
- const render=activeSubScreen==='uiux_audit'?<AuditLab onNavigate={select}/> :activeRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
+ const render=activeSubScreen==='uiux_audit'?<AuditLab onNavigate={select}/> :activeSubScreen==='auth_demo'?<AuthPreview onComplete={()=>select('home')}/> :activeRoom?<><Room/>{activeSubScreen==='gift_box'&&<Gifts isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>{void leaveRoom();setActiveSubScreen('recharge');}}/>}</>
  :activeSubScreen==='store'?<Store/>
  :activeSubScreen==='wallet'?<Wallet/>
  :activeSubScreen==='vip'?<Vip/>
