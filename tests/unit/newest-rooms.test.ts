@@ -13,5 +13,5 @@ test('new rooms order uses server creation time rather than reversing a list',()
   assert.deepEqual(source.map(room=>room.id), ['new','old','middle','unknown'], 'input must remain unchanged');
 });
 test('equal or missing dates preserve existing stable room order',()=>{
-  assert.deepEqual(newestRooms([{id:'a'},{id:'b'},{id:'c'}]).map(r=>r.id),['a','b','c']);
+  assert.deepEqual(newestRooms<{id:string;createdAt?:string}>([{id:'a'},{id:'b'},{id:'c'}]).map(r=>r.id),['a','b','c']);
 });
