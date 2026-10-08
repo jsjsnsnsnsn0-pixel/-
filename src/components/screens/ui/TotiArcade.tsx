@@ -1,5 +1,5 @@
-import React,{useEffect,useRef,useState} from 'react';
-import {Sparkles,RefreshCw,X,Gamepad2,ShieldCheck} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+import {Sparkles,X,Gamepad2,ShieldCheck} from 'lucide-react';
 import {ARCADE_SYMBOLS,ARCADE_WISHES,arcadeMatch,pickArcadeIndex} from '../../../services/arcadePractice';
 
 type Mode='wheel'|'eggs'|'garden'|'envelopes'|'boom'|'symbols';
