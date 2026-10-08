@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Home, MessageSquare, User as UserIcon } from 'lucide-react';
+import { Home, MessageSquare, UsersRound, User as UserIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const BottomNavigation: React.FC = () => {
   const {
     activeTab,
     setActiveTab,
+    setActiveSubScreen,
     unreadMessagesCount,
     unreadSystemMessagesCount,
     hasUnseenVisitors,
@@ -18,9 +19,10 @@ export const BottomNavigation: React.FC = () => {
     return null;
   }
 
-  const isHomeActive = activeTab === 'home';
-  const isMessagesActive = activeTab === 'messages';
-  const isProfileActive = activeTab === 'profile';
+  const isHomeActive = activeTab === 'home' && !activeSubScreen;
+  const isCommunityActive = activeSubScreen === 'community';
+  const isMessagesActive = activeTab === 'messages' && !activeSubScreen;
+  const isProfileActive = activeTab === 'profile' && !activeSubScreen;
 
   const totalUnreadMessages = unreadMessagesCount + unreadSystemMessagesCount;
   const profileUnseenCount = (hasUnseenVisitors ? 1 : 0) + (hasUnseenFollowers ? 1 : 0);
@@ -31,7 +33,7 @@ export const BottomNavigation: React.FC = () => {
       className="fixed bottom-3 inset-x-3 z-40 max-w-[calc(28rem-1.5rem)] mx-auto rounded-[24px] bg-[#0e302a]/75 backdrop-blur-[10px] border border-emerald-100/25 text-white shadow-[0_10px_26px_rgba(7,43,35,.24)] pb-safe"
       dir="rtl"
     >
-      <div className="flex items-center justify-around h-[66px] px-2">
+      <div className="flex items-center justify-around h-[66px] px-1">
         {/* Tab 1: الصفحة الرئيسية (Home with semantic icon) */}
         <button
           type="button"
@@ -55,7 +57,17 @@ export const BottomNavigation: React.FC = () => {
           </div>
         </button>
 
-        {/* Tab 2: الرسائل (Messages with Aladdin Magic Lamp) */}
+        <button
+          type="button"
+          onClick={() => setActiveSubScreen('community')}
+          className="flex flex-col items-center justify-center flex-1 h-[54px] mx-1 rounded-2xl cursor-pointer transition-all active:scale-95 hover:bg-white/[0.05]"
+          title="المجتمع"
+          aria-current={isCommunityActive ? "page" : undefined}
+        >
+          <UsersRound size={24} strokeWidth={2.2} aria-hidden="true" className={isCommunityActive ? "text-amber-300" : "text-slate-100"} />
+          <span className={`text-[11px] font-bold mt-0.5 ${isCommunityActive ? 'text-amber-300' : 'text-slate-400'}`}>المجتمع</span>
+        </button>
+        {/* Tab 3: الرسائل (Messages with Aladdin Magic Lamp) */}
         <button
           type="button"
           onClick={() => setActiveTab('messages')}

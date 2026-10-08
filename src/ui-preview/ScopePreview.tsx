@@ -1,0 +1,1 @@
+import React from 'react';export function ScopePreview({onNavigate}:{onNavigate:(name:string)=>void}){return <div dir="rtl" className="p-5 text-slate-800"><h1 className="font-bold text-xl">سجل المتطلبات</h1><p>سيُستكمل سجل التتبع في الخطوة التالية.</p><button className="mt-3 p-3 rounded-xl bg-emerald-800 text-white" onClick={()=>onNavigate('home')}>العودة للرئيسية</button></div>}
