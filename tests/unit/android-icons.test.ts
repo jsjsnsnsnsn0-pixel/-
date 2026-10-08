@@ -38,7 +38,7 @@ test('Android configuration installs official assets repeatedly and preserves ap
   // Read the release identity from the Android configurator so each beta bump
   // is tested against its actual source of truth rather than an old hardcoded beta.
   const config=await readFile(script,'utf8');
-  const expectedCode=config.match(/versionCode (\\d+)/)?.[1];
+  const expectedCode=config.match(/versionCode ([0-9]+)/)?.[1];
   const expectedName=config.match(/versionName "([^"]+)"/)?.[1];
   assert.ok(expectedCode,'Android versionCode must be defined by the configuration script');
   assert.ok(expectedName,'Android versionName must be defined by the configuration script');
