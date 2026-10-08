@@ -139,28 +139,27 @@ export const StoreScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#081510] text-slate-100 pb-28" dir="rtl">
-      <header className="sticky top-0 z-30 bg-[#081510]/95 backdrop-blur-md border-b border-emerald-300/10 px-4 py-3 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="ui-icon-button rounded-full bg-white/5 text-slate-100">
-            <ChevronRight size={22} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-emerald-400/10 text-emerald-300 flex items-center justify-center"><ShoppingBag size={18}/></div>
-            <div><h1 className="text-base font-black">متجر TotiChat</h1><p className="text-[10px] text-emerald-300/70">مقتنيات تجميلية مرتبطة بحسابك</p></div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#17382a_0%,#071911_46%,#06150f_100%)] text-slate-100 pb-28" dir="rtl">
+      <header className="sticky top-0 z-30 border-b border-emerald-300/15 bg-[#071910]/94 px-3 pb-3 pt-[max(12px,env(safe-area-inset-top))] backdrop-blur-[10px]">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <button type="button" onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-200/15 bg-emerald-50/5">
+              <ChevronRight size={21}/>
+            </button>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/15 bg-emerald-400/10 text-emerald-200"><ShoppingBag size={19}/></span>
+            <div className="min-w-0"><h1 className="truncate text-base font-black text-emerald-50">متجر TotiChat</h1><p className="truncate text-[10px] text-emerald-300/80">إطارات ومقتنيات بهوية توتي شات</p></div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={()=>setActiveSubScreen('wallet')} className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10 text-amber-200" aria-label="فتح المحفظة"><WalletCards size={19}/></button>
+            <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-200/10 text-emerald-200" aria-label="فتح الحقيبة"><PackageOpen size={19}/></button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={()=>setActiveSubScreen('wallet')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-amber-200" aria-label="فتح المحفظة"><WalletCards size={17}/></button>
-          <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="ui-icon-button rounded-xl bg-white/5 border border-white/10 text-emerald-200" aria-label="فتح الحقيبة"><PackageOpen size={17}/></button>
-        </div>
-        <label className="mt-3 h-11 rounded-2xl border border-white/10 bg-black/15 flex items-center gap-2 px-3 focus-within:border-emerald-300/30">
-          <Search size={15} className="text-slate-500"/>
-          <input aria-label="البحث في المتجر" value={query} onChange={event=>setQuery(event.target.value)} placeholder="ابحث عن عنصر..." className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-slate-600"/>
-          {query&&<button type="button" aria-label="مسح البحث" onClick={()=>setQuery('')} className="text-slate-500"><X size={15}/></button>}
+        <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl border border-emerald-200/20 bg-[#10261b] px-3 focus-within:border-emerald-300/60">
+          <Search size={17} className="shrink-0 text-emerald-200/70"/>
+          <input aria-label="البحث في المتجر" value={query} onChange={event=>setQuery(event.target.value)} placeholder="ابحث عن إطار أو منتج..." className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-emerald-100/40"/>
+          {query&&<button type="button" aria-label="مسح البحث" onClick={()=>setQuery('')} className="shrink-0 text-emerald-200"><X size={16}/></button>}
         </label>
       </header>
-
       <div className="px-4 pt-3 flex items-center gap-2 text-xs">
         <span className="rounded-full bg-amber-400/10 text-amber-200 border border-amber-300/15 px-3 py-1.5">🪙 {user.gold.toLocaleString('ar-SA')}</span>
         <span className="rounded-full bg-white/5 text-slate-200 border border-white/10 px-3 py-1.5">🥈 {(user.silverCoins || 0).toLocaleString('ar-SA')}</span>
@@ -168,12 +167,12 @@ export const StoreScreen: React.FC = () => {
 
       {purchaseSuccess && <div role="status" className="m-4 p-3 bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 text-xs font-bold rounded-2xl flex items-center gap-2"><Check size={16}/><span>{purchaseSuccess}</span></div>}
 
-      <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto">
+      <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto overscroll-x-contain">
         <div className="flex gap-2 min-w-max pb-2">
           {visibleTabs.map(tab => {
             const Icon=tab.icon; const active=activeTab===tab.id;
             return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
-              className={`min-h-11 px-3 rounded-2xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/15 border-violet-300/35 text-white shadow-lg':'bg-white/[0.045] border-white/8 text-slate-400'}`}>
+              className={`min-h-11 px-3 rounded-2xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/20 border-emerald-300/70 text-emerald-50 shadow-[inset_0_-2px_#34d399]':'bg-[#0b2419]/90 border-emerald-100/10 text-emerald-100/65'}`}>
               <Icon size={15}/><span>{tab.label}</span>
             </button>;
           })}
@@ -188,25 +187,27 @@ export const StoreScreen: React.FC = () => {
       {error && <div className="p-4"><button onClick={() => void reload()} className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-rose-200">{error} — إعادة المحاولة</button></div>}
       {!loading && !error && !filteredItems.length && <div className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400"><ShoppingBag size={24} className="mx-auto text-slate-600"/><p className="mt-2 text-sm font-bold">{query?'لا توجد نتائج مطابقة':'لا توجد منتجات متاحة حالياً في هذا القسم'}</p>{activeTab==='cards'&&<p className="mt-1 text-[10px] text-pink-200/60">أي منتج CP فعلي يضاف للكتالوج سيظهر هنا تلقائياً.</p>}</div>}
 
-      <div className="p-4 grid grid-cols-2 gap-3">
+      <section aria-label="منتجات المتجر" className="grid grid-cols-3 gap-2 px-2.5 py-3 sm:gap-3 sm:px-4">
         {filteredItems.map(item=>(
-          <article key={item.id} className="rounded-[26px] overflow-hidden border border-violet-300/15 bg-gradient-to-b from-violet-500/[.09] to-white/[.025] shadow-[0_14px_32px_rgba(0,0,0,.18)] backdrop-blur-xl">
-            <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="w-full text-right">
-              <div className="relative aspect-square bg-black/20 flex items-center justify-center text-5xl overflow-hidden">
-                {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="w-full h-full object-cover"/>:<span aria-hidden="true">{item.image}</span>}
-                {item.isOwned&&!item.isGiftStock&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">مملوك</span>}
-                {item.isGiftStock&&Boolean(item.savedCount)&&<span className="absolute top-2 right-2 rounded-full bg-cyan-950/80 border border-cyan-300/20 px-2 py-1 text-[9px] font-black text-cyan-200">بالحقيبة ×{item.savedCount}</span>}
-                <span className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center"><Play size={12} fill="currentColor"/></span>
-              </div>
-              <div className="p-3">
-                <h3 className="font-black text-sm truncate">{item.name}</h3>
-                <div className="mt-2 flex items-center justify-between gap-1 text-[10px]"><span className="text-amber-200 font-black" dir="ltr">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-IQ')}</span><span className="text-slate-500">{item.duration}</span></div>
-              </div>
+          <article key={item.id} className="min-w-0 overflow-hidden rounded-[19px] border border-emerald-200/15 bg-[linear-gradient(160deg,rgba(33,72,49,.70),rgba(9,27,19,.98))] shadow-[0_8px_20px_rgba(0,0,0,.22)]">
+            <div className="relative aspect-square overflow-hidden rounded-[17px] border-b border-emerald-200/10 bg-[radial-gradient(circle_at_50%_85%,rgba(52,211,153,.19),transparent_69%)]">
+              <button type="button" aria-label={`تفاصيل ${item.name}`} onClick={()=>setSelected(item)} className="flex h-full w-full items-center justify-center overflow-hidden p-1.5">
+                {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
+                  /^https?:\/\//i.test(item.image)?<img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
+                  <span aria-hidden="true" className="text-[38px] drop-shadow-[0_4px_10px_rgba(251,191,36,.2)]">{item.image}</span>}
+              </button>
+              {item.isOwned&&!item.isGiftStock&&<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-950/90 px-1.5 py-0.5 text-[8px] font-bold text-emerald-200">مملوك</span>}
+              {item.isGiftStock&&Boolean(item.savedCount)&&<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-950/90 px-1.5 py-0.5 text-[8px] text-emerald-200">×{item.savedCount}</span>}
+              <button type="button" onClick={()=>setPreview(item)} aria-label={`معاينة ${item.name}`} className="absolute bottom-1.5 left-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-[#092519]/85 text-emerald-100 shadow-lg"><Play size={15} fill="currentColor"/></button>
+            </div>
+            <button type="button" onClick={()=>setSelected(item)} className="w-full px-1.5 pb-2.5 pt-2 text-center">
+              <h3 className="truncate text-[11px] font-black leading-4 text-emerald-50" title={item.name}>{item.name}</h3>
+              <p className="mt-1 truncate text-[10px] text-emerald-100/60">{item.duration}</p>
+              <span className="mt-1.5 block truncate text-[10px] font-black text-amber-300" dir="ltr">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-IQ')}</span>
             </button>
           </article>
         ))}
-      </div>
-
+      </section>
       {selected&&<div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center" onClick={()=>{if(!busy)setSelected(null)}}>
         <section role="dialog" aria-modal="true" aria-label={`تفاصيل ${selected.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-[32px] border border-white/10 bg-[#0b1712] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl">
           <button type="button" onClick={()=>{if(!busy)setSelected(null)}} aria-label="إغلاق" className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"><X size={18}/></button>
