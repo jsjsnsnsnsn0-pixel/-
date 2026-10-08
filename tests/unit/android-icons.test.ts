@@ -35,7 +35,15 @@ test('Android configuration installs official assets repeatedly and preserves ap
   execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
   execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
   const gradle=await readFile(join(dir,'android/app/build.gradle'),'utf8');
-  assert.match(gradle,/versionCode 900006/);assert.match(gradle,/versionName "0\.9\.0-beta\.6"/);
+  // Read the release identity from the Android configurator so each beta bump
+  // is tested against its actual source of truth rather than an old hardcoded beta.
+  const config=await readFile(script,'utf8');
+  const expectedCode=config.match(/versionCode (\\d+)/)?.[1];
+  const expectedName=config.match(/versionName "([^"]+)"/)?.[1];
+  assert.ok(expectedCode,'Android versionCode must be defined by the configuration script');
+  assert.ok(expectedName,'Android versionName must be defined by the configuration script');
+  assert.ok(gradle.includes(`versionCode ${expectedCode}`));
+  assert.ok(gradle.includes(`versionName "${expectedName}"`));
   const manifest=await readFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'utf8');
   assert.match(manifest,/package="com.totichat.app"/);assert.match(manifest,/android:scheme="com.totichat.app"/);
   assert.match(manifest,/android:icon="@mipmap\/ic_launcher"/);assert.match(manifest,/android:roundIcon="@mipmap\/ic_launcher_round"/);
