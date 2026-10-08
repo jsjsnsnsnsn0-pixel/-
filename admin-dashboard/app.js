@@ -30,27 +30,28 @@ function inform(message,severity='success'){
 state.notify=inform;
 function login(message=''){
  state.version++;root.replaceChildren();
- const email=field('اسم المستخدم أو البريد الإلكتروني','text'),password=field('كلمة المرور','password');
  const msg=box('');if(message)msg.append(box('message error',message));
- const form=el('form',{class:'stack'},email.label,password.label);
- form.append(btn('تسجيل الدخول',()=>form.requestSubmit(),'btn primary'));
- form.addEventListener('submit',async e=>{
-  e.preventDefault();const b=form.querySelector('button');b.disabled=true;msg.replaceChildren();
+ const google=btn('تسجيل الدخول عبر Google',async()=>{
+  google.disabled=true;msg.replaceChildren();
   try{
-   const {error}=await state.client.auth.signInWithPassword({email:email.input.value.trim().toLowerCase()==='admin'?'xxjjh20@gmail.com':email.input.value.trim(),password:password.input.value});
-   if(error)throw error;await authenticate();
-  }catch(err){msg.append(box('message error',err?.message||'فشل تسجيل الدخول'))}
-  finally{b.disabled=false}
- });
- const google=btn('الدخول عبر Google',async()=>{
-  const {error}=await state.client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
-  if(error)msg.replaceChildren(box('message error',error.message));
- });
+   const {error}=await state.client.auth.signInWithOAuth({
+    provider:'google',
+    options:{
+     redirectTo:'https://jsjsnsnsnsn0-pixel.github.io/TotiChat/',
+     queryParams:{prompt:'select_account'}
+    }
+   });
+   if(error)throw error;
+  }catch(err){
+   msg.replaceChildren(box('message error',err?.message||'تعذر تسجيل الدخول عبر Google.'));
+   google.disabled=false;
+  }
+ },'btn primary');
  root.append(box('login',box('loginLogo',box('logo','T'),el('h1',{},'TotiChat Admin'),
-  note('لوحة الإدارة الرسمية — Owner / Staff')),
-  panel(msg,form,box('divider'),google,
-   note('اسم الدخول admin مخصص لحساب المالك xxjjh20@gmail.com؛ كلمة المرور هي كلمة مرور حساب Supabase الحقيقي، وليست admin. يمكن الدخول أيضاً عبر Google بنفس البريد.'))));
+   note('لوحة الإدارة الرسمية — Owner / Staff')),
+   panel(msg,google)));
 }
+
 function render(){
  if(!state.session?.allowed){login('غير مصرح لهذا الحساب بفتح لوحة الإدارة.');return}
  const allowedTabs=sections.filter(visible);
@@ -77,7 +78,11 @@ async function authenticate(){
  try{
   const {data,error}=await state.client.auth.getUser();
   if(error||!data?.user){state.session=null;state.user=null;login();return}
-  state.user=data.user;state.session=await rpc('dashboard_session');
+  state.user=data.user;
+  // Secure server-side claim links an Owner-approved email invitation to the
+  // verified Google account on first sign-in; it grants no uninvited permissions.
+  await rpc('dashboard_claim_email_role');
+  state.session=await rpc('dashboard_session');
   if(!state.session?.allowed){login('الحساب لا يمتلك صلاحية لوحة الإدارة.');return}
   render();
  }catch(err){login(err?.message||'تعذر التحقق من الدخول.')}
