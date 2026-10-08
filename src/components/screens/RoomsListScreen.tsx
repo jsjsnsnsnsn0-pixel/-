@@ -22,21 +22,21 @@ export const RoomsListScreen: React.FC = () => {
     if (activeTab !== 'friends' || !user.authId) return;
     const userId = user.authId;
     let cancelled = false;
-    setFriendsState(null);
-    void supabase.from('friendships')
-      .select('user_a,user_b,status')
-      .eq('status', 'accepted')
-      .then(({data, error}) => {
+    void (async () => {
+      try {
+        const {data, error} = await supabase.from('friendships')
+          .select('user_a,user_b,status')
+          .eq('status', 'accepted');
         if (cancelled) return;
         setFriendsState({
           userId,
           owners: error ? new Set<string>() : acceptedFriendOwnerIds(userId, data || []),
           failed: Boolean(error),
         });
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setFriendsState({userId, owners: new Set<string>(), failed: true});
-      });
+      }
+    })();
     return () => {cancelled = true;};
   }, [activeTab, user.authId, friendsRequest]);
 
@@ -158,7 +158,7 @@ export const RoomsListScreen: React.FC = () => {
           <div role={activeFriendState?.failed ? 'alert' : 'status'} className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
             {!user.authId ? 'سجل الدخول حتى تشوف غرف أصدقائك.' : activeFriendState?.failed ? 'تعذر تحميل غرف أصدقائك. حاول مجدداً.' : 'جارٍ تحميل غرف أصدقائك...'}
             {activeFriendState?.failed && (
-              <button type="button" onClick={() => setFriendsRequest(n => n + 1)}
+              <button type="button" onClick={() => { setFriendsState(null); setFriendsRequest(n => n + 1); }}
                 className="mx-auto mt-3 block rounded-xl bg-cyan-600 px-4 py-2 font-bold text-white">
                 إعادة المحاولة
               </button>
