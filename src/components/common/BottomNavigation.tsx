@@ -19,10 +19,10 @@ export const BottomNavigation: React.FC = () => {
     return null;
   }
 
-  const isHomeActive = activeTab === 'home' && !activeSubScreen;
+  const isHomeActive = activeTab === 'home' && (!activeSubScreen || activeSubScreen === 'home');
   const isCommunityActive = activeSubScreen === 'community';
-  const isMessagesActive = activeTab === 'messages' && !activeSubScreen;
-  const isProfileActive = activeTab === 'profile' && !activeSubScreen;
+  const isMessagesActive = activeTab === 'messages' && (!activeSubScreen || activeSubScreen === 'messages');
+  const isProfileActive = activeTab === 'profile' && (!activeSubScreen || activeSubScreen === 'profile');
 
   const totalUnreadMessages = unreadMessagesCount + unreadSystemMessagesCount;
   const profileUnseenCount = (hasUnseenVisitors ? 1 : 0) + (hasUnseenFollowers ? 1 : 0);

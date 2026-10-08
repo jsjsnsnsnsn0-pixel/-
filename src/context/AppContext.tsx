@@ -66,7 +66,7 @@ export const AppProvider:React.FC<{children:ReactNode}>=({children})=>{
  const [transactions,setTransactions]=useState<Transaction[]>(sampleTransactions);
  const [conversations,setConversations]=useState<Conversation[]>(sampleConversations);
  const [notifications,setNotifications]=useState<NotificationItemData[]>(sampleNotifications);
- const setActiveTab=(tab:AppContextType['activeTab'])=>{setActiveTabState(tab);setActiveSubScreenState(null);};
+ const setActiveTab=(tab:AppContextType['activeTab'])=>{setActiveTabState(tab);setActiveSubScreenState(activeRoom?tab:null);};
  const setActiveSubScreen=(screen:string|null)=>setActiveSubScreenState(screen);
  const joinRoom=async(room:Room)=>{
     if(activeRoom && activeRoom.id!==room.id && !window.confirm('لديك غرفة مفتوحة في المعاينة. هل تريد الانتقال إلى غرفة أخرى وإغلاق السابقة؟'))return;
