@@ -1,0 +1,68 @@
+name: Mirror verified Beta.8 APK to GitHub Pages
+on:
+  push:
+    branches:
+      - delivery/beta8-pages-mirror-20261008
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch exact published APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download v0.9.0-beta.8 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'TotiChat-Beta-0.9.0-beta.8.apk' --dir "$GITHUB_WORKSPACE"
+          printf '%s  %s\n' \
+            'ffc7bcec593cf9868c40a6fd4e6f5ac58ed1d00a2757230f577105f7bb28ad7d' \
+            'TotiChat-Beta-0.9.0-beta.8.apk' | sha256sum -c -
+          test "$(stat -c %s TotiChat-Beta-0.9.0-beta.8.apk)" -eq 32799506
+      - name: Checkout existing GitHub Pages branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: gh-pages
+          path: pages-site
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Add APK as a new file without changing existing Pages content
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd pages-site
+          mkdir -p downloads
+          cp ../TotiChat-Beta-0.9.0-beta.8.apk downloads/TotiChat-Beta-0.9.0-beta.8.apk
+          printf '%s  %s\n' \
+            'ffc7bcec593cf9868c40a6fd4e6f5ac58ed1d00a2757230f577105f7bb28ad7d' \
+            'downloads/TotiChat-Beta-0.9.0-beta.8.apk' | sha256sum -c -
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/TotiChat-Beta-0.9.0-beta.8.apk
+          git diff --cached --stat
+          git diff --cached --name-only | grep -qx downloads/TotiChat-Beta-0.9.0-beta.8.apk
+          git commit -m 'delivery: mirror verified 32 MB Beta.8 APK for easier mobile downloads'
+          git push origin HEAD:gh-pages
+      - name: Check public mirror responds with complete SHA-256-matching APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://jsjsnsnsnsn0-pixel.github.io/TotiChat/downloads/TotiChat-Beta-0.9.0-beta.8.apk'
+          for attempt in $(seq 1 18); do
+            if curl -fLsS --connect-timeout 8 --max-time 45 "$url" -o /tmp/pages-beta8.apk; then
+              hash="$(sha256sum /tmp/pages-beta8.apk | cut -d' ' -f1)"
+              if [[ "$hash" == 'ffc7bcec593cf9868c40a6fd4e6f5ac58ed1d00a2757230f577105f7bb28ad7d' ]]; then
+                echo "Verified alternate mirror: $url"
+                stat -c 'Mirrored APK size: %s bytes' /tmp/pages-beta8.apk
+                exit 0
+              fi
+              echo "Mirror not yet propagated: hash $hash"
+            fi
+            sleep 10
+          done
+          echo 'Mirror not verified; do not publish this URL as working.' >&2
+          exit 1
