@@ -121,6 +121,7 @@ export function RoomMusicPanel(p:Props){
    {(tab==='mine'||tab==='queue')&&<div className="space-y-2">
     {!loading&&!items.length?<p className="text-sm text-slate-400 text-center py-8">ماكو أغاني محفوظة. أضف أغنية مرة واحدة وتبقى بحسابك.</p>:items.map((track,i)=><div key={track.id} className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
      <div className="min-w-0 flex-1"><strong className="block text-sm truncate">{track.name}</strong><span className="text-xs text-slate-400">{Math.floor(track.duration_seconds/60)}:{String(Math.floor(track.duration_seconds%60)).padStart(2,'0')} · {(track.file_size_bytes/1048576).toFixed(1)} MB</span></div>
+     <button type="button" onClick={()=>{setSelected(track);setTab('now')}} aria-label={`معاينة ${track.name}`} className="rounded-lg px-2 py-2 bg-white/10 text-xs text-cyan-100">استماع</button>
      {p.canControl&&<button disabled={busy||!p.connected} onClick={()=>void play(track)} className="rounded-lg p-2 bg-cyan-600/35 disabled:opacity-40" aria-label={`تشغيل ${track.name}`}><Play size={15}/></button>}
      <button disabled={busy} onClick={()=>void remove(track)} aria-label={`حذف ${track.name} من قائمتي`} className="rounded-lg p-2 text-rose-200 disabled:opacity-40"><Trash2 size={15}/></button>
      <span className="text-[10px] text-slate-500">{i+1}</span>
