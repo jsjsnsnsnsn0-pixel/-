@@ -129,3 +129,47 @@
   .room-seats .mt-1\.5{margin-top:3px}
   .room-exit-actions{gap:38px}
 }
+
+
+/* Beta UX audit: compact room identity capsule and predictable top-row actions. */
+.room-header{
+  display:flex;flex-direction:column;align-items:stretch;gap:5px;
+  padding:7px 8px;margin:calc(6px + env(safe-area-inset-top)) 9px 4px;
+  border-radius:18px;
+}
+.room-header-main{display:flex;align-items:center;gap:6px;min-width:0}
+.room-header-meta{display:flex;justify-content:flex-end;align-items:center;gap:6px;min-width:0}
+.room-header .room-thumbnail{
+  width:34px;height:34px;min-width:34px;min-height:34px;border-radius:11px;padding:1px;
+}
+.room-header .room-thumbnail img{border-radius:9px}
+.room-identity{
+  min-width:0;max-width:42%;display:flex;flex-direction:column;
+  align-items:flex-start;gap:1px;text-align:right;
+}
+.room-identity-name{font-size:12px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-identity-id{font-size:9px;color:#b4bfdf;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room-header-action{width:34px;min-width:34px;min-height:34px;height:34px;border-radius:11px}
+.room-header .room-presence{min-height:26px;font-size:10px;padding:0 8px;border-radius:10px}
+.room-private{
+  width:35px;height:35px;min-width:35px;min-height:35px;
+  left:9px;top:40%;border-radius:12px
+}
+.room-chat{padding-inline-end:31px}
+.room-footer{padding:6px;gap:5px;border-radius:19px}
+.room-footer .room-icon{min-width:41px;min-height:41px;border-radius:13px}
+.room-music-strip{
+  margin:1px 10px 4px;padding:6px 8px;flex-shrink:0;
+  border-radius:11px;background:rgba(17,25,44,.78);
+  border:1px solid rgba(125,211,252,.13)
+}
+@media(max-width:370px){
+ .room-header-main{gap:4px}
+ .room-header-action{width:32px;min-width:32px;min-height:32px;height:32px}
+ .room-identity{max-width:36%}
+}
+
+/* Keyboard-aware composer: toolbar must not float over Android IME. */
+.room-footer--keyboard-hidden{display:none!important}
+.room-chat-area{min-height:0;overscroll-behavior:contain}
+.room-compose input{min-width:0}

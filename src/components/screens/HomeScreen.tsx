@@ -133,8 +133,8 @@ export const HomeScreen: React.FC = () => {
       {/* ============================================================== */}
       {/* 1. TOP HEADER: Icons on Left, Tabs on Right                     */}
       {/* ============================================================== */}
-      <header className={`sticky top-2 z-30 mx-3 pt-2.5 pb-2.5 px-3.5 flex items-center justify-between rounded-[22px] border shadow-[0_10px_28px_rgba(0,0,0,.10)] backdrop-blur-2xl transition-colors duration-300 ${
-        activeTopTab === 'discover' ? 'bg-[#121421]/88 border-white/10' : 'bg-white/58 border-white/65'
+      <header className={`sticky top-2 z-30 mx-3 pt-2.5 pb-2.5 px-3.5 flex items-center justify-between rounded-[22px] border shadow-[0_10px_28px_rgba(0,0,0,.10)] backdrop-blur-[10px] transition-colors duration-300 ${
+        activeTopTab === 'discover' ? 'bg-[#0e302a]/76 border-emerald-100/25' : 'bg-[#d5f1e4]/76 border-white/70'
       }`}>
         {/* Right: Text Tabs (حفلة | ملكي | اكتشف | ترتيب) */}
         <div className="flex items-center gap-2 sm:gap-3.5 font-bold">

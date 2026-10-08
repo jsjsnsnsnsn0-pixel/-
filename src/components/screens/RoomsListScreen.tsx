@@ -5,13 +5,14 @@ import { SearchBar } from '../common/SearchBar';
 import { Radio, Plus, Flame, Users, Sparkles, Heart } from 'lucide-react';
 
 export const RoomsListScreen: React.FC = () => {
-  const { rooms, ownedClosedRooms, reopenRoom, joinRoom, setActiveTab } = useApp();
-  const [activeTab, setActiveTabState] = useState<'all' | 'live' | 'popular' | 'new' | 'friends'>('all');
+  const { rooms, ownedClosedRooms, reopenRoom, joinRoom, setActiveTab, user } = useApp();
+  const [activeTab, setActiveTabState] = useState<'all' | 'mine' | 'live' | 'popular' | 'new' | 'friends'>('all');
   const [reopening,setReopening] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const tabs = [
     { id: 'all', label: 'الكل', icon: Sparkles },
+    { id: 'mine', label: 'غرفي', icon: Users },
     { id: 'live', label: 'نشطة الآن', icon: Radio },
     { id: 'popular', label: 'الأكثر شعبية', icon: Flame },
     { id: 'new', label: 'جديدة', icon: Sparkles },
@@ -33,6 +34,8 @@ export const RoomsListScreen: React.FC = () => {
     }
 
     switch (activeTab) {
+      case 'mine':
+        return list.filter(room => Boolean(user.authId) && room.ownerAuthId === user.authId);
       case 'live':
         return list.filter((r) => r.status === 'live');
       case 'popular':

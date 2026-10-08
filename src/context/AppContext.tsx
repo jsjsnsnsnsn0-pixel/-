@@ -50,6 +50,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [profileReady, setProfileReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const roomsRef = useRef(rooms); roomsRef.current = rooms;
   const [ownedClosedRooms,setOwnedClosedRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
@@ -89,7 +90,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       'private room requires an invitation': 'تحتاج دعوة لدخول هذه الغرفة.',
       'VIP membership required': 'هذه الغرفة تتطلب عضوية VIP.',
       'no official recharge agent is configured for this country': 'لا يوجد وكيل شحن رسمي لبلدك حالياً.',
-      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من قسم ملكي.',
+      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من تبويب غرفي في قائمة الغرف.',
       'authentication required': 'يرجى تسجيل الدخول مجدداً.',
     };
     if(typeof navigator!=='undefined'&&navigator.onLine===false){setError('خطأ اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.');return;}
@@ -153,10 +154,14 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
       supabase.from('user_room_links').select('*').eq('user_id',id),
     ]);
-    for (const result of [rs, ms, ls, links]) if (result.error) throw result.error;
+    // Rooms are essential; seat locks, members and follows are optional metadata.
+    // A timeout in any optional request must not make every active room vanish.
+    if (rs.error) throw rs.error;
     if (id !== authRef.current) return [];
+    const priorRooms = new Map(roomsRef.current.map(room => [room.id, room]));
     const mapped: Room[] = (rs.data || []).map(row => {
-      const members = (ms.data || []).filter(m => m.room_id === row.id);
+      const prior = priorRooms.get(row.id) || (activeRef.current?.id === row.id ? activeRef.current : null);
+      const members = ms.error ? [] : (ms.data || []).filter(m => m.room_id === row.id);
       const memberUser = (m: Record<string, unknown>): User => m.user_id === id ? userRef.current : roomMemberToUser(m);
       const owner = row.owner_id === id ? userRef.current : profileToUser({
         id: row.owner_id, public_id: row.owner_public_id, display_name: row.owner_display_name,
@@ -167,25 +172,32 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
-        isFollowed:(links.data||[]).some(link=>link.room_id===row.id&&link.followed),
-        lastVisitedAt:(links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
+        isFollowed:links.error ? (prior?.isFollowed ?? false) : (links.data||[]).some(link=>link.room_id===row.id&&link.followed),
+        lastVisitedAt:links.error ? prior?.lastVisitedAt : (links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
         internalBackground:row.internal_background_url||'/assets/images/room_screen_bg_1790556227206.jpg',
         description: row.welcome_message ?? row.description ?? '', coverImage: row.external_image_url || row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
-        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
-        canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
-        members: members.map(m=>({...memberUser(m),roomRole:m.role})),
-        seats: Array.from({length: row.max_seats}, (_, index) => {
+        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: ms.error ? (prior?.usersCount ?? 0) : members.length,
+        canModerate: row.owner_id === id || (ms.error ? Boolean(prior?.canModerate) : members.some(m => m.user_id === id && m.role === 'moderator')),
+        members: ms.error ? (prior?.members || []) : members.map(m=>({...memberUser(m),roomRole:m.role})),
+        seats: ms.error && prior ? prior.seats : Array.from({length: row.max_seats}, (_, index) => {
           const member = members.find(m => m.seat_number === index + 1);
-          return {seatIndex: index, isLocked: (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
+          return {seatIndex: index, isLocked: ls.error ? (prior?.seats[index]?.isLocked ?? false) : (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
             isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? {...memberUser(member),roomRole:member.role} : undefined};
         }),
       };
     });
     const liveRooms = mapped.filter(room => room.isActive);
     setOwnedClosedRooms(mapped.filter(room => !room.isActive && room.ownerAuthId === id));
+    roomsRef.current = liveRooms;
     setRooms(liveRooms);
-    setActiveRoom(prev => prev ? liveRooms.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
+    setActiveRoom(prev => {
+      if (!prev) return null;
+      const latest = liveRooms.find(r => r.id === prev.id);
+      // Keep the currently connected room while membership retrieval recovers.
+      if (ms.error) return latest ? prev : null;
+      return latest?.members?.some(m => m.authId === id) ? latest : null;
+    });
     return liveRooms;
   }, []);
 
@@ -386,8 +398,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         const {error} = await supabase.rpc('leave_room', {p_room_id: activeRef.current.id}); if (error) throw error;
       }
       const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
-      const next = await refreshRooms();
-      setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
+      // Successful backend join must not be discarded if the subsequent
+      // room-directory refresh temporarily times out.
+      let joinedRoom: Room = room;
+      try {
+        const next = await refreshRooms();
+        joinedRoom = next.find(r => r.id === room.id) || room;
+      } catch {
+        setError('تم الدخول إلى الغرفة، لكن تعذر تحديث قائمة الغرف مؤقتاً.');
+      }
+      setActiveRoom(joinedRoom); setActiveSubScreenState(null); setIsHandRaised(false);
     } catch (e) { fail(e); }
   };
   const leaveRoom = async () => {
@@ -404,8 +424,21 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
         p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
       if (error) throw error;
-      const next = await refreshRooms(); const room = next.find(r => r.id === data) || null;
-      setActiveRoom(room); setActiveSubScreenState(null); return room;
+      // Creation already committed at this point. Never suggest creating
+      // again merely because a follow-up room-list refresh timed out.
+      try {
+        const next = await refreshRooms();
+        const room = next.find(r => r.id === data) || null;
+        if (room) {
+          setActiveRoom(room); setActiveSubScreenState(null);
+          return room;
+        }
+      } catch {
+        // The room is still present in the backend; avoid another create RPC.
+      }
+      setError('تم إنشاء الغرفة، لكن تعذر إظهارها حالياً. افتح تبويب غرفي بعد تحديث القائمة ولا تُنشئ غرفة ثانية.');
+      setActiveTab('rooms');
+      return null;
     } catch (e) { fail(e); return null; }
   };
 

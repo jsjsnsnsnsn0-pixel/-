@@ -118,7 +118,14 @@ export const AgencyScreen: React.FC = () => {
 
   return <div dir="rtl" className="min-h-screen bg-[radial-gradient(circle_at_80%_0%,rgba(245,158,11,.16),transparent_28%),radial-gradient(circle_at_10%_12%,rgba(124,58,237,.18),transparent_32%),#090b12] text-white p-4 pb-28">
     <header className="flex items-center gap-3 mb-4"><button className="ui-control px-3 rounded-xl bg-white/5" onClick={() => {if(!agency&&portalMode!=='home'){setPortalMode('home');setShowRegistration(false);}else setActiveSubScreen(null);}}>الرجوع</button><h1 className="text-base font-bold">بوابة الوكالات</h1></header>
-    <img src="/assets/images/agency_login_portal_1790714750581.jpg" alt="بوابة الوكالة" className="w-full h-52 object-cover rounded-3xl mb-5" />
+    <section aria-label="بوابة الدخول إلى نظام الوكالات" className="relative w-full aspect-[1.55] max-h-[460px] rounded-3xl overflow-hidden mb-5 border border-amber-300/30 shadow-[0_18px_40px_rgba(0,0,0,.27)]">
+      <img src="/assets/images/agency_login_portal_1790714750581.jpg" alt="" className="absolute inset-0 w-full h-full object-fill" />
+      {/* The two gold-framed image controls are the real, accessible action targets. */}
+      <button type="button" aria-label="سجل الدخول وكيل" onClick={()=>{setPortalMode('agent');setShowRegistration(true);}}
+        className="absolute top-[5%] left-[8%] w-[84%] h-[31%] rounded-[45px] bg-transparent focus-visible:outline focus-visible:outline-4 focus-visible:outline-amber-300 active:bg-amber-300/10" />
+      <button type="button" aria-label="سجل الدخول مضيف" onClick={()=>setPortalMode('host')}
+        className="absolute top-[40%] left-[8%] w-[84%] h-[31%] rounded-[45px] bg-transparent focus-visible:outline focus-visible:outline-4 focus-visible:outline-amber-300 active:bg-amber-300/10" />
+    </section>
     {loading && <InlineLoading>جارٍ تحميل الوكالات…</InlineLoading>}{error && <ErrorState message={error} onRetry={()=>void reload()}/>} {notice && <p role="status" className="p-3 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-3">{notice}</p>}
 
     {agency && <section className="p-4 bg-white/[0.065] backdrop-blur-xl rounded-2xl mb-4"><h2 className="font-bold text-base break-words">{agency.name}</h2><p className="ui-id text-xs text-slate-400 mt-1">ID: {agency.id}</p><p className="my-3">الأعضاء: {data.members.length}</p>
@@ -127,17 +134,7 @@ export const AgencyScreen: React.FC = () => {
     </section>}
 
     {!loading && !error && !agency && <>
-      {portalMode === 'home' && <section className="space-y-3">
-        <p className="text-sm text-slate-300 mb-2">اختر طريقة الدخول إلى نظام الوكالات.</p>
-        <button type="button" onClick={()=>{setPortalMode('agent');setShowRegistration(true);}} className="w-full rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-600/20 to-yellow-500/10 p-5 text-right active:scale-[0.99] transition-transform">
-          <span className="block text-lg font-black text-amber-300">سجل الدخول كوكيل</span>
-          <span className="block text-xs text-slate-300 mt-1">تقديم طلب فتح وكالة جديدة وإرساله للمراجعة.</span>
-        </button>
-        <button type="button" onClick={()=>setPortalMode('host')} className="w-full rounded-2xl border border-purple-400/25 bg-gradient-to-r from-purple-700/20 to-fuchsia-600/10 p-5 text-right active:scale-[0.99] transition-transform">
-          <span className="block text-lg font-black text-purple-200">سجل الدخول كمضيف</span>
-          <span className="block text-xs text-slate-300 mt-1">استعرض جميع الوكالات المتاحة وقدم طلب انضمام.</span>
-        </button>
-      </section>}
+      {portalMode === 'home' && <p className="text-center text-sm text-amber-100/80 mb-3">اضغط أحد زري الدخول الذهبيين أعلاه للمتابعة.</p>}
 
       {portalMode === 'host' && <section>
         {selectedAgencyId && detail.data ? <div className="space-y-3">
