@@ -1,0 +1,30 @@
+name: UIUX Preview — compile and accessibility lint
+on:
+  push:
+    branches:
+      - preview/uiux-only-20261009
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout UI preview branch
+        uses: actions/checkout@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --ignore-scripts
+      - name: Typecheck preview and source imports
+        run: npx tsc --noEmit
+      - name: Build the isolated visual preview
+        run: npm run build
+      - name: Check link target
+        run: test -f dist/index.html

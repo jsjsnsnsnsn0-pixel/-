@@ -76,7 +76,7 @@ export const AppProvider:React.FC<{children:ReactNode}>=({children})=>{
  const updateSeat=(index:number,changes:any)=>setActiveRoom(r=>r?({...r,seats:r.seats.map(s=>s.seatIndex===index?{...s,...changes}:s)}):r);
  const takeSeat=async(index:number)=>{updateSeat(index,{user,isMuted:true,isSpeaking:false});};
  const leaveSeat=async(index:number)=>{updateSeat(index,{user:undefined,isMuted:false,isSpeaking:false});};
- const sendGiftInRoom=async(gift:Gift,recipient:User)=>{setActiveGiftOverlay({id:'visual-'+Date.now(),gift,sender:user,recipient});setTimeout(()=>setActiveGiftOverlay(null),1100);return true;};
+ const sendGiftInRoom=async(_gift:Gift,_recipient:User)=>{setError('هذه معاينة UI فقط: لا يمكن إرسال هدية أو خصم Coins. لا توجد عملية مالية حقيقية.');return false;};
  const createNewRoom=async(partial:Partial<Room>)=>{const r={...previewRooms[0],...partial,id:'preview-room-'+Date.now(),owner:user} as Room;setRooms(prev=>[r,...prev]);setActiveRoom(r);setActiveSubScreenState(null);return r;};
  const context={
  user,setUser,rooms,ownedClosedRooms:[],activeRoom,activeTab,activeSubScreen,selectedChatUser,activeGiftOverlay,transactions,conversations,notifications,
@@ -86,12 +86,12 @@ export const AppProvider:React.FC<{children:ReactNode}>=({children})=>{
  setActiveTab,setActiveSubScreen,setSelectedChatUser,reopenRoom:async(room:Room)=>{await joinRoom(room);return true;},joinRoom,leaveRoom,
  toggleMyMic:async()=>setIsMyMicMuted(v=>!v),toggleRaiseHand:async()=>setIsHandRaised(v=>!v),toggleSpeaker:()=>setIsSpeakerOn(v=>!v),
  takeSeat,leaveSeat,sendGiftInRoom,sendSavedGiftInRoom:sendGiftInRoom,
- rechargeGold:(amount:number)=>setUser(u=>({...u,gold:u.gold+amount})),createNewRoom,
+ rechargeGold:(_amount:number)=>setError('هذه معاينة فقط: لا يمكن شحن رصيد حقيقي. الشحن يتم عبر الوكلاء المعتمدين في النظام الفعلي.'),createNewRoom,
  lockSeat:async(index:number)=>{updateSeat(index,{isLocked:true});return true;},
  unlockSeat:async(index:number)=>{updateSeat(index,{isLocked:false});return true;},
  muteSeatUser:async(index:number)=>{updateSeat(index,{isMuted:true});return true;},
  kickSeatUser:async(index:number)=>{updateSeat(index,{user:undefined});return true;},
- sendMessageToConversation:async()=>true,
+ sendMessageToConversation:async()=>{setError('لا تُرسل رسائل حقيقية في المعاينة البصرية.');return false;},
  markNotificationAsRead:()=>{},isAuthenticated:true,authLoading:false,needsProfile:false,
  error,dismissError:()=>setError(null),reportError:(message:string)=>setError(message),
  loginWithGoogle:async()=>{},loginWithPhone:async()=>{},logout:async()=>{},
