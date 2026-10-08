@@ -191,7 +191,7 @@ export const StoreScreen: React.FC = () => {
         {filteredItems.map(item=>(
           <article key={item.id} className="min-w-0 overflow-hidden rounded-[19px] border border-emerald-200/15 bg-[linear-gradient(160deg,rgba(33,72,49,.70),rgba(9,27,19,.98))] shadow-[0_8px_20px_rgba(0,0,0,.22)]">
             <div className="relative aspect-square overflow-hidden rounded-[17px] border-b border-emerald-200/10 bg-[radial-gradient(circle_at_50%_85%,rgba(52,211,153,.19),transparent_69%)]">
-              <button type="button" aria-label={`تفاصيل ${item.name}`} onClick={()=>setSelected(item)} className="flex h-full w-full items-center justify-center overflow-hidden p-1.5">
+              <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="flex h-full w-full items-center justify-center overflow-hidden p-1.5">
                 {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
                   /^https?:\/\//i.test(item.image)?<img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
                   <span aria-hidden="true" className="text-[38px] drop-shadow-[0_4px_10px_rgba(251,191,36,.2)]">{item.image}</span>}
