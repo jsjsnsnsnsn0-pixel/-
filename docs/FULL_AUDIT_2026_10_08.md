@@ -12,11 +12,12 @@ This branch reconciles the approved UI snapshot (GitHub f1a2c006, local tree 736
 - Gift confirmation refreshes the recipient counter and feed; duplicate delivery remains deduplicated.
 - The deployed moderation-log policy compared m.room_id to itself, allowing unrelated-room moderator reads. It now compares to room_moderation_log.room_id. The change is applied and tested on production with rollback-only fixtures.
 - Lucky-source eligible base diamond conversion displayed 30% but the server quoted 10%. The agreed 30% rate is applied to future eligible redemptions; historic receipts and diamond lots are untouched. Cosmetic lucky reward points remain separate. All 42 currency assertions pass against the live functions after updating the expected arithmetic.
+- Mixed room CSS targeted another header structure, expanding the room identity image and stacking controls. Restored the approved compact/glass stylesheet while keeping keyboard-aware toolbar behavior; mobile browser assertions now constrain header height.
 - Android audio selection with an empty/octet-stream MIME now accepts a supported extension and validates/decode-checks before uploading a normalized audio file.
 - Network operations have a 20-second deadline and respect caller cancellation. Writes are not automatically retried.
-- A later server migration rejected the approved quantity 17 for fixed/self/lucky gifts. All three quantity guards now retain 1/7/17/77/777; transactional quantity, exact debit/credit, retry and failure rollback tests pass.
+- A later server migration rejected the approved quantity 17 for fixed/self/lucky gifts. All three quantity guards and the lucky receipt constraint now retain 1/7/17/77/777; transactional fixed/lucky quantities, exact debit/credit, self sends, retry and failure rollback tests pass.
 - Identical room-owner indexes and duplicate recharge read policies caused unnecessary work. The duplicate index is removed and the policies are combined with identical OR semantics; recharge regression passes.
-- Database history restored with actual applied versions. Unexecuted/duplicate future-dated SQL proposals are isolated under docs/migration-proposals and cannot be replayed by migration tooling. Current production history includes 88 applied migrations.
+- Database history restored with actual applied versions. Unexecuted/duplicate future-dated SQL proposals are isolated under docs/migration-proposals and cannot be replayed by migration tooling. Current production history includes 89 applied migrations.
 
 ## Performance
 
@@ -29,7 +30,7 @@ Full account-wide synchronization is replaced by coalesced per-domain refreshes;
 - TypeScript, ESLint, referenced assets and production build pass.
 - 49 unit/DOM/lifecycle tests pass, including gift selection/retries, canonical CP, account security, audio disposal, refresh queue bursts/in-flight events and network timeout/cancellation.
 - npm audit: zero known vulnerabilities in this run.
-- Independent dashboard JavaScript syntax validation passes.
+- Independent dashboard JavaScript syntax validation and build with the existing project's public publishable key pass.
 - Ten rollback-only production SQL suites pass: core wallet/room contracts, 42 currency assertions, commerce/VIP/rewards/social, recharge integration, audio signaling, room controls, agreed UI server contracts, LiveKit reconciliation, gift quantities/idempotency and new music persistence/isolation/playback/retry plus room-scoped moderation logs.
 - Literal client/admin RPCs and database tables have live counterparts; avatars, user-music and agency-review are storage buckets, not missing public tables. Dynamic RPC contracts are additionally exercised by the SQL suites.
 - Local browser tests could not launch: Chromium is absent, and its permitted download returned an invalid ZIP. GitHub browser validation must pass before merging or releasing.
