@@ -235,76 +235,70 @@ export const HomeScreen: React.FC = () => {
         /* DISCOVER VIEW: Exact vertical stack of banners like the screenshot + المعرف المميز */
         <div className="px-3 pt-2 pb-6 space-y-3.5 animate-fade-in bg-black/90 min-h-[calc(100vh-60px)]">
           {/* Banner 0: Toti Chat - المعرف المميز */}
-          <div
+          <button type="button" aria-label="المعرف المميز - Toti Chat"
             onClick={() => setShowSpecialIdModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400">
             <img
               src="/assets/images/toti_distinguished_id_1790717836703.jpg"
               alt="المعرف المميز - Toti Chat"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 1: هدية مخصصة */}
-          <div
+          <button type="button" aria-label="هدية مخصصة"
             onClick={() => setShowCustomGiftModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400">
             <img
               src="/assets/images/custom_gift_banner_1790726268730.jpg"
               alt="هدية مخصصة"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 2: النجم العالمي */}
-          <div
+          <button type="button" aria-label="النجم العالمي"
             onClick={() => setActiveSubScreen('charm_wealth')}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black">
             <img
               src="/assets/images/global_star_banner_1790726285845.jpg"
               alt="النجم العالمي"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 3: نشاط إعادة الشحن */}
-          <div
+          <button type="button" aria-label="نشاط إعادة الشحن"
             onClick={() => setShowRechargeActivityModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400">
             <img
               src="/assets/images/recharge_activity_banner_1790725680784.jpg"
               alt="نشاط إعادة الشحن"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 4: رفقاء الروح الأسبوعية */}
-          <div
+          <button type="button" aria-label="رفقاء الروح الأسبوعية"
             onClick={() => setShowSoulmatesModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400">
             <img
               src="/assets/images/soulmates_exact_banner_1790725479589.jpg"
               alt="رفقاء الروح الأسبوعية"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 5: Toty Chat افتتاح الوكالة جديده */}
-          <div
+          <button type="button" aria-label="افتتاح الوكالة جديده"
             onClick={() => setShowAgencyModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400">
             <img
               src="/assets/images/agency_opening_banner_1790725265910.jpg"
               alt="افتتاح الوكالة جديده"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
         </div>
       ) : (
         /* PARTY (حفلة) VIEW */
