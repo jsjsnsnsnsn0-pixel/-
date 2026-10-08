@@ -12,7 +12,7 @@ import {profileToUser} from '../../services/profile';
 interface Social extends Record<string, unknown> {is_following: boolean; is_blocked: boolean; friend_status: string}
 interface Couple {partner: {public_id: number}; requested_by: string; accepted_at: string | null}
 export const UserDetailProfileScreen: React.FC = () => {
-  const {user: me, selectedChatUser, setSelectedChatUser, setActiveSubScreen, reportError,rooms,joinRoom} = useApp();
+  const {user: me, selectedChatUser, setSelectedChatUser, setActiveSubScreen, reportError,rooms,joinRoom,activeRoom} = useApp();
   const target = selectedChatUser || me;
   const mine = target.id === me.id;
   const homeRoom=rooms.find(room=>room.owner.id===target.id);
@@ -42,6 +42,7 @@ export const UserDetailProfileScreen: React.FC = () => {
   return <div dir="rtl" className="min-h-screen bg-[#100b20] text-white p-4 pb-28">
     <button onClick={() => setActiveSubScreen(null)} className="ui-control mb-4 px-3 rounded-xl bg-white/5">الرجوع</button>
     <ProfileHero user={user} partner={!loading&&!error&&data?.publicProfile?.id===target.id?data.publicProfile.couple?.partner:undefined} onPartner={(partner:RoomPublicProfile)=>{setSelectedChatUser(profileToUser({public_id:Number(partner.id),display_name:partner.name,avatar_url:partner.avatar}));}}/>
+    {mine&&<div data-testid="self-profile-actions" className="grid grid-cols-2 gap-3 my-4"><button type="button" onClick={()=>setActiveSubScreen('edit_profile')} className="p-3 rounded-xl bg-purple-700">تعديل الملف الشخصي</button><button type="button" onClick={()=>setActiveSubScreen('settings')} className="p-3 rounded-xl bg-white/10">الإعدادات</button></div>}
     {loading && <InlineLoading>جارٍ تحميل الملف…</InlineLoading>}{error && <ErrorState message={error} onRetry={()=>void reload()}/>}{notice && <p role="status" className="p-3">{notice}</p>}
     <div role="tablist" aria-label="أقسام الملف" className="grid grid-cols-2 gap-2 mt-3 border-b border-white/15 pb-3">{([['info','معلومات المستخدم'],['relations','علاقاتي']] as const).map(([id,label])=><button type="button" role="tab" aria-selected={tab===id} aria-controls={`profile-${id}`} key={id} onClick={()=>setTab(id)} className={`p-3 rounded-xl ${tab===id?'bg-purple-500/20 text-purple-200':'text-slate-300'}`}>{label}</button>)}</div>
     <div role="tabpanel" id={`profile-${tab}`}>
@@ -63,7 +64,7 @@ export const UserDetailProfileScreen: React.FC = () => {
       <footer className="fixed bottom-0 inset-x-0 max-w-md mx-auto bg-[#100b20]/95 backdrop-blur-md border-t border-white/10 p-3 pb-safe z-20 grid grid-cols-3 gap-2">
         <button disabled={busy || loading || !social} onClick={() => void act(social?.is_following ? 'unfollow':'follow')} className="p-3 rounded-xl bg-purple-700">{social?.is_following ? 'إلغاء المتابعة':'متابعة'}</button>
         <button onClick={() => {setSelectedChatUser(user);setActiveSubScreen('chat_detail');}} className="p-3 rounded-xl bg-purple-700">رسالة</button>
-        <button type="button" disabled={!homeRoom} onClick={()=>{if(homeRoom)void joinRoom(homeRoom)}} className="p-3 rounded-xl bg-purple-700 disabled:opacity-40">المنزل</button>
+        {activeRoom?.members?.some(member=>member.id===target.id)?<button type="button" onClick={()=>{window.sessionStorage.setItem('totichat.pendingGiftRecipient',target.id);setActiveSubScreen(null)}} className="p-3 rounded-xl bg-purple-700">هدية</button>:<button type="button" disabled={!homeRoom} onClick={()=>{if(homeRoom)void joinRoom(homeRoom)}} className="p-3 rounded-xl bg-purple-700 disabled:opacity-40">المنزل</button>}
       </footer>
       <section className="p-4 bg-white/10 rounded-2xl"><h2 className="text-sm font-bold">رفيق الروح</h2>{relationship ? <><p className="my-2">{relationship.accepted_at ? 'علاقة معتمدة':relationship.requested_by === me.authId ? 'طلب مرسل':'طلب وارد'}</p>{!relationship.accepted_at && relationship.requested_by !== me.authId && <button disabled={busy} onClick={() => void act('accept',true)} className="p-2">قبول</button>}<button disabled={busy} onClick={() => void act(relationship.accepted_at ? 'end':'reject',true)} className="p-2">{relationship.accepted_at ? 'إنهاء العلاقة':'إلغاء / رفض الطلب'}</button></> : <button disabled={busy || loading || !social} onClick={() => void act('request',true)} className="p-3">طلب ارتباط</button>}</section>
     </>}

@@ -14,7 +14,7 @@ export const GiftOverlayAnimation: React.FC<GiftOverlayAnimationProps> = ({ over
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 pointer-events-none z-[60] flex flex-col items-center justify-center p-4">
+      <div data-testid="room-gift-animation" className="fixed inset-0 pointer-events-none z-[60] flex flex-col items-center justify-center p-4">
         {/* Glow backdrop burst */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}

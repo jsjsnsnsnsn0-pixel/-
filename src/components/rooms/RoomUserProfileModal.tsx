@@ -224,6 +224,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           {allowed!.moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300" onClick={()=>{if(window.confirm('حظر هذا المستخدم من الغرفة؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
         </div></section>}
         {allowed?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="w-full mt-3 p-3 rounded-2xl bg-white/5 text-sm">إدارة المشرفين</button>}
+        {allowed?.self&&activeRoom?.canModerate&&onManage&&<button type="button" onClick={onManage} className="w-full mt-3 p-3 rounded-2xl bg-white/5 text-sm">إدارة الغرفة</button>}
         <div>
         </div>
         {/* ========================================================= */}

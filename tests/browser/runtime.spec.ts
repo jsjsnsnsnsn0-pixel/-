@@ -21,7 +21,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     {id:'fixed-received',transaction_type:'fixed_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
     {id:'lucky-received',transaction_type:'lucky_gift_diamonds_received',gold_delta:0,diamond_delta:100000,created_at:new Date().toISOString()},
   ] : [];
-  let followed=false; let friendStatus='none'; const purchased:string[]=[]; const adminAdjustments=new Map<string,any>(); let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
+  const giftFeed:any[]=[];let followed=false; let friendStatus='none'; const purchased:string[]=[]; const adminAdjustments=new Map<string,any>(); let savedGiftCount=0; const giftStockRequests=new Set<string>(); let rewardClaimed=false; let notificationRead=false;
   await page.route('https://**.supabase.co/**', async route => {
     const url=new URL(route.request().url()); const path=url.pathname; const method=route.request().method();
     const body=route.request().postDataJSON(); if (!['GET','HEAD'].includes(method)) requests.push({path,body});
@@ -61,6 +61,8 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     }
     if (path.endsWith('/rooms')) return respond(overrides.rooms ? [currentRoom] : []);
     if (path.endsWith('/gift_catalog')) return respond([{id:'g1',name:'وردة الاختبار',price:10,diamond_source_type:'FIXED_GIFT',is_active:true}]);
+    if(path.endsWith('/send_room_gift_batch')){if(!giftFeed.some(row=>row.id===body.p_request_id))giftFeed.push({id:body.p_request_id,room_id:roomId,sender_name:'حساب الاختبار',recipient_name:'حساب الاختبار',recipient_public_id:body.p_recipient_public_id,gift_name:'وردة الاختبار',quantity:body.p_quantity,created_at:new Date().toISOString()});return respond(null)}
+    if(path.endsWith('/room_gift_feed'))return respond(giftFeed);
     if (path.endsWith('/room_members')) return respond(overrides.rooms && !membershipRemoved ? [{id:'member',room_id:roomId,user_id:actor,seat_number:overrides.listener?null:1,role:overrides.listener?'member':'owner',is_muted:currentMuted,member_public_id:920003,member_display_name:'حساب الاختبار'}, ...(overrides.otherMember ? [{id:'other-member',room_id:roomId,user_id:other,seat_number:2,role:'member',is_muted:true,member_public_id:overrides.noMemberId ? null : 451306,member_display_name:'مشارك آخر',member_level:overrides.roomSeatLevel ?? overrides.roomProfile?.level ?? 0,member_vip_level:overrides.roomSeatVip ?? overrides.roomProfile?.vip_level ?? 0,member_avatar_url:overrides.roomProfile?.avatar_url ?? null}] : [])] : []);
     if (path.endsWith('/wallet_transactions')) return respond(walletHistory);
     if (path.endsWith('/recharge_packages')) return respond([{id:'44444444-4444-4444-8444-444444444444',price_usd:0.99,gold_amount:4900}]);
@@ -79,7 +81,7 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
       const self=body.p_public_id===920003;
       const owner=currentRoom.owner_id===actor;
       return respond({
-        self,
+        room_id:body.p_room_id,subject_public_id:body.p_public_id,self,
         social:{follow:!self,message:!self,gift:true,mention:!self,is_following:followed},
         moderation:owner&&!self?['unmute','down','kick','ban']:[],
         manage_moderators:owner&&!self
@@ -89,15 +91,15 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/couple_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({relations:overrides.roomCouple ? [{accepted_at:'2026-01-01T00:00:00Z',ended_at:null,partner:{public_id:451306,display_name:'مشارك آخر',level:0,vip_level:0}}] : [],current:[],previous:[]});}
     if (path.endsWith('/profile_relationships')) {
       if(overrides.optionalProfileError)return respond({message:'unavailable'},500);
-      if(overrides.hideRelationships||!overrides.typedRelationships)return respond([]);
+      if(overrides.hideRelationships||!(overrides.typedRelationships||overrides.roomCouple))return respond([]);
       const subject=Number(body.p_public_id);
       const ownerPartner=subject===920003
         ? {public_id:451306,display_name:'شريك CP',avatar_url:'/assets/images/default-user.svg',level:4,vip_level:2,country_code:'IQ'}
         : {public_id:920003,display_name:'حساب الاختبار',avatar_url:current.avatar_url,level:current.level,vip_level:current.vip_level,country_code:'IQ'};
       return respond([
-        {relation_id:'rel-cp',type_id:'love',type_label:'CP',is_primary:true,partner:ownerPartner,days:10,experience:650,level_thresholds:[100,500,1000],presentation:{accent:'#fb7185',background:'#35102a',icon:'💗'},card:{id:'cp-card',name:'بطاقة الحب'}},
-        {relation_id:'rel-best',type_id:'best_friend',type_label:'صديق للأبد',is_primary:false,partner:{public_id:451305,display_name:'صديق طويل الأمد',avatar_url:'/assets/images/default-user.svg',level:2,vip_level:0},days:34,experience:220,level_thresholds:[100,300,700],presentation:{accent:'#8b5cf6',background:'#1f173a',icon:'🤝'}},
-        {relation_id:'rel-trusted',type_id:'trusted',type_label:'مؤتمن',is_primary:false,partner:{public_id:451307,display_name:'Trusted Friend With Long English Name',avatar_url:'/assets/images/default-user.svg',level:3,vip_level:0},days:35,experience:510,level_thresholds:[100,300,600],presentation:{accent:'#22d3ee',background:'#102a35',icon:'🛡️'}}
+        {subject_public_id:subject,accepted_at:'2026-09-28T00:00:00Z',ended_at:null,relation_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',type_id:'love',type_label:'CP',is_primary:true,partner:ownerPartner,days:10,experience:650,level_thresholds:[100,500,1000],presentation:{accent:'#fb7185',background:'#35102a',icon:'💗'},card:{id:'cp-card',name:'بطاقة الحب'}},
+        {subject_public_id:subject,accepted_at:'2026-09-04T00:00:00Z',ended_at:null,relation_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',type_id:'best_friend',type_label:'صديق للأبد',is_primary:false,partner:{public_id:451305,display_name:'صديق طويل الأمد',avatar_url:'/assets/images/default-user.svg',level:2,vip_level:0},days:34,experience:220,level_thresholds:[100,300,700],presentation:{accent:'#8b5cf6',background:'#1f173a',icon:'🤝'}},
+        {subject_public_id:subject,accepted_at:'2026-09-03T00:00:00Z',ended_at:null,relation_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3',type_id:'trusted',type_label:'مؤتمن',is_primary:false,partner:{public_id:451307,display_name:'Trusted Friend With Long English Name',avatar_url:'/assets/images/default-user.svg',level:3,vip_level:0},days:35,experience:510,level_thresholds:[100,300,600],presentation:{accent:'#22d3ee',background:'#102a35',icon:'🛡️'}}
       ]);
     }
     if (path.endsWith('/profile_agency')) {
@@ -107,11 +109,12 @@ async function setup(page: Page, loggedIn = true, overrides: {country?: string; 
     if (path.endsWith('/agency_state')) {if(overrides.optionalProfileError)return respond({message:'unavailable'},500);return respond({agency:overrides.roomAgency?{id:87,name:'وكالة حقيقية للاختبار',owner_id:actor}:null,members:overrides.roomAgency?[{public_id:920003},{public_id:451306}]:[],applications:[],available:[]});}
     if (path.endsWith('/user_notifications')) {if(method==='PATCH')notificationRead=true;return respond(overrides.commerce ? [{id:'notification',type:'system',title:'إشعار من الخادم',description:'محتوى حقيقي من الاستجابة',created_at:new Date().toISOString(),read_at:notificationRead?new Date().toISOString():null}] : []);}
     if (path.endsWith('/gift_box_state') && overrides.giftShop) return respond({
-      categories:[{id:'luck',name:'هدايا الحظ',sort_order:1}],
+      server_now:new Date().toISOString(),categories:[{id:'luck',label:'هدايا الحظ',sort_order:1}],
       gifts:[{id:'lucky-test-1',name:'هدية حظ من الخادم',price:25,icon:'✨',description:'عنصر من مصدر اختبار RPC',category_id:'luck',duration_days:null}],
       inventory:savedGiftCount?[{id:'gift-lot',gift_id:'lucky-test-1',remaining:savedGiftCount,unit_price:25}]:[],
       banner:null,
     });
+    if (path.endsWith('/gift_box_state')) return respond({server_now:new Date().toISOString(),categories:[{id:'gift',label:'الهدايا'}],gifts:[{id:'g1',name:'وردة الاختبار',price:10,icon:'🌹',diamond_source_type:'FIXED_GIFT'}],inventory:[],banner:null});
     if (path.endsWith('/buy_gift_stock') && overrides.giftShop) {
       if (!giftStockRequests.has(body.p_request_id)) {
         if (current.gold<25)return respond({message:'insufficient gold'},400);
@@ -210,32 +213,30 @@ test('room seats are rendered from the database and recharge opens while joined'
   await expect(page.getByText('دردشة فعلية',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'الجلوس في المقعد 4',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
-  await page.getByTitle('شحن رصيد',{exact:true}).click();
+  await page.getByRole('button',{name:'شحن الرصيد',exact:true}).click();
   await expect(page.getByRole('heading',{name:'شحن العملات',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 // Reference regression: selecting a gift never sends it; quantity is chosen separately.
-test('gift selection waits for Send, uses 1/7/77/777 and blocks rapid duplicates', async ({page})=>{
+test('gift selection waits for Send, uses 1/7/17/77/777 and blocks rapid duplicates', async ({page})=>{
   const {requests,errors}=await setup(page,true,{rooms:true,giftFunds:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
-  const send=dialog.getByRole('button',{name:'إرسال الهدية',exact:true});
+  const send=dialog.getByRole('button',{name:'إرسال',exact:true});
   await expect(dialog.getByText('وردة الاختبار',{exact:true})).toBeVisible();
-  await expect(send).toBeDisabled();
+  await expect(send).toHaveCount(0);
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
   expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
   await expect(send).toBeEnabled();
-  await dialog.getByRole('button',{name:'اختيار كمية الهدية، الحالية 1',exact:true}).click();
-  for(const value of [1,7,77,777])await expect(dialog.getByRole('menuitem',{name:`اختيار كمية ${value}`,exact:true})).toBeVisible();
-  await expect(dialog.getByRole('menuitem',{name:'اختيار كمية 17',exact:true})).toHaveCount(0);
-  await dialog.getByRole('menuitem',{name:'اختيار كمية 77',exact:true}).click();
-  await expect(dialog.getByText(/×77/).last()).toBeVisible();
+  for(const value of [1,7,17,77,777])await expect(dialog.getByRole('button',{name:String(value),exact:true})).toBeVisible();
+  await dialog.getByRole('button',{name:'77',exact:true}).click();
+  await expect(dialog.getByText(/× 77/).last()).toBeVisible();
   await send.dblclick();
-  await expect(dialog.getByText('تم الإرسال',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('تم إرسال الهدية.',{exact:true})).toBeVisible();
   await expect(page.getByTestId('room-gift-animation')).toBeVisible();
-  const announcement=page.getByTestId('room-gift-announcement');
+  const announcement=page.locator('.room-message').filter({hasText:'وردة الاختبار'}).first();
   await expect(announcement).toBeVisible();
   await expect(announcement).toContainText('أرسل');
   await expect(announcement).toContainText('وردة الاختبار');
@@ -255,7 +256,7 @@ test('gift send disables when the selected total exceeds the real coin balance',
   await page.getByRole('button',{name:'إرسال هدية',exact:true}).click();
   const dialog=page.getByRole('dialog',{name:'صندوق الهدايا',exact:true});
   await dialog.getByText('وردة الاختبار',{exact:true}).click();
-  const send=dialog.getByRole('button',{name:'إرسال الهدية',exact:true});
+  const send=dialog.getByRole('button',{name:'إرسال',exact:true});
   await expect(send).toBeDisabled();
   await expect(dialog.getByText('الرصيد غير كافٍ — شحن Coins',{exact:true})).toBeVisible();
   expect(requests.filter(r=>r.path.endsWith('/send_room_gift_batch'))).toHaveLength(0);
@@ -276,7 +277,7 @@ async function openFullOtherProfile(page: Page, overrides: Parameters<typeof set
   await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByTestId('occupied-seat').nth(1).click();
   const quick=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
-  await quick.getByRole('button',{name:'المزيد',exact:true}).click();
+  await quick.getByRole('button',{name:'الملف الكامل',exact:true}).click();
   await expect(page.getByTestId('full-profile-hero')).toBeVisible();
   return result;
 }
@@ -305,7 +306,7 @@ test('search account opens the full profile instead of forcing chat',async({page
   await page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...').fill('451305');
   await page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true}).click();
   await expect(page.getByTestId('full-profile-hero')).toHaveAttribute('data-vip-level','0');
-  await expect(page.getByTestId('cp-quick-preview')).toHaveCount(0);
+  await expect(page.getByTestId('profile-couple')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'متابعة',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -313,16 +314,15 @@ test('search account opens the full profile instead of forcing chat',async({page
 test('other full profile uses real VIP, CP, agency and multiple relationship data',async({page})=>{
   const {errors}=await openFullOtherProfile(page,{roomProfile:{display_name:'مستخدم VIP',vip_level:5,level:7,country_code:'IQ'},roomAgency:true,typedRelationships:true});
   await expect(page.getByTestId('full-profile-hero')).toHaveAttribute('data-vip-level','5');
-  await expect(page.getByTestId('cp-quick-preview')).toBeVisible();
+  await expect(page.getByTestId('profile-couple')).toBeVisible();
   await expect(page.getByText('وكالة حقيقية للاختبار',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'علاقاتي',exact:true}).click();
-  await expect(page.getByRole('button',{name:'فتح تفاصيل CP',exact:true})).toBeVisible();
+  await page.getByRole('tab',{name:'علاقاتي',exact:true}).click();
+  await expect(page.getByRole('button',{name:'تفاصيل علاقة CP',exact:true})).toBeVisible();
   await expect(page.getByText('صديق للأبد',{exact:true})).toBeVisible();
   await expect(page.getByText('مؤتمن',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'فتح تفاصيل CP',exact:true}).click();
-  const details=page.getByRole('dialog',{name:'تفاصيل CP'});
-  await expect(details).toContainText('10');
-  await expect(details).toContainText('LV3');
+  await page.getByRole('button',{name:'تفاصيل علاقة CP',exact:true}).click();
+  const details=page.getByLabel('تفاصيل العلاقة',{exact:true});
+  await expect(page.getByTestId('profile-couple').first()).toContainText('10 يوم');
   await expect(details).toContainText('650');
   expect(errors).toEqual([]);
 });
@@ -330,7 +330,7 @@ test('other full profile uses real VIP, CP, agency and multiple relationship dat
 test('full profile follow state changes and message action stays real',async({page})=>{
   const {requests,errors}=await openFullOtherProfile(page);
   await page.getByRole('button',{name:'متابعة',exact:true}).click();
-  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'إلغاء المتابعة',exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='follow')).toBe(true);
   await page.getByRole('button',{name:'رسالة',exact:true}).click();
   await expect(page.locator('body')).toContainText('مشارك آخر');
@@ -359,9 +359,9 @@ test('self full profile shares the same architecture with owner actions',async({
 
 test('relationships privacy-shaped response hides CP and relationships without placeholders',async({page})=>{
   const {errors}=await openFullOtherProfile(page,{hideRelationships:true});
-  await expect(page.getByTestId('cp-quick-preview')).toHaveCount(0);
-  await page.getByRole('button',{name:'علاقاتي',exact:true}).click();
-  await expect(page.getByTestId('cp-empty-state')).toBeVisible();
+  await expect(page.getByTestId('profile-couple')).toHaveCount(0);
+  await page.getByRole('tab',{name:'علاقاتي',exact:true}).click();
+  await expect(page.getByText('لا توجد علاقات نشطة.',{exact:true})).toBeVisible();
   await expect(page.getByText('صديق للأبد',{exact:true})).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -427,7 +427,7 @@ test('store exposes server-backed entrance and CP card tabs and inventory stays 
   await expect(page.getByText('دخول الخادم',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
   await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
-  await expect(page.getByText('الحقيبة فارغة',{exact:true})).toBeVisible();
+  await expect(page.getByText('لا توجد مقتنيات في هذا القسم',{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -507,7 +507,7 @@ test('room participant profile retains the selected server identity after fronte
   const {errors}=await setup(page,true,{rooms:true,otherMember:true}); await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByText('مشارك آخر',{exact:true}).click();
-  await page.getByRole('button',{name:'المزيد',exact:true}).click();
+  await page.getByRole('button',{name:'الملف الكامل',exact:true}).click();
   await expect(page.getByTitle('معرف الحساب: 451306 (انقر للنسخ)',{exact:true})).toBeVisible();
   await expect(page.locator('span[dir=auto]').filter({hasText:'مشارك آخر'})).toBeVisible();
   expect(errors).toEqual([]);
@@ -568,7 +568,7 @@ test('server-backed lucky gift stock purchase appears in Inventory without doubl
   await page.getByRole('button',{name:'فتح الحقيبة',exact:true}).click();
   await expect(page.getByRole('heading',{name:'الحقيبة',exact:true})).toBeVisible();
   await expect(page.getByText('هدية حظ من الخادم',{exact:true})).toBeVisible();
-  await expect(page.getByText('×1',{exact:true}).first()).toBeVisible();
+  await expect(page.getByText('مملوك · 1',{exact:true}).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -600,7 +600,7 @@ test('failed store purchase retains retry identifier and never displays success'
 test('real relationships record visits and persist follow/friend requests via RPC', async ({page})=>{
   const {requests,errors}=await setup(page,true,{social:true});await page.goto('/');await page.getByTitle('أنا').click();await page.getByText('متابعين',{exact:true}).click();
   await page.getByRole('button').filter({hasText:'مستخدم العلاقة'}).click();await page.getByRole('button',{name:'متابعة',exact:true}).click();
-  await expect(page.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();await page.getByText('إجراءات إضافية',{exact:true}).click();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
+  await expect(page.getByRole('button',{name:'إلغاء المتابعة',exact:true})).toBeVisible();await page.getByRole('button',{name:'طلب صداقة',exact:true}).click();
   await expect(page.getByRole('button',{name:'إلغاء الطلب',exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_visit&&r.body.p_public_id===451305)).toBe(true);
   expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='request')).toBe(true);expect(errors).toEqual([]);
@@ -656,8 +656,8 @@ test('ordinary room user B has no VIP8, invented ranks, CP, medals, agency or Ir
 });
 test('room profile header is standard without VIP and dynamic when VIP is active',async({page})=>{
   const result=await openOtherRoomProfile(page);
-  await expect(result.card.getByTestId('standard-profile-header')).toBeVisible();
-  await expect(result.card.getByTestId('vip-profile-header')).toHaveCount(0);
+  await expect(result.card.getByTestId('profile-avatar-header')).toBeVisible();
+  await expect(result.card.getByTestId('profile-avatar-frame')).toHaveAttribute('src',/profile-ruby-wings/);
   await result.card.getByRole('button',{name:'إغلاق البطاقة'}).click();
 });
 
@@ -665,7 +665,7 @@ test('self room profile exposes real seat controls while microphone is muted',as
   const first=await setup(page,true,{rooms:true});await page.goto('/');await page.getByText('غرفة الاختبار',{exact:true}).first().click();
   await page.getByTestId('occupied-seat').first().click();
   let card=page.getByRole('dialog',{name:'بطاقة مستخدم الغرفة'});
-  await expect(card.getByRole('button',{name:'تشغيل المايك',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'فتح المايك',exact:true})).toBeVisible();
   await expect(card.getByRole('button',{name:'النزول من المايك',exact:true})).toBeVisible();
   await expect(card.getByRole('button',{name:'إدارة الغرفة',exact:true})).toBeVisible();
   await card.getByRole('button',{name:'إغلاق البطاقة'}).click();
@@ -684,12 +684,12 @@ test('self room profile reflects an active microphone state',async({page})=>{
 test('other user profile uses social actions and server-backed owner moderation permissions',async({page})=>{
   const {card,requests,errors}=await openOtherRoomProfile(page);
   await expect(card.getByRole('button',{name:'متابعة',exact:true})).toBeVisible();
-  await expect(card.getByRole('button',{name:'دردشة',exact:true})).toBeVisible();
-  await expect(card.getByRole('button',{name:'إرسال هدية',exact:true})).toBeVisible();
-  await expect(card.getByText('إجراءات الإشراف',{exact:true})).toBeVisible();
-  await expect(card.getByRole('button',{name:'فتح صوت العضو',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'رسالة خاصة',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'🎁 إرسال هدية',exact:true})).toBeVisible();
+  await expect(card.getByText('أدوات الإشراف',{exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'فتح الصوت',exact:true})).toBeVisible();
   await card.getByRole('button',{name:'متابعة',exact:true}).click();
-  await expect(card.getByRole('button',{name:'تمت المتابعة',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'إلغاء المتابعة',exact:true})).toBeVisible();
   expect(requests.some(r=>r.path.endsWith('/social_action')&&r.body.p_action==='follow')).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -699,7 +699,7 @@ test('room public data and authorized CP/agency show actual values without priva
   const {card,errors}=await openOtherRoomProfile(page,{roomProfile:data,roomCouple:true,roomAgency:true,roomSeatLevel:0,roomSeatVip:8});
   const seat=page.getByTestId('occupied-seat').nth(1);
   await expect(seat).toHaveAttribute('aria-label','عرض ملف الاسم الحقيقي B');await expect(seat.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(seat).toContainText('VIP2');await expect(seat).not.toContainText('VIP8');
-  await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('vip-profile-header')).toHaveAttribute('data-vip-level','2');await expect(card.getByTestId('profile-country')).toContainText('EG');
+  await expect(card.getByTestId('profile-vip')).toContainText('VIP2');await expect(card.getByTestId('profile-avatar-header')).toBeVisible();await expect(card.getByTestId('profile-country')).toContainText('EG');
   await expect(card.getByTestId('profile-avatar-frame')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect(card.getByTestId('profile-agency')).toContainText('وكالة حقيقية للاختبار');await expect(card.getByTestId('profile-couple')).toContainText('حساب الاختبار');
   await expect(card.locator('[aria-label="المستوى 7"]')).toBeVisible();await expect(card.getByTitle('معرف الحساب: 451306 (انقر للنسخ)')).toBeVisible();
@@ -708,7 +708,7 @@ test('room public data and authorized CP/agency show actual values without priva
 });
 test('missing Public ID cannot become 1331 or open the current account details',async({page})=>{
   const {card,errors,requests}=await openOtherRoomProfile(page,{noMemberId:true});
-  await expect(card.getByRole('alert')).toContainText('معرف المستخدم غير متاح');await expect(card.getByRole('button',{name:'المزيد',exact:true})).toBeDisabled();
+  await expect(card.getByRole('alert')).toContainText('معرف المستخدم غير متاح');await expect(card.getByRole('button',{name:'الملف الكامل',exact:true})).toBeDisabled();
   await expect(card.locator('[title^="معرف الحساب"]')).toHaveCount(0);await expect(card).not.toContainText('1331');await expect(card).not.toContainText('حساب الاختبار');
   expect(requests.filter(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306)).toHaveLength(0);expect(errors).toEqual([]);
 });
@@ -727,7 +727,7 @@ test('optional relationship lookup failure hides CP/agency without losing the pu
 
 test('expired VIP in a room snapshot is never displayed as an active seat entitlement',async({page})=>{
   const {card,requests,errors}=await openOtherRoomProfile(page,{roomSeatVip:8,roomProfile:{vip_level:0}});
-  await expect(card.getByRole('button',{name:'المزيد',exact:true})).toBeEnabled();
+  await expect(card.getByRole('button',{name:'الملف الكامل',exact:true})).toBeEnabled();
   await expect(page.getByTestId('occupied-seat').nth(1)).not.toContainText('VIP8');await expect(card.getByTestId('profile-vip')).toHaveCount(0);
   expect(requests.some(r=>r.path.endsWith('/social_profile')&&r.body.p_public_id===451306)).toBe(true);expect(errors).toEqual([]);
 });
@@ -1034,16 +1034,16 @@ test('music playlist is reloaded from private account library after the panel cl
   });
   await page.goto('/');
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
-  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'موسيقى الهاتف',exact:true}).click();
   const panel=page.getByRole('dialog',{name:'موسيقى الغرفة'});
   await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
   await expect(panel.getByRole('button',{name:'تشغيل أغنية محفوظة.mp3'})).toBeVisible();
   await panel.getByRole('button',{name:'إغلاق الموسيقى'}).click();
-  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'موسيقى الهاتف',exact:true}).click();
   await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
   await page.reload();
   await page.getByText('غرفة الاختبار',{exact:true}).first().click();
-  await page.getByRole('button',{name:'موسيقى الغرفة',exact:true}).click();
+  await page.getByRole('button',{name:'موسيقى الهاتف',exact:true}).click();
   await expect(panel.getByText('أغنية محفوظة.mp3',{exact:true})).toBeVisible();
   expect(reads).toBeGreaterThanOrEqual(3);
   expect(errors).toEqual([]);

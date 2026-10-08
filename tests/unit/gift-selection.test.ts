@@ -30,6 +30,6 @@ test('room gift selection sends only on Send, with current recipient/quantity an
  await act(async()=>{button('إرسال').click();button('إرسال').click()});assert.equal(calls.length,1);assert.equal(calls[0][0].id,'g1');assert.equal(calls[0][1].id,'1003');assert.equal(calls[0][5],7);
  await act(async()=>resolveSend(true));
  await click('1');await click('إرسال');assert.equal(calls[1][5],1);await act(async()=>resolveSend(true));
- user.gold=0;await click('777');await click('إرسال');assert.equal(calls.length,2);assert.ok(dom.window.document.body.textContent!.includes('رصيدك غير كافٍ'));
+ user.gold=0;await click('777');await click('إرسال');assert.equal(calls.length,2);assert.equal(button('إرسال').disabled,true);assert.ok(dom.window.document.body.textContent!.includes('الرصيد غير كافٍ')); 
  }finally{await act(async()=>root?.unmount());dom.window.close();for(const [key,value]of saved){if(value)Object.defineProperty(globalThis,key,value);else delete (globalThis as any)[key]}delete (globalThis as any).__giftContext;delete (globalThis as any).__giftData;await rm(temp,{recursive:true,force:true})}
 });

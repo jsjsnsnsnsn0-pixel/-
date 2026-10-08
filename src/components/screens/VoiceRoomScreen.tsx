@@ -161,8 +161,10 @@ export const VoiceRoomScreen: React.FC = () => {
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
         setGiftTotals(prev=>({...prev,[recipient]:(prev[recipient]||0)+quantity}));
       }).subscribe();
+    const confirmed=(event:Event)=>{if((event as CustomEvent).detail?.roomId===roomId)void load()};
+    window.addEventListener('toti:gift-confirmed',confirmed);
     const timer=setInterval(()=>{if(!document.hidden)void load()},30000);
-    return()=>{disposed=true;clearInterval(timer);void supabase.removeChannel(channel)};
+    return()=>{disposed=true;clearInterval(timer);window.removeEventListener('toti:gift-confirmed',confirmed);void supabase.removeChannel(channel)};
   },[activeRoom?.id]);
   if(!activeRoom)return null;
   const mySeat=activeRoom.seats.find(s=>s.user?.authId===user.authId);
