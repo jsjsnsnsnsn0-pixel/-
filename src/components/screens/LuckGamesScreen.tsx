@@ -113,7 +113,7 @@ export const LuckGamesScreen: React.FC = () => {
         <div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><History size={19} className="text-violet-300"/><h2 className="font-black">سجل الألعاب</h2></div><button type="button" disabled={history.loading} onClick={()=>void history.reload()} className="ui-control inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-violet-200 disabled:opacity-50"><RefreshCw size={14} className={history.loading?'animate-spin':''}/> تحديث</button></div>
         {history.loading&&<InlineLoading>جارٍ تحميل النتائج…</InlineLoading>}
         {history.error&&<ErrorState message={history.error} onRetry={()=>void history.reload()}/>}
-        {!history.loading&&!history.error&&!(history.data||[]).length&&<EmptyState title="لا توجد جولات بعد" description="العب إحدى الألعاب وستظهر نتائج حسابك هنا."/ >}
+        {!history.loading&&!history.error&&!(history.data||[]).length&&<EmptyState title="لا توجد جولات بعد" description="العب إحدى الألعاب وستظهر نتائج حسابك هنا."/>}
         {!history.error&&<div className="space-y-2">
           {(history.data||[]).map(row=><div key={row.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-300/10">{row.game_type==='dice'?<Dices size={19} className="text-blue-200"/>:row.game_type==='rps'?<Hand size={19} className="text-rose-200"/>:<Gift size={19} className="text-amber-200"/>}</span>
