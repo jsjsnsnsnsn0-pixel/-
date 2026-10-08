@@ -1,7 +1,7 @@
 name: TotiChat Beta UX Reliability QA (no deployment)
 on:
   push:
-    branches: [fix/beta-room-ux-search-reliability-20261008]
+    branches: [release/beta-0.9.0-beta.3-ux-20261008]
   workflow_dispatch:
 permissions:
   contents: read
