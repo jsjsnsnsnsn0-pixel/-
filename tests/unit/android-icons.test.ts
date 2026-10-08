@@ -35,7 +35,7 @@ test('Android configuration installs official assets repeatedly and preserves ap
   execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
   execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
   const gradle=await readFile(join(dir,'android/app/build.gradle'),'utf8');
-  assert.match(gradle,/versionCode 900006/);assert.match(gradle,/versionName "0\.9\.0-beta\.6"/);
+  assert.match(gradle,/versionCode 900007/);assert.match(gradle,/versionName "0\.9\.0-beta\.7"/);
   const manifest=await readFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'utf8');
   assert.match(manifest,/package="com.totichat.app"/);assert.match(manifest,/android:scheme="com.totichat.app"/);
   assert.match(manifest,/android:icon="@mipmap\/ic_launcher"/);assert.match(manifest,/android:roundIcon="@mipmap\/ic_launcher_round"/);
