@@ -12,6 +12,7 @@ import {createRoot} from 'react-dom/client';
 // an isolated server contract. This is DOM integration, not a WebRTC transport test.
 test('room settings round trip, failed save, membership removal and close', async () => {
   const dom = new JSDOM('<div id="root"></div>',{url:'https://test.invalid'});
+  Object.defineProperty(dom.window.navigator,'webdriver',{value:true});
   const globals=['window','document','navigator','localStorage','HTMLElement','Element','getComputedStyle','requestAnimationFrame','cancelAnimationFrame','RTCPeerConnection','IS_REACT_ACT_ENVIRONMENT'];
   const saved = new Map(globals.map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
   for(const key of ['window','document','navigator','localStorage','HTMLElement','Element']) Object.defineProperty(globalThis,key,{configurable:true,value:(dom.window as any)[key]});

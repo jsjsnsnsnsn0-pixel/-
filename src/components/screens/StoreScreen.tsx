@@ -1,70 +1,241 @@
-import React, {useCallback,useEffect,useRef,useState} from 'react';
-import {catalog,rpc,backendMessage,CatalogItem} from '../../services/backend';
-import {supabase} from '../../services/supabase';
-import {useDismissableLayer} from '../../hooks/useDismissableLayer';
-import {useServerData} from '../../hooks/useServerData';
-import {useApp} from '../../context/AppContext';
-import {loadRoomPublicProfile,ProfileRelationship,RoomPublicProfile} from '../../services/roomPublicProfile';
-import {RelationshipCard} from '../common/RelationshipCard';
-import {ChevronRight,ShoppingBag,Play,X,Check} from 'lucide-react';
-import './store.css';
-const tabs=[['frames','غطاء الرأس'],['cars','المركبة'],['bubbles','الفقاعة'],['entrances','مؤثر الدخول'],['cards','البطاقات'],['badges','الشارات']] as const;
-interface Item extends CatalogItem{owned:boolean;active:boolean;relation?:ProfileRelationship}
-interface StoreData{items:Item[];profile?:RoomPublicProfile}
-const empty:StoreData={items:[]};
-export const StoreScreen:React.FC=()=>{
- const {user,refreshWallet,reportError,setActiveSubScreen}=useApp();
- const [tab,setTab]=useState<string>('frames'),[selected,setSelected]=useState<string|null>(null),[preview,setPreview]=useState<string|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
- const requests=useRef(new Map<string,string>());
- const layerRef=useDismissableLayer(Boolean(preview),()=>setPreview(null));
- const load=useCallback(async():Promise<StoreData>=>{
-  const [entries,purchases,equipment,profile]=await Promise.all([catalog(),supabase.from('store_purchases').select('item_id,expires_at').eq('user_id',user.authId),supabase.from('user_equipment').select('category,item_id').eq('user_id',user.authId),loadRoomPublicProfile(user.id,user.id)]);
-  if(purchases.error)throw purchases.error;if(equipment.error)throw equipment.error;
-  return {profile:profile||undefined,items:entries.filter(i=>tabs.some(t=>t[0]===i.category)).map(i=>{
-   const relation=profile?.relationships?.find(r=>r.typeId===i.relationship_type_id);
-   const owned=(purchases.data||[]).some(p=>p.item_id===i.id&&(!p.expires_at||Date.parse(p.expires_at)>Date.now()));
-   return {...i,relation,owned,active:i.category==='cards'?relation?.cardId===i.id:owned&&(equipment.data||[]).some(e=>e.category===i.category&&e.item_id===i.id)};
-  })};
- },[user.authId,user.id]);
- const {data,loading,error,reload}=useServerData(load,empty);
- useEffect(()=>{const focus=()=>void reload();window.addEventListener('focus',focus);const timer=setInterval(()=>{if(document.visibilityState==='visible')void reload()},30000);return()=>{window.removeEventListener('focus',focus);clearInterval(timer)}},[reload]);
- const items=data.items.filter(i=>i.category===tab),item=items.find(i=>i.id===selected),view=data.items.find(i=>i.id===preview);
- const changeTab=(id:string)=>{setTab(id);setSelected(null);setNotice('')};
- const run=async(target:Item)=>{
-  if(busy)return;setBusy(true);setNotice('');
-  try{
-   if(target.owned){
-    if(target.category==='cards'){
-     if(!target.relation)throw new Error('active matching relationship required');
-     await rpc('equip_relationship_card',{p_relation_id:target.relation.id,p_item_id:target.active?null:target.id});
-    }else await rpc('equip_store_item',{p_item_id:target.active?null:target.id,p_category:target.category});
-   }else{
-    const request=requests.current.get(target.id)||crypto.randomUUID();requests.current.set(target.id,request);
-    const result=await rpc<{id:string}>('purchase_store_item',{p_item_id:target.id,p_request_id:request});
-    if(!result?.id)throw new Error('purchase not confirmed');requests.current.delete(target.id);
-   }
-   setNotice(target.owned?(target.active?'تم إلغاء التجهيز.':'تم تفعيل المنتج.'):'تم الشراء. يمكنك تفعيل المنتج من مقتنياتك.');
-   await Promise.all([reload(),refreshWallet()]);
-  }catch(e){reportError(backendMessage(e))}finally{setBusy(false)}
- };
- const duration=(i:Item)=>i.duration_days?`${i.duration_days} يوم`:'دائم';
- const visual=(i:Item)=>i.preview_url?<img src={i.preview_url} alt={i.name}/>:<span aria-hidden="true">{i.icon}</span>;
- const action=(i:Item)=>!i.owned?'شراء':i.active?'إلغاء التجهيز':'تفعيل';
- return <div className="toti-store" dir="rtl">
-  <header><button aria-label="رجوع" onClick={()=>setActiveSubScreen(null)}><ChevronRight/></button><h1><ShoppingBag size={20}/> المتجر</h1><button onClick={()=>setActiveSubScreen('inventory')}>الحقيبة</button></header>
-  <nav aria-label="أقسام المتجر">{tabs.map(([id,label])=><button key={id} aria-pressed={tab===id} onClick={()=>changeTab(id)}>{label}</button>)}</nav>
-  <main>
-   <p className="store-intro">{tab==='cards'?'بطاقات تجميلية للعلاقات الفعالة؛ شراء البطاقة لا ينشئ علاقة CP.':'اختر منتجاً لمعاينته أو تجهيزه من مقتنياتك.'}</p>
-   {notice&&<p className="store-notice" role="status"><Check size={16}/>{notice}</p>}
-   {loading&&<p role="status">جارٍ تحميل المتجر…</p>}
-   {error&&<button onClick={()=>void reload()}>{error} · إعادة المحاولة</button>}
-   {!loading&&!error&&!items.length&&<div className="store-empty"><ShoppingBag/><p>{tab==='cards'?'لا توجد بطاقات علاقات متاحة في الكتالوج حالياً.':'لا توجد منتجات متاحة في هذا القسم.'}</p></div>}
-   {!loading&&!error&&<div className={`store-grid ${tab==='cards'?'store-cards':''}`}>{items.map(i=><article key={i.id} className={selected===i.id?'selected':''}>
-    <button className="store-visual" aria-label={`معاينة ${i.name}`} onClick={()=>{setSelected(i.id);setPreview(i.id)}}>{visual(i)}<span className="store-play"><Play size={16}/></span></button>
-    <button className="store-select" onClick={()=>setSelected(i.id)}><h2>{i.name}</h2><span>{i.price.toLocaleString('ar-IQ')} {i.currency==='gold'?'🪙':'🥈'} · {duration(i)}</span><small>{i.active?'قيد الاستخدام':i.owned?'مملوك':'غير مملوك'}</small></button>
-   </article>)}</div>}
-  </main>
-  <footer><div><small>رصيدك الحالي</small><strong>{user.gold.toLocaleString('ar-IQ')} 🪙 <span>· {(user.silverCoins??0).toLocaleString('ar-IQ')} 🥈</span></strong></div><button disabled={!item||busy||loading||Boolean(error)||Boolean(item.owned&&item.category==='cards'&&!item.relation)} onClick={()=>item&&void run(item)}>{busy?'جارٍ التنفيذ…':item?action(item):'اختر منتجاً'}</button>{item?.owned&&item.category==='cards'&&!item.relation&&<p>تحتاج علاقة فعالة من نوع هذه البطاقة لتفعيلها.</p>}</footer>
-  {view&&<div ref={layerRef} className="store-backdrop" onClick={()=>setPreview(null)}><section role="dialog" aria-modal="true" aria-label={`معاينة ${view.name}`} className="store-preview" onClick={e=>e.stopPropagation()}><button autoFocus aria-label="إغلاق المعاينة" onClick={()=>setPreview(null)}><X/></button><h2>{view.name}</h2><div className="store-preview-art">{visual(view)}</div>{view.category==='cards'&&view.relation&&data.profile&&<RelationshipCard subject={data.profile} relation={{...view.relation,presentation:{...view.relation.presentation,...view.presentation}}}/>}<p>{view.description}</p>{view.category==='cards'&&!view.relation&&<p>معاينة التصميم فقط. يظهر بين طرفَي العلاقة عند تفعيله على علاقة مطابقة.</p>}<p>{view.price.toLocaleString('ar-IQ')} {view.currency==='gold'?'🪙':'🥈'} · {duration(view)}</p><button disabled={busy||loading||Boolean(error)||Boolean(view.owned&&view.category==='cards'&&!view.relation)} onClick={()=>void run(view)}>{action(view)}</button></section></div>}
- </div>;
+import { useTimeouts } from '../../hooks/useTimeouts';
+import React, { useState, useCallback, useRef } from 'react';
+import { catalog, rpc, backendMessage } from '../../services/backend';
+import { supabase } from '../../services/supabase';
+import { useServerData } from '../../hooks/useServerData';
+import { useApp } from '../../context/AppContext';
+import { ChevronRight, ShoppingBag, Sparkles, Car, MessageCircle, Crown, Check, DoorOpen, IdCard, PackageOpen, WalletCards, Search, Play, X, Grid2X2 } from 'lucide-react';
+
+type StoreCategory = 'all' | 'gift' | 'nation' | 'luck' | 'custom' | 'frames' | 'cars' | 'bubbles' | 'entrances' | 'cards' | 'badges' | 'vip';
+type ProductCategory = Exclude<StoreCategory,'all'>;
+interface StoreItem {
+  id: string;
+  name: string;
+  category: ProductCategory;
+  price: number;
+  currency: 'gold' | 'silver';
+  image: string;
+  previewUrl?: string | null;
+  relationshipTypeId?: string | null;
+  description: string;
+  duration: string;
+  isOwned?: boolean;
+  isGiftStock?: boolean;
+  savedCount?: number;
+}
+
+const equipableCategories=new Set<ProductCategory>(['frames','cars','bubbles','entrances','badges']);
+
+const tabs: Array<{id:StoreCategory;label:string;icon:React.ComponentType<{size?:number}>;always?:boolean}> = [
+  { id: 'all', label: 'الكل', icon: Grid2X2, always:true },
+  { id: 'gift', label: 'هدايا', icon: ShoppingBag },
+  { id: 'nation', label: 'الأعلام والأمة', icon: Crown },
+  { id: 'luck', label: 'حظ', icon: Sparkles },
+  { id: 'custom', label: 'مخصص', icon: Sparkles },
+  { id: 'frames', label: 'الإطارات', icon: Sparkles },
+  { id: 'cars', label: 'المركبات', icon: Car },
+  { id: 'bubbles', label: 'الفقاعات', icon: MessageCircle },
+  { id: 'entrances', label: 'مؤثر الدخول', icon: DoorOpen },
+  { id: 'cards', label: 'CP', icon: IdCard, always:true },
+  { id: 'badges', label: 'الشارات', icon: Crown },
+  { id: 'vip', label: 'VIP', icon: Crown },
+];
+
+export const StoreScreen: React.FC = () => {
+  const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
+  const scheduleTimeout = useTimeouts();
+  const [activeTab, setActiveTab] = useState<StoreCategory>('all');
+  const [query,setQuery]=useState('');
+  const [selected,setSelected]=useState<StoreItem|null>(null);
+  const [preview,setPreview]=useState<StoreItem|null>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const requests = useRef(new Map<string, string>());
+
+  const load = useCallback(async (): Promise<StoreItem[]> => {
+    const [entries, owned] = await Promise.all([
+      catalog(),
+      supabase.from('store_purchases').select('item_id, expires_at').eq('user_id', user.authId),
+    ]);
+    if (owned.error) throw owned.error;
+    // Gift stock uses the existing server-backed gift inventory and a different purchase RPC.
+    // Store cosmetics remain real store_catalog products, never fabricated display entries.
+    type GiftBoxProducts = {gifts?:Array<{id:string;name:string;price:number;icon?:string;description?:string;preview_url?:string|null;category_id?:string;duration_days?:number|null}>;inventory?:Array<{gift_id:string;remaining:number}>};
+    let box:GiftBoxProducts|null=null;
+    try { box=await rpc<GiftBoxProducts>('gift_box_state'); }
+    catch { /* Keep already available cosmetic categories if the optional gift catalog fails. */ }
+    const counts = new Map<string,number>();
+    for (const lot of box?.inventory || []) counts.set(String(lot.gift_id),(counts.get(String(lot.gift_id))||0)+Number(lot.remaining||0));
+    const giftItems:StoreItem[] = (box?.gifts || []).filter(item=>Number(item.price)>0).map(item=>({
+      id:String(item.id),
+      name:String(item.name),
+      category:(['nation','luck','custom'].includes(String(item.category_id)) ? item.category_id : 'gift') as ProductCategory,
+      price:Number(item.price),
+      currency:'gold',
+      image:String(item.icon||'🎁'),
+      previewUrl:item.preview_url||null,
+      description:String(item.description||'هدية قابلة للحفظ والإرسال من الغرفة'),
+      duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
+      isGiftStock:true,
+      savedCount:counts.get(String(item.id))||0,
+    }));
+    const cosmetics = entries.filter(item => tabs.some(tab => tab.id === item.category)).map(item => ({
+      id:item.id,
+      name:item.name,
+      category:item.category as ProductCategory,
+      price:item.price,
+      currency:item.currency,
+      image:item.icon,
+      previewUrl:item.preview_url,
+      relationshipTypeId:item.relationship_type_id,
+      description:item.description || '',
+      duration:item.duration_days ? `${item.duration_days} يوم` : 'دائم',
+      isOwned:(owned.data || []).some(p => p.item_id === item.id && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now())),
+    }));
+    return [...giftItems,...cosmetics];
+  }, [user.authId]);
+
+  const {data: items, loading, error, reload} = useServerData(load, []);
+  const visibleTabs=tabs.filter(tab=>tab.always||tab.id==='cards'||items.some(item=>item.category===tab.id));
+  const normalizedQuery=query.trim().toLocaleLowerCase('ar');
+  const filteredItems=items.filter(item=>(activeTab==='all'||item.category===activeTab)&&(!normalizedQuery||item.name.toLocaleLowerCase('ar').includes(normalizedQuery)||item.description.toLocaleLowerCase('ar').includes(normalizedQuery)));
+
+  const handleBuy = async (item: StoreItem) => {
+    if (busy) return;
+    if(item.isOwned&&!item.isGiftStock){
+      if(item.category==='cards'){setSelected(null);setActiveSubScreen('inventory');return;}
+      if(!equipableCategories.has(item.category))return;
+    }
+    setBusy(true); setPurchaseSuccess(null);
+    try {
+      if(item.isOwned&&!item.isGiftStock) await rpc('equip_store_item',{p_item_id:item.id,p_category:item.category});
+      else {
+        const key=(item.isGiftStock?'gift:':'store:')+item.id;
+        const request = requests.current.get(key) || crypto.randomUUID();
+        requests.current.set(key, request);
+        if(item.isGiftStock){
+          const confirmed=await rpc<string>('buy_gift_stock',{p_gift_id:item.id,p_request_id:request});
+          if(String(confirmed)!==request)throw new Error('gift stock purchase not confirmed');
+        }else{
+          const result=await rpc<{id:string}>('purchase_store_item',{p_item_id:item.id,p_request_id:request});
+          if(!result?.id)throw new Error('purchase not confirmed');
+        }
+        requests.current.delete(key);
+      }
+      setPurchaseSuccess(item.isOwned&&!item.isGiftStock?'تم اعتماد تجهيز المنتج.':item.isGiftStock?'تم شراء الهدية وحفظها في الحقيبة.':'تم اعتماد الشراء من الخادم.');
+      setSelected(null);
+      await Promise.all([reload(),refreshWallet()]);
+      scheduleTimeout(() => setPurchaseSuccess(null), 3000);
+    } catch (e) { reportError(backendMessage(e)); }
+    finally { setBusy(false); }
+  };
+
+  const actionLabel=(item:StoreItem)=>{
+    if(item.isGiftStock)return 'شراء وحفظ في الحقيبة';
+    if(!item.isOwned)return 'شراء';
+    if(item.category==='cards')return 'فتح الحقيبة';
+    if(equipableCategories.has(item.category))return 'استخدام';
+    return 'مملوك';
+  };
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#17382a_0%,#071911_46%,#06150f_100%)] text-slate-100 pb-28" dir="rtl">
+      <header className="sticky top-0 z-30 border-b border-emerald-300/15 bg-[#071910]/94 px-3 pb-3 pt-[max(12px,env(safe-area-inset-top))] backdrop-blur-[10px]">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <button type="button" onClick={() => setActiveSubScreen(null)} aria-label="الرجوع" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-200/15 bg-emerald-50/5">
+              <ChevronRight size={21}/>
+            </button>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/15 bg-emerald-400/10 text-emerald-200"><ShoppingBag size={19}/></span>
+            <div className="min-w-0"><h1 className="truncate text-base font-black text-emerald-50">متجر TotiChat</h1><p className="truncate text-[10px] text-emerald-300/80">إطارات ومقتنيات بهوية توتي شات</p></div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={()=>setActiveSubScreen('wallet')} className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10 text-amber-200" aria-label="فتح المحفظة"><WalletCards size={19}/></button>
+            <button type="button" onClick={()=>setActiveSubScreen('inventory')} className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-200/10 text-emerald-200" aria-label="فتح الحقيبة"><PackageOpen size={19}/></button>
+          </div>
+        </div>
+        <label className="mt-3 flex h-11 items-center gap-2 rounded-2xl border border-emerald-200/20 bg-[#10261b] px-3 focus-within:border-emerald-300/60">
+          <Search size={17} className="shrink-0 text-emerald-200/70"/>
+          <input aria-label="البحث في المتجر" value={query} onChange={event=>setQuery(event.target.value)} placeholder="ابحث عن إطار أو منتج..." className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-emerald-100/40"/>
+          {query&&<button type="button" aria-label="مسح البحث" onClick={()=>setQuery('')} className="shrink-0 text-emerald-200"><X size={16}/></button>}
+        </label>
+      </header>
+      <div className="px-4 pt-3 flex items-center gap-2 text-xs">
+        <span className="rounded-full bg-amber-400/10 text-amber-200 border border-amber-300/15 px-3 py-1.5">🪙 {user.gold.toLocaleString('ar-SA')}</span>
+        <span className="rounded-full bg-white/5 text-slate-200 border border-white/10 px-3 py-1.5">🥈 {(user.silverCoins || 0).toLocaleString('ar-SA')}</span>
+      </div>
+
+      {purchaseSuccess && <div role="status" className="m-4 p-3 bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 text-xs font-bold rounded-2xl flex items-center gap-2"><Check size={16}/><span>{purchaseSuccess}</span></div>}
+
+      <nav aria-label="أقسام المتجر" className="mt-3 px-3 overflow-x-auto overscroll-x-contain">
+        <div className="flex gap-2 min-w-max pb-2">
+          {visibleTabs.map(tab => {
+            const Icon=tab.icon; const active=activeTab===tab.id;
+            return <button key={tab.id} type="button" aria-pressed={active} onClick={()=>setActiveTab(tab.id)}
+              className={`min-h-11 px-3 rounded-2xl flex items-center gap-1.5 border text-xs font-bold ${active?'bg-emerald-400/20 border-emerald-300/70 text-emerald-50 shadow-[inset_0_-2px_#34d399]':'bg-[#0b2419]/90 border-emerald-100/10 text-emerald-100/65'}`}>
+              <Icon size={15}/><span>{tab.label}</span>
+            </button>;
+          })}
+        </div>
+      </nav>
+
+      {activeTab==='cards'&&<div className="mx-4 mt-2 rounded-2xl border border-pink-300/15 bg-pink-500/8 p-3 text-xs text-pink-100">
+        بطاقات CP مقتنيات تجميلية للعلاقة وليست علاقة جديدة. بعد الشراء فعّل البطاقة من الحقيبة على CP متوافق.
+      </div>}
+
+      {loading && <p role="status" className="p-6 text-center text-slate-400">جارٍ تحميل المتجر…</p>}
+      {error && <div className="p-4"><button onClick={() => void reload()} className="w-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-rose-200">{error} — إعادة المحاولة</button></div>}
+      {!loading && !error && !filteredItems.length && <div className="m-4 rounded-2xl bg-white/5 border border-white/10 p-5 text-center text-slate-400"><ShoppingBag size={24} className="mx-auto text-slate-600"/><p className="mt-2 text-sm font-bold">{query?'لا توجد نتائج مطابقة':'لا توجد منتجات متاحة حالياً في هذا القسم'}</p>{activeTab==='cards'&&<p className="mt-1 text-[10px] text-pink-200/60">أي منتج CP فعلي يضاف للكتالوج سيظهر هنا تلقائياً.</p>}</div>}
+
+      <section aria-label="منتجات المتجر" className="grid grid-cols-3 gap-2 px-2.5 py-3 sm:gap-3 sm:px-4">
+        {filteredItems.map(item=>(
+          <article key={item.id} className="min-w-0 overflow-hidden rounded-[19px] border border-emerald-200/15 bg-[linear-gradient(160deg,rgba(33,72,49,.70),rgba(9,27,19,.98))] shadow-[0_8px_20px_rgba(0,0,0,.22)]">
+            <div className="relative aspect-square overflow-hidden rounded-[17px] border-b border-emerald-200/10 bg-[radial-gradient(circle_at_50%_85%,rgba(52,211,153,.19),transparent_69%)]">
+              <button type="button" aria-label={`عرض ${item.name}`} onClick={()=>setSelected(item)} className="flex h-full w-full items-center justify-center overflow-hidden p-1.5">
+                {item.previewUrl?<img src={item.previewUrl} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
+                  /^https?:\/\//i.test(item.image)?<img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-contain"/>:
+                  <span aria-hidden="true" className="text-[38px] drop-shadow-[0_4px_10px_rgba(251,191,36,.2)]">{item.image}</span>}
+              </button>
+              {item.isOwned&&!item.isGiftStock&&<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-950/90 px-1.5 py-0.5 text-[8px] font-bold text-emerald-200">مملوك</span>}
+              {item.isGiftStock&&Boolean(item.savedCount)&&<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-950/90 px-1.5 py-0.5 text-[8px] text-emerald-200">×{item.savedCount}</span>}
+              <button type="button" onClick={()=>setPreview(item)} aria-label={`معاينة ${item.name}`} className="absolute bottom-1.5 left-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-[#092519]/85 text-emerald-100 shadow-lg"><Play size={15} fill="currentColor"/></button>
+            </div>
+            <button type="button" onClick={()=>setSelected(item)} className="w-full px-1.5 pb-2.5 pt-2 text-center">
+              <h3 className="truncate text-[11px] font-black leading-4 text-emerald-50" title={item.name}>{item.name}</h3>
+              <p className="mt-1 truncate text-[10px] text-emerald-100/60">{item.duration}</p>
+              <span className="mt-1.5 block truncate text-[10px] font-black text-amber-300" dir="ltr">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-IQ')}</span>
+            </button>
+          </article>
+        ))}
+      </section>
+      {selected&&<div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-end justify-center" onClick={()=>{if(!busy)setSelected(null)}}>
+        <section role="dialog" aria-modal="true" aria-label={`تفاصيل ${selected.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-[32px] border border-white/10 bg-[#0b1712] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-2xl">
+          <button type="button" onClick={()=>{if(!busy)setSelected(null)}} aria-label="إغلاق" className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center"><X size={18}/></button>
+          <button type="button" onClick={()=>setPreview(selected)} aria-label={`معاينة ${selected.name}`} className="relative w-full aspect-[4/3] rounded-[26px] bg-black/25 border border-white/8 overflow-hidden flex items-center justify-center text-7xl">
+            {selected.previewUrl?<img src={selected.previewUrl} alt={selected.name} className="w-full h-full object-contain"/>:<span>{selected.image}</span>}
+            <span className="absolute inset-0 flex items-center justify-center"><span className="w-14 h-14 rounded-full bg-black/55 border border-white/15 flex items-center justify-center"><Play size={22} fill="currentColor"/></span></span>
+          </button>
+          <div className="mt-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-black">{selected.name}</h2><p className="mt-1 text-xs leading-6 text-slate-400">{selected.description||'عنصر تجميلي من متجر TotiChat.'}</p></div>{selected.isOwned&&!selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">مملوك</span>}
+          {selected.isGiftStock&&<span className="shrink-0 rounded-full bg-cyan-400/10 text-cyan-200 border border-cyan-300/15 px-2.5 py-1 text-[10px] font-black">بالحقيبة ×{selected.savedCount||0}</span>}</div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">السعر</span><strong className="block mt-1 text-sm text-amber-200" dir="ltr">{selected.currency==='gold'?'🪙':'🥈'} {selected.price.toLocaleString('ar-IQ')}</strong></div>
+            <div className="rounded-2xl bg-white/[.045] border border-white/8 p-3"><span className="block text-[9px] text-slate-500">المدة</span><strong className="block mt-1 text-sm">{selected.duration}</strong></div>
+          </div>
+          {selected.category==='cards'&&selected.relationshipTypeId&&<p className="mt-3 rounded-xl bg-pink-500/10 border border-pink-300/10 px-3 py-2 text-[10px] text-pink-200">نوع العلاقة المطلوب: {selected.relationshipTypeId}</p>}
+          {selected.isGiftStock&&<p className="mt-3 rounded-xl bg-cyan-500/10 border border-cyan-300/10 px-3 py-2 text-[11px] text-cyan-200">ستدخل هدية واحدة إلى حقيبتك لتُرسلها من صندوق الهدايا داخل الغرفة. المعاينة لا تشتري الهدية ولا ترسلها.</p>}
+          {selected.category==='vip'&&<p className="mt-3 rounded-xl bg-amber-500/10 border border-amber-300/10 px-3 py-2 text-[10px] text-amber-200">امتياز VIP يُفعّل فقط وفق بيانات المنتج وقواعد الخادم.</p>}
+          <button type="button" disabled={busy||loading||(selected.isOwned&&!selected.isGiftStock&&!equipableCategories.has(selected.category)&&selected.category!=='cards')} onClick={()=>void handleBuy(selected)} className="mt-5 w-full min-h-[50px] rounded-2xl bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 text-[#042019] text-sm font-black disabled:opacity-45">{busy?'جارٍ التنفيذ…':actionLabel(selected)}</button>
+          {(!selected.isOwned||selected.isGiftStock)&&<p className="mt-2 text-center text-[10px] text-slate-500">الخصم وإضافة الملكية ينفذهما Backend في عملية واحدة موثقة.</p>}
+        </section>
+      </div>}
+
+      {preview&&<div className="fixed inset-0 z-[60] bg-[#060b09]/94 backdrop-blur-xl flex items-center justify-center p-5" onClick={()=>setPreview(null)}>
+        <div role="dialog" aria-modal="true" aria-label={`معاينة ${preview.name}`} onClick={event=>event.stopPropagation()} className="relative w-full max-w-sm text-center">
+          <button type="button" aria-label="إغلاق المعاينة" onClick={()=>setPreview(null)} className="absolute -top-12 left-0 w-10 h-10 rounded-full bg-white/8 flex items-center justify-center"><X size={18}/></button>
+          <div className="aspect-square rounded-[34px] bg-[radial-gradient(circle,rgba(52,211,153,.15),transparent_62%)] border border-white/8 flex items-center justify-center overflow-hidden text-8xl">{preview.previewUrl?<img src={preview.previewUrl} alt={preview.name} className="w-full h-full object-contain"/>:<span className="animate-pulse">{preview.image}</span>}</div>
+          <h2 className="mt-5 text-lg font-black">{preview.name}</h2><p className="mt-2 text-[11px] text-slate-500">Preview فقط — لا شراء ولا تفعيل من هذه الشاشة.</p>
+        </div>
+      </div>}
+    </div>
+  );
 };

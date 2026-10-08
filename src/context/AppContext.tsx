@@ -1,4 +1,4 @@
-import {sampleGifts} from '../data/mockData';
+import {createRefreshQueue} from '../services/refreshQueue';
 import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
@@ -51,6 +51,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [profileReady, setProfileReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const roomsRef = useRef(rooms); roomsRef.current = rooms;
   const [ownedClosedRooms,setOwnedClosedRooms] = useState<Room[]>([]);
   const [activeRoom, setActiveRoom] = useState<Room | null>(null);
   const activeRef = useRef(activeRoom); activeRef.current = activeRoom;
@@ -90,7 +91,7 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       'private room requires an invitation': 'تحتاج دعوة لدخول هذه الغرفة.',
       'VIP membership required': 'هذه الغرفة تتطلب عضوية VIP.',
       'no official recharge agent is configured for this country': 'لا يوجد وكيل شحن رسمي لبلدك حالياً.',
-      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من قسم ملكي.',
+      'account already owns a room':'حسابك يملك غرفة بالفعل. افتحها من تبويب غرفي في قائمة الغرف.',
       'authentication required': 'يرجى تسجيل الدخول مجدداً.',
     };
     if(typeof navigator!=='undefined'&&navigator.onLine===false){setError('خطأ اتصال بالإنترنت. تحقق من الشبكة وحاول مجدداً.');return;}
@@ -154,10 +155,18 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       supabase.from('room_members').select('*'), supabase.from('room_seat_locks').select('*'),
       supabase.from('user_room_links').select('*').eq('user_id',id),
     ]);
-    for (const result of [rs, ms, ls, links]) if (result.error) throw result.error;
+    // Rooms are essential; seat locks, members and follows are optional metadata.
+    // A timeout in any optional request must not make every active room vanish.
+    if (rs.error) throw rs.error;
     if (id !== authRef.current) return [];
+    const priorRooms = new Map(roomsRef.current.map(room => [room.id, room]));
+    const membersByRoom=new Map<string,any[]>();for(const member of ms.data||[]){const group=membersByRoom.get(member.room_id)||[];group.push(member);membersByRoom.set(member.room_id,group)}
+    const lockKeys=new Set((ls.data||[]).map(lock=>`${lock.room_id}:${lock.seat_number}`));
+    const linksByRoom=new Map((links.data||[]).map(link=>[link.room_id,link]));
     const mapped: Room[] = (rs.data || []).map(row => {
-      const members = (ms.data || []).filter(m => m.room_id === row.id);
+      const prior = priorRooms.get(row.id) || (activeRef.current?.id === row.id ? activeRef.current : null);
+      const members = ms.error ? [] : membersByRoom.get(row.id)||[];
+      const membersBySeat=new Map(members.filter(member=>member.seat_number!=null).map(member=>[member.seat_number,member]));
       const memberUser = (m: Record<string, unknown>): User => m.user_id === id ? userRef.current : roomMemberToUser(m);
       const owner = row.owner_id === id ? userRef.current : profileToUser({
         id: row.owner_id, public_id: row.owner_public_id, display_name: row.owner_display_name,
@@ -168,25 +177,32 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
-        isFollowed:(links.data||[]).some(link=>link.room_id===row.id&&link.followed),
-        lastVisitedAt:(links.data||[]).find(link=>link.room_id===row.id)?.last_visited_at||undefined,
+        isFollowed:links.error ? (prior?.isFollowed ?? false) : Boolean(linksByRoom.get(row.id)?.followed),
+        lastVisitedAt:links.error ? prior?.lastVisitedAt : linksByRoom.get(row.id)?.last_visited_at||undefined,
         internalBackground:row.internal_background_url||'/assets/images/room_screen_bg_1790556227206.jpg',
         description: row.welcome_message ?? row.description ?? '', coverImage: row.external_image_url || row.image_url || '/assets/images/room_cover_majlis_1790226059300.jpg',
         category: row.category, seatsCount: row.max_seats, isPrivate: row.is_private,
-        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: members.length,
-        canModerate: row.owner_id === id || members.some(m => m.user_id === id && m.role === 'moderator'),
-        members: members.map(m=>({...memberUser(m),roomRole:m.role})),
-        seats: Array.from({length: row.max_seats}, (_, index) => {
-          const member = members.find(m => m.seat_number === index + 1);
-          return {seatIndex: index, isLocked: (ls.data || []).some(l => l.room_id === row.id && l.seat_number === index + 1),
+        isVIP: row.is_vip, status: row.is_active ? 'live' : 'ended', tags: row.tags || [], usersCount: ms.error ? (prior?.usersCount ?? 0) : members.length,
+        canModerate: row.owner_id === id || (ms.error ? Boolean(prior?.canModerate) : members.some(m => m.user_id === id && m.role === 'moderator')),
+        members: ms.error ? (prior?.members || []) : members.map(m=>({...memberUser(m),roomRole:m.role})),
+        seats: ms.error && prior ? prior.seats : Array.from({length: row.max_seats}, (_, index) => {
+          const member = membersBySeat.get(index+1);
+          return {seatIndex: index, isLocked: ls.error ? (prior?.seats[index]?.isLocked ?? false) : lockKeys.has(`${row.id}:${index+1}`),
             isMuted: member?.is_muted ?? true, isSpeaking: false, user: member ? {...memberUser(member),roomRole:member.role} : undefined};
         }),
       };
     });
     const liveRooms = mapped.filter(room => room.isActive);
     setOwnedClosedRooms(mapped.filter(room => !room.isActive && room.ownerAuthId === id));
+    roomsRef.current = liveRooms;
     setRooms(liveRooms);
-    setActiveRoom(prev => prev ? liveRooms.find(r => r.id === prev.id && r.members?.some(m => m.authId === id)) || null : null);
+    setActiveRoom(prev => {
+      if (!prev) return null;
+      const latest = liveRooms.find(r => r.id === prev.id);
+      // Keep the currently connected room while membership retrieval recovers.
+      if (ms.error) return latest ? prev : null;
+      return latest?.members?.some(m => m.authId === id) ? latest : null;
+    });
     return liveRooms;
   }, []);
 
@@ -289,35 +305,31 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   useEffect(() => {
     if (!authId) return;
     let disposed = false;
-    let pending = false;
-    const sync = async () => {
-      if (disposed || pending) return;
-      pending = true;
-      try { await refreshProfile(); await Promise.all([refreshRooms(), refreshMessages(), refreshTransactions(), refreshNotifications()]); }
-      catch (e) { if (!disposed) fail(e); }
-      finally { pending = false; }
-    };
-    void sync();
+    const queue=createRefreshQueue({profile:refreshProfile,rooms:refreshRooms,messages:refreshMessages,wallet:refreshTransactions,notifications:refreshNotifications},error=>{if(!disposed)fail(error)});
+    const all=()=>queue.enqueue('profile','rooms','messages','wallet','notifications');
+    void refreshProfile().then(async()=>{if(!disposed)await Promise.all([refreshRooms(),refreshMessages(),refreshTransactions(),refreshNotifications()])}).catch(error=>{if(!disposed)fail(error)});
     const channel = supabase.channel(`app:${authId}`);
-    for (const table of ['profiles', 'rooms', 'room_members', 'room_seat_locks', 'direct_messages', 'wallet_transactions', 'user_notifications','user_room_links']) {
-      channel.on('postgres_changes', {event: '*', schema: 'public', table}, () => { void sync(); });
+    const domains:Record<string,string[]>={profiles:['profile'],rooms:['rooms'],room_members:['rooms'],room_seat_locks:['rooms'],direct_messages:['messages'],wallet_transactions:['wallet','profile'],user_notifications:['notifications'],user_room_links:['rooms']};
+    for (const [table,keys] of Object.entries(domains)) {
+      const filter=['profiles','wallet_transactions','user_notifications','user_room_links'].includes(table)?`${table==='profiles'?'id':'user_id'}=eq.${authId}`:undefined;
+      channel.on('postgres_changes', {event: '*', schema: 'public', table,...(filter?{filter}:{})}, () => {queue.enqueue(...keys);});
     }
-    channel.subscribe();
-    // Also recover missed events after reconnects, including membership deletions.
-    const timer = setInterval(() => { void sync(); }, 15000);
-    const onFocus = () => { void sync(); };
-    window.addEventListener('focus', onFocus);window.addEventListener('online',onFocus);
-    return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', onFocus);window.removeEventListener('online',onFocus); void supabase.removeChannel(channel); };
+    channel.subscribe(status=>{if(status==='SUBSCRIBED')all()});
+    // Realtime is primary; foreground polling repairs missed events without background churn.
+    const timer = setInterval(() => {if(!document.hidden)all();}, 30000);
+    const onFocus = () => {if(!document.hidden)all();};
+    window.addEventListener('focus', onFocus);window.addEventListener('online',onFocus);document.addEventListener('visibilitychange',onFocus);
+    return () => { disposed = true;queue.dispose(); clearInterval(timer); window.removeEventListener('focus', onFocus);window.removeEventListener('online',onFocus);document.removeEventListener('visibilitychange',onFocus); void supabase.removeChannel(channel); };
   }, [authId, refreshProfile, refreshRooms, refreshMessages, refreshTransactions, refreshNotifications, fail]);
 
   useEffect(()=>{
     const roomId=activeRoom?.id;if(!roomId)return;let disposed=false;
     const channel=supabase.channel(`gifts:${roomId}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
-      const row=event.new;if(!disposed)window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId}}));if(disposed||String(row.sender_public_id)===userRef.current.id)return;
+      const row=event.new;if(!disposed)window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId,recipientId:String(row.recipient_public_id)}}));if(disposed||String(row.sender_public_id)===userRef.current.id)return;
       const sender=profileToUser({public_id:row.sender_public_id,display_name:row.sender_name,avatar_url:row.sender_avatar});
       const recipient=profileToUser({public_id:row.recipient_public_id,display_name:row.recipient_name,avatar_url:row.recipient_avatar});
       const quantity=Math.max(1,Number(row.quantity)||1);
-      const gift:Gift={...(sampleGifts.find(item=>item.id===row.gift_id)||{id:row.gift_id,category:'all' as const,icon:'🎁',animationType:'sparkle' as const}),name:row.gift_name,price:Number(row.amount)};
+      const gift:Gift={id:String(row.gift_id),name:String(row.gift_name||'هدية'),category:'all',price:Number(row.amount||0),icon:'🎁',animationType:'sparkle'};
       if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay({id:row.id,gift,sender,recipient,quantity});overlayTimer.current=setTimeout(()=>setActiveGiftOverlay(null),3800);
     }).subscribe();return()=>{disposed=true;void supabase.removeChannel(channel);if(overlayTimer.current)clearTimeout(overlayTimer.current);setActiveGiftOverlay(null)};
   },[activeRoom?.id]);
@@ -384,8 +396,16 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     if (room.isActive === false) { setError('أعد فتح الغرفة قبل الدخول إليها.'); return; }
     try {
       const {error} = await supabase.rpc('join_room', {p_room_id: room.id}); if (error) throw error;
-      const next = await refreshRooms();
-      setActiveRoom(next.find(r => r.id === room.id) || null); setActiveSubScreenState(null); setIsHandRaised(false);
+      // Successful backend join must not be discarded if the subsequent
+      // room-directory refresh temporarily times out.
+      let joinedRoom: Room = room;
+      try {
+        const next = await refreshRooms();
+        joinedRoom = next.find(r => r.id === room.id) || room;
+      } catch {
+        setError('تم الدخول إلى الغرفة، لكن تعذر تحديث قائمة الغرف مؤقتاً.');
+      }
+      setActiveRoom(joinedRoom); setActiveSubScreenState(null); setIsHandRaised(false);
     } catch (e) { fail(e); }
   };
   const leaveRoom = async () => {
@@ -402,8 +422,21 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_category: input.category || 'عامة', p_is_private: Boolean(input.isPrivate),
         p_is_vip: Boolean(input.isVIP), p_tags: input.tags || []});
       if (error) throw error;
-      const next = await refreshRooms(); const room = next.find(r => r.id === data) || null;
-      setActiveRoom(room); setActiveSubScreenState(null); return room;
+      // Creation already committed at this point. Never suggest creating
+      // again merely because a follow-up room-list refresh timed out.
+      try {
+        const next = await refreshRooms();
+        const room = next.find(r => r.id === data) || null;
+        if (room) {
+          setActiveRoom(room); setActiveSubScreenState(null);
+          return room;
+        }
+      } catch {
+        // The room is still present in the backend; avoid another create RPC.
+      }
+      setError('تم إنشاء الغرفة، لكن تعذر إظهارها حالياً. افتح تبويب غرفي بعد تحديث القائمة ولا تُنشئ غرفة ثانية.');
+      setActiveTab('rooms');
+      return null;
     } catch (e) { fail(e); return null; }
   };
 
@@ -443,20 +476,25 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const muteSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: activeRef.current?.seats[index]?.isMuted ? 'unmute' : 'mute'});
   const kickSeatUser = (index: number) => runRoomRpc('moderate_room_seat', {p_seat_number: index + 1, p_action: 'remove'});
 
-  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string, useInventory=false, quantity=1): Promise<boolean> => {
+  const sendGiftInRoom = async (gift: Gift, recipient: User, seat?: number, requestId?: string, useInventory = false, quantity = 1): Promise<boolean> => {
+    if(useInventory)return sendSavedGiftInRoom(gift,recipient,seat,requestId);
     const room = activeRef.current; if (!room) return false;
-    if (![1,7,17,77,777].includes(quantity)) { setError('كمية الهدية غير صالحة.'); return false; }
+    if (!Number.isSafeInteger(quantity) || quantity <= 0 || quantity > 777) { setError('كمية الهدية غير صالحة.'); return false; }
     try {
-      const {error} = await supabase.rpc(useInventory?'send_inventory_room_gift':'send_room_gift_batch', {p_room_id: room.id, p_recipient_public_id:Number(recipient.id),...(!useInventory?{p_quantity:quantity}:{}), p_gift_id: gift.id, p_request_id: requestId || crypto.randomUUID()});
+      const {error} = await supabase.rpc('send_room_gift_batch', {
+        p_room_id: room.id,
+        p_recipient_public_id: Number(recipient.id),
+        p_gift_id: gift.id,
+        p_quantity: quantity,
+        p_request_id: requestId || crypto.randomUUID()
+      });
       if (error) throw error;
-      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id}}));
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift:{...gift,price:gift.price*quantity}, sender: userRef.current, recipient, targetSeatIndex: seat, quantity});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
-      // A confirmed send remains successful even if a follow-up read fails.
-      // Playback begins on server confirmation without waiting for room refresh.
-      const reads = await Promise.allSettled([refreshProfile(), refreshTransactions()]);
-      for (const read of reads) if (read.status === 'rejected') fail(read.reason);
+      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id,recipientId:recipient.id}}));
+      // The room gift feed updates counters/chat through Realtime; avoid reloading the full room after every gift.
+      void Promise.all([refreshProfile(), refreshTransactions()]).catch(fail);
       return true;
     } catch (e) { fail(e); return false; }
   };
@@ -470,10 +508,10 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         p_request_id: requestId || crypto.randomUUID()
       });
       if (error) throw error;
-      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id}}));
       if (overlayTimer.current) clearTimeout(overlayTimer.current);
       setActiveGiftOverlay({id: crypto.randomUUID(), gift, sender: userRef.current, recipient, targetSeatIndex: seat, quantity: 1});
       overlayTimer.current = setTimeout(() => setActiveGiftOverlay(null), 3800);
+      window.dispatchEvent(new window.CustomEvent('toti:gift-confirmed',{detail:{roomId:room.id,recipientId:recipient.id}}));
       // Saved gifts use the same lightweight wallet refresh; room state arrives from the gift feed.
       void Promise.all([refreshProfile(), refreshTransactions()]).catch(fail);
       return true;

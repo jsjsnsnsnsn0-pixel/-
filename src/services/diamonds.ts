@@ -7,6 +7,6 @@ export const redeemDiamonds = (amount: number, requestId: string) => rpc<Diamond
 export const walletTitles: Record<string,string> = {
  recharge: 'شحن Coins 🪙', gift_sent: 'إرسال هدية', gift_received: 'استلام هدية — سجل قديم',
  fixed_gift_diamonds_received: 'ماس هدية ثابتة', lucky_gift_diamonds_received: 'ماس هدية حظ',
- fixed_diamonds_redeemed: 'فك ماس ثابت — 30%', lucky_diamonds_redeemed: 'فك ماس الحظ — 10%',
+ fixed_diamonds_redeemed: 'فك ماس ثابت — 30%', lucky_diamonds_redeemed: 'فك ماس هدايا الحظ الأساسي — 30%',
  coins_from_diamond_redemption: 'Coins من فك الماس', diamond_conversion: 'تحويل ماس — سجل قديم',
 };

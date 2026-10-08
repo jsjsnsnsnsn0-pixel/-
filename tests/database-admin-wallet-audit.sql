@@ -1,0 +1,31 @@
+begin;
+do $$
+declare a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();pid bigint;req uuid:=gen_random_uuid();first jsonb;again jsonb;denied boolean:=false;
+begin
+ insert into auth.users(id,email,raw_user_meta_data)values(a,a::text||'@test.invalid','{}'),(b,b::text||'@test.invalid','{}');
+ select public_id into pid from public.profiles where id=b;
+ update public.profiles set gold=0 where id=b;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);
+ perform set_config('role','authenticated',true);
+ assert coalesce((public.dashboard_session()->>'allowed')::boolean,false)=false,'Ordinary account gained admin access';
+ begin perform public.dashboard_wallet_adjust(pid,100,'Rollback audit adjustment',req);exception when insufficient_privilege then denied:=true;end;
+ assert denied,'Ordinary user adjusted wallet';
+ perform set_config('role','postgres',true);
+ assert (select gold from public.profiles where id=b)=0,'Denied request altered balance';
+ insert into public.dashboard_role_permissions(role_id,permission_id)values('admin','wallet.credit');
+ insert into public.dashboard_user_roles(user_id,role_id,assigned_by)values(a,'admin',a);
+ perform set_config('role','authenticated',true);
+ first:=public.dashboard_wallet_adjust(pid,100,'Rollback audit adjustment',req);
+ again:=public.dashboard_wallet_adjust(pid,100,'Rollback audit adjustment',req);
+ assert (first->>'new_balance')::bigint=100,'Wrong balance';
+ assert (again->>'already_processed')::boolean,'Retry not idempotent';
+ denied:=false;begin perform public.dashboard_wallet_adjust(pid,101,'Rollback audit adjustment',req);exception when others then denied:=true;end;
+ assert denied,'Changed retry accepted';
+ denied:=false;begin update public.profiles set gold=9999 where id=b;exception when insufficient_privilege then denied:=true;end;
+ perform set_config('role','postgres',true);
+ assert (select gold from public.profiles where id=b)=100,'Direct write bypass or duplicate credit';
+ assert (select count(*) from public.dashboard_wallet_adjustments where request_id=req)=1,'Duplicate ledger';
+ assert (select count(*) from public.dashboard_audit where actor_id=a and target_id=b and action='wallet.credit')=1,'Missing or duplicate audit';
+end$$;
+rollback;
+select 'PASS: ordinary user denied; authorized staff credit, retries, ledger/audit and direct-write prevention; rolled back' result;

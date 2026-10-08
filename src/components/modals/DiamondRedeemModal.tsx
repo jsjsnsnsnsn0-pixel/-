@@ -48,7 +48,7 @@ export const DiamondRedeemModal: React.FC<{onClose: () => void; onRedeemed?: () 
  return <div ref={layerRef} className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" dir="rtl">
   <section role="dialog" aria-modal="true" aria-labelledby="redeem-heading" className="w-full max-w-sm rounded-3xl bg-[#141629] text-white p-5 space-y-3 max-h-[90vh] overflow-auto">
    <div className="flex justify-between"><h2 id="redeem-heading" className="font-bold">فك الماس إلى Coins 🪙</h2><button disabled={busy!==null} onClick={onClose} aria-label="إغلاق فك الماس">×</button></div>
-   <p className="text-sm">ماس الهدايا الثابتة: 30% · ماس هدايا الحظ: 10%</p>
+   <p className="text-sm">الماس القابل للفك: 30% للهدايا المؤهلة، ومكافآت الحظ التجميلية منفصلة عن الماس المالي.</p>
    <p className="text-xs text-slate-300">نستهلك الماس الثابت أولاً ثم ماس الحظ. يُقرب ناتج كل مصدر للأسفل إلى Coins كاملة.</p>
    {state&&<div className="text-sm space-y-1"><p>Fixed Diamonds: {Number(state.fixed_diamonds).toLocaleString()} 💎</p><p>Lucky Diamonds: {Number(state.lucky_diamonds).toLocaleString()} 💎</p><p>ماس قديم غير محدد المصدر: {Number(state.legacy_diamonds).toLocaleString()} 💎 — يحتاج مراجعة ولا يُفك تلقائياً.</p></div>}
    {busy&&<p role="status">{busy==='load'?'جارٍ تحميل مصادر الماس…':busy==='preview'?'جارٍ حساب المعاينة…':'جارٍ تأكيد الفك في الخادم…'}</p>}

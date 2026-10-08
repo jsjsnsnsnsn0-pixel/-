@@ -133,8 +133,8 @@ export const HomeScreen: React.FC = () => {
       {/* ============================================================== */}
       {/* 1. TOP HEADER: Icons on Left, Tabs on Right                     */}
       {/* ============================================================== */}
-      <header className={`sticky top-0 z-30 pt-3 pb-2.5 px-3.5 flex items-center justify-between backdrop-blur-xs transition-colors duration-300 ${
-        activeTopTab === 'discover' ? 'bg-[#0c0d12]/90 border-b border-white/10' : ''
+      <header className={`sticky top-2 z-30 mx-3 pt-2.5 pb-2.5 px-3.5 flex items-center justify-between rounded-[22px] border shadow-[0_10px_28px_rgba(0,0,0,.10)] backdrop-blur-[10px] transition-colors duration-300 ${
+        activeTopTab === 'discover' ? 'bg-[#0e302a]/76 border-emerald-100/25' : 'bg-[#d5f1e4]/76 border-white/70'
       }`}>
         {/* Right: Text Tabs (حفلة | ملكي | اكتشف | ترتيب) */}
         <div className="flex items-center gap-2 sm:gap-3.5 font-bold">
@@ -234,7 +234,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 0: Toti Chat - المعرف المميز */}
           <div
             onClick={() => setShowSpecialIdModal(true)}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
           >
             <img
               src="/assets/images/toti_distinguished_id_1790717836703.jpg"
@@ -246,7 +246,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 1: هدية مخصصة */}
           <div
             onClick={() => setShowCustomGiftModal(true)}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
           >
             <img
               src="/assets/images/custom_gift_banner_1790726268730.jpg"
@@ -258,7 +258,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 2: النجم العالمي */}
           <div
             onClick={() => setActiveSubScreen('charm_wealth')}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
           >
             <img
               src="/assets/images/global_star_banner_1790726285845.jpg"
@@ -270,7 +270,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 3: نشاط إعادة الشحن */}
           <div
             onClick={() => setShowRechargeActivityModal(true)}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
           >
             <img
               src="/assets/images/recharge_activity_banner_1790725680784.jpg"
@@ -282,7 +282,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 4: رفقاء الروح الأسبوعية */}
           <div
             onClick={() => setShowSoulmatesModal(true)}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
           >
             <img
               src="/assets/images/soulmates_exact_banner_1790725479589.jpg"
@@ -294,7 +294,7 @@ export const HomeScreen: React.FC = () => {
           {/* Banner 5: Toty Chat افتتاح الوكالة جديده */}
           <div
             onClick={() => setShowAgencyModal(true)}
-            className="w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
           >
             <img
               src="/assets/images/agency_opening_banner_1790725265910.jpg"
@@ -313,7 +313,7 @@ export const HomeScreen: React.FC = () => {
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full aspect-[2.7/1] rounded-2xl overflow-hidden shadow-md cursor-pointer group active:scale-[0.99] transition-transform bg-gradient-to-r from-red-950 via-slate-900 to-amber-950 border border-white/40"
+          className="relative w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-[0_14px_32px_rgba(15,23,42,.16)] cursor-pointer group active:scale-[0.99] transition-transform bg-gradient-to-r from-red-950 via-slate-900 to-amber-950 border border-white/40"
         >
           {/* Slides Container with smooth horizontal sliding */}
           <div
@@ -388,7 +388,7 @@ export const HomeScreen: React.FC = () => {
         {/* CARD 1 (RIGHT): الثروة (Red/Burgundy Card with Lanterns) */}
         <div
           onClick={() => setActiveSubScreen('wealth_ranking')}
-          className="aspect-[1.12/1] rounded-2xl bg-gradient-to-b from-[#881337] via-[#9f1239] to-[#7f1d1d] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
+          className="aspect-[1.12/1] rounded-[24px] bg-gradient-to-b from-[#881337] via-[#9f1239] to-[#7f1d1d] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
         >
           {/* Top Title: الثروة with Lanterns */}
           <div className="flex items-center justify-between px-1">
@@ -454,7 +454,7 @@ export const HomeScreen: React.FC = () => {
         {/* CARD 2 (CENTER): الجاذبية (Blue Card with Lanterns) */}
         <div
           onClick={() => setActiveSubScreen('charm_ranking')}
-          className="aspect-[1.12/1] rounded-2xl bg-gradient-to-b from-[#1e40af] via-[#1d4ed8] to-[#172554] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
+          className="aspect-[1.12/1] rounded-[24px] bg-gradient-to-b from-[#1e40af] via-[#1d4ed8] to-[#172554] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
         >
           {/* Top Title: الجاذبية with Lanterns */}
           <div className="flex items-center justify-between px-1">
@@ -520,7 +520,7 @@ export const HomeScreen: React.FC = () => {
         {/* CARD 3 (LEFT): الغرفة (Emerald Green Card with Lanterns) */}
         <div
           onClick={() => setActiveSubScreen('room_rankings')}
-          className="aspect-[1.12/1] rounded-2xl bg-gradient-to-b from-[#065f46] via-[#047857] to-[#064e3b] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
+          className="aspect-[1.12/1] rounded-[24px] bg-gradient-to-b from-[#065f46] via-[#047857] to-[#064e3b] p-1.5 flex flex-col justify-between text-white shadow-md border border-amber-400/50 cursor-pointer active:scale-95 transition-transform relative overflow-hidden"
         >
           {/* Top Title: الغرفة with Lanterns */}
           <div className="flex items-center justify-between px-1">
@@ -644,7 +644,7 @@ export const HomeScreen: React.FC = () => {
 
         {/* Dropdown Menu for Countries */}
         {showCountryMenu && (
-          <div className="mt-2 p-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-emerald-500/20 flex flex-wrap gap-2 animate-fadeIn z-20">
+          <div className="mt-2 p-2.5 bg-white/88 backdrop-blur-2xl rounded-[22px] shadow-xl border border-white/80 flex flex-wrap gap-2 animate-fadeIn z-20">
             {[
               { id: 'trending', label: 'شائع', flag: '🔥' },
               { id: 'iraq', label: 'العراق', flag: '🇮🇶' },

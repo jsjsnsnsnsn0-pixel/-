@@ -15,8 +15,6 @@ if (!xml.includes('android:scheme="com.totichat.app"')) xml=xml.replace('</activ
 await writeFile(path,xml);
 for (const permission of ['INTERNET','RECORD_AUDIO','MODIFY_AUDIO_SETTINGS']) if(!xml.includes(`android.permission.${permission}`)) throw new Error(`Android permission missing: ${permission}`);
 console.log('Android microphone, audio routing, Internet, keyboard resize and OAuth callback configured.');
-
-// Capacitor generates android/ locally. Copy the versioned launcher resources.
 await rm('android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml', {force:true});
 await cp('resources/android-launcher','android/app/src/main/res',{recursive:true});
 for (const attribute of ['icon','roundIcon']) {
@@ -27,3 +25,20 @@ for (const attribute of ['icon','roundIcon']) {
 }
 await writeFile(path,xml);
 console.log('Official falcon launcher and adaptive icons installed; application ID preserved.');
+
+if (process.env.TOTICHAT_BETA === '1') {
+  const gradlePath='android/app/build.gradle';
+  let gradle=await readFile(gradlePath,'utf8');
+  if (!/versionCode\s+\d+/.test(gradle) || !/versionName\s+["'][^"']+["']/.test(gradle)) {
+    throw new Error('Android beta version markers missing');
+  }
+  gradle=gradle.replace(/versionCode\s+\d+/,'versionCode 900006')
+    .replace(/versionName\s+["'][^"']+["']/,'versionName "0.9.0-beta.6"');
+  await writeFile(gradlePath,gradle);
+  const stringsPath='android/app/src/main/res/values/strings.xml';
+  let strings=await readFile(stringsPath,'utf8');
+  if(!strings.includes('name="app_name"'))throw new Error('Android app name resource missing');
+  strings=strings.replace(/(<string name="app_name">)[^<]*(<\/string>)/,'$1TotiChat Beta$2');
+  await writeFile(stringsPath,strings);
+  console.log('TotiChat Beta 0.9.0-beta.6 is configured; package ID kept for existing OAuth.');
+}

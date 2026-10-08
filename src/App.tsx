@@ -1,3 +1,4 @@
+import {recordBetaEvent} from './services/betaTelemetry';
 import {GlobalGiftBanner} from './components/common/GlobalGiftBanner';
 import {DisplayPreferences} from './components/common/DisplayPreferences';
 import {MinimizedRoomBar} from './components/common/MinimizedRoomBar';
@@ -8,6 +9,7 @@ import { RoomAudioProvider } from './context/RoomAudioContext';
 import { isSupabaseConfigured } from './services/supabase';
 import { AppProvider, useApp } from './context/AppContext';
 import { BottomNavigation } from './components/common/BottomNavigation';
+const DashboardScreen = lazy(() => import('./components/screens/DashboardScreen').then(m => ({default: m.DashboardScreen})));
 const HomeScreen = lazy(() => import('./components/screens/HomeScreen').then(m => ({default: m.HomeScreen})));
 const RoomsListScreen = lazy(() => import('./components/screens/RoomsListScreen').then(m => ({default: m.RoomsListScreen})));
 const CreateRoomScreen = lazy(() => import('./components/screens/CreateRoomScreen').then(m => ({default: m.CreateRoomScreen})));
@@ -49,6 +51,7 @@ const MainLayout: React.FC = () => {
   if (authLoading) return <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-white" dir="rtl"><p role="status">جارٍ تحميل حسابك…</p>{error && <><p role="alert">{error}</p><button onClick={() => void refreshProfile().catch(() => {})}>إعادة المحاولة</button><button onClick={logout}>تسجيل الخروج</button></>}</div>;
   if (isAuthenticated && needsProfile) return <FillInfoScreen />;
   if (!isAuthenticated) return <LoginScreen />;
+  if (typeof window !== 'undefined' && ['/admin','/admin/'].includes(window.location.pathname)) return <DashboardScreen />;
   if (activeRoom && (!activeSubScreen || activeSubScreen==='gift_box')) return <div className="ui-page max-w-md mx-auto min-h-screen bg-[#080914] relative shadow-2xl"><VoiceRoomScreen />{activeSubScreen==='gift_box'&&<GiftStoreModal isOpen room={activeRoom} onClose={()=>setActiveSubScreen(null)} onRechargeClick={()=>setActiveSubScreen('recharge')}/>}</div>;
 
   if (activeSubScreen) {

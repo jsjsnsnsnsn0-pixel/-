@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import {AnimatePresence, motion} from 'motion/react';
 import { useApp } from '../../context/AppContext';
 import { MicrophoneSeat } from '../rooms/MicrophoneSeat';
 import { RoomUserProfileModal } from '../rooms/RoomUserProfileModal';
@@ -13,29 +14,121 @@ import {RoomExitOverlay} from '../rooms/ui/RoomExitOverlay';
 import {SeatActions} from '../rooms/ui/SeatActions';
 import {RoomStage, RoomChatMessage} from '../rooms/ui/RoomStage';
 
+type SharedMusic={room_id:string;track_id:string|null;track_name:string|null;status:'playing'|'paused'|'stopped';position_seconds:number;duration_seconds:number;started_at:string|null;version:number};
+const getMusicDuration=async(file:File)=>{
+  const url=URL.createObjectURL(file);
+  try{return await new Promise<number>((resolve,reject)=>{
+    const audio=new Audio();const timer=setTimeout(()=>{audio.src='';reject(new Error('انتهت مهلة قراءة الأغنية'));},8000);
+    audio.onloadedmetadata=()=>{clearTimeout(timer);const result=audio.duration;audio.src='';resolve(result)};
+    audio.onerror=()=>{clearTimeout(timer);reject(new Error('تعذر قراءة الملف الصوتي'))};
+    audio.preload='metadata';audio.src=url;
+  });}finally{URL.revokeObjectURL(url);}
+};
+type RoomLuckyBonus = {
+  gift_event_id:string; sender_name:string; recipient_name:string; gift_name:string;
+  multiplier:number; lucky_points:number; quantity:number;
+};
 export const VoiceRoomScreen: React.FC = () => {
   const {activeRoom,user,leaveRoom,takeSeat,leaveSeat,isMyMicMuted,toggleMyMic,toggleRaiseHand,isHandRaised,isSpeakerOn,toggleSpeaker,activeGiftOverlay,setActiveSubScreen,setSelectedChatUser,reportError,lockSeat,unlockSeat}=useApp();
   const [infoOpen,setInfoOpen]=useState(false); const [membersOnly,setMembersOnly]=useState(false);
+  const [luckyBonus,setLuckyBonus]=useState<RoomLuckyBonus|null>(null);
+  const [sharedMusic,setSharedMusic]=useState<SharedMusic|null>(null);
   const [giftRecipient,setGiftRecipient]=useState<User|null>(null);
   const [giftOpen,setGiftOpen]=useState(false); const [managementOpen,setManagementOpen]=useState(false); const [exitOpen,setExitOpen]=useState(false); const [selectedUser,setSelectedUser]=useState<User|null>(null);
   const [messages,setMessages]=useState<RoomChatMessage[]>([]); const [giftTotals,setGiftTotals]=useState<Record<string,number>>({}); const [text,setText]=useState(''); const [sending,setSending]=useState(false); const [micBusy,setMicBusy]=useState(false);
   const [micUiMuted,setMicUiMuted]=useState(isMyMicMuted);
+  useEffect(()=>{
+    if(!activeRoom?.id)return;
+    let disposed=false;
+    const channel=supabase.channel('room-lucky:'+activeRoom.id)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_lucky_feed',filter:`room_id=eq.${activeRoom.id}`},event=>{
+        if(disposed)return;
+        const row=event.new as Partial<RoomLuckyBonus> & {lucky_result_id?:string;id?:string};
+        if(typeof (row.lucky_result_id||row.id)==='string'&&Number(row.lucky_points)>0){
+          setLuckyBonus({
+            gift_event_id:String(row.lucky_result_id||row.id),
+            sender_name:String(row.sender_name||'مستخدم'),
+            recipient_name:String(row.recipient_name||'مستخدم'),
+            gift_name:String(row.gift_name||'هدية حظ'),
+            multiplier:Number(row.multiplier)||1,
+            lucky_points:Number(row.lucky_points)||0,
+            quantity:Number(row.quantity)||1,
+          });
+        }
+      }).subscribe();
+    return()=>{disposed=true;void supabase.removeChannel(channel);};
+  },[activeRoom?.id]);
+  useEffect(()=>{
+    if(!luckyBonus)return;
+    const timer=window.setTimeout(()=>setLuckyBonus(null),4500);
+    return()=>window.clearTimeout(timer);
+  },[luckyBonus?.gift_event_id]);
   const [emptySeat,setEmptySeat]=useState<number|null>(null); const [seatBusy,setSeatBusy]=useState(false);
   useEffect(()=>{const open=()=>setExitOpen(true);window.addEventListener("toti:room-options",open);return()=>window.removeEventListener("toti:room-options",open);},[]);
-  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused}=useRoomAudioContext();
+  useEffect(()=>{
+    if(!activeRoom||typeof window==='undefined'||!window.sessionStorage)return;
+    const userId=window.sessionStorage.getItem('totichat.pendingGiftRecipient');
+    if(!userId)return;
+    window.sessionStorage.removeItem('totichat.pendingGiftRecipient');
+    const recipient=activeRoom.members?.find(member=>member.id===userId)||activeRoom.seats.find(seat=>seat.user?.id===userId)?.user;
+    if(recipient){setGiftRecipient(recipient);setGiftOpen(true);}
+  },[activeRoom?.id]);
+  const {connected,enableMicrophone,speakingIds,startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused,musicVolume,setMusicVolume}=useRoomAudioContext();
+  useEffect(()=>{
+    if(!activeRoom?.id)return;
+    let disposed=false;
+    setSharedMusic(null);
+    void supabase.rpc('room_music_current',{p_room_id:activeRoom.id}).then(({data,error})=>{
+      if(!disposed&&!error)setSharedMusic(data as SharedMusic);
+    });
+    const channel=supabase.channel('room-music:'+activeRoom.id)
+      .on('postgres_changes',{event:'*',schema:'public',table:'room_music_state',filter:`room_id=eq.${activeRoom.id}`},change=>{
+        if(!disposed&&change.new&&Object.keys(change.new).length)setSharedMusic(change.new as SharedMusic);
+      }).subscribe();
+    return()=>{disposed=true;void supabase.removeChannel(channel)};
+  },[activeRoom?.id]);
+  useEffect(()=>{
+    if(!musicName||!sharedMusic)return;
+    if(sharedMusic.status==='stopped'){stopMusic();return;}
+    if(sharedMusic.track_name!==musicName)return;
+    else if(sharedMusic.status==='paused'&&!musicPaused)pauseMusic();
+    else if(sharedMusic.status==='playing'&&musicPaused)void resumeMusic().catch(()=>{});
+  },[sharedMusic?.status,sharedMusic?.track_name,musicName,musicPaused,stopMusic,pauseMusic,resumeMusic]);
+  const sendMusicAction=async(action:'play'|'pause'|'resume'|'stop',file?:File)=>{
+    if(!activeRoom?.id||!activeRoom.canModerate)throw new Error('إدارة الموسيقى متاحة للمالك والمشرف فقط.');
+    const args:Record<string,unknown>={p_room_id:activeRoom.id,p_action:action,p_request_id:crypto.randomUUID()};
+    if(action==='play'){
+      if(!file)throw new Error('اختر ملفاً صوتياً.');
+      const duration=await getMusicDuration(file);
+      if(!Number.isFinite(duration)||duration<=0||duration>3600)throw new Error('مدة الأغنية غير مدعومة.');
+      args.p_track_id=crypto.randomUUID();args.p_track_name=file.name;args.p_duration_seconds=duration;
+    }
+    const {data,error}=await supabase.rpc('room_music_control',args);
+    if(error)throw new Error(error.message);
+    setSharedMusic(data as SharedMusic);
+    if(action==='play'&&file){
+      try{await startMusic(file)}
+      catch(e){
+        void supabase.rpc('room_music_control',{p_room_id:activeRoom.id,p_action:'stop',p_request_id:crypto.randomUUID()});
+        throw e;
+      }
+    }else if(action==='stop')stopMusic();
+    else if(action==='pause')pauseMusic();
+    else if(action==='resume')await resumeMusic();
+  };
   useEffect(()=>{if(!micBusy)setMicUiMuted(isMyMicMuted)},[isMyMicMuted,micBusy,activeRoom?.id]);
   useEffect(()=>{
     if(!activeRoom)return;
     const roomId=activeRoom.id;
     setMessages([]);setGiftTotals({});setSelectedUser(null);
-    let disposed=false;let loading=false;let again=false;const seenGifts=new Set<string>();let pendingMessages:RoomChatMessage[]=[];let pendingGifts:any[]=[];
+    let disposed=false;let loading=false;let pendingMessages:RoomChatMessage[]=[];let pendingGifts:any[]=[];
     const normalizeGift=(row:any):RoomChatMessage=>{
       const quantity=Math.max(1,Number(row.quantity)||1);
       return {id:`gift:${row.id}`,sender_display_name:row.sender_name||'مستخدم',content:`أرسل ${row.gift_name||'هدية'}${quantity>1?` ×${quantity}`:''} إلى ${row.recipient_name||'مستخدم'}`,kind:'gift',deletable:false,created_at:row.created_at};
     };
     const load=async()=>{
-      if(disposed)return;if(loading){again=true;return;}loading=true;pendingMessages=[];pendingGifts=[];
-      try{const [chat,gifts]=await Promise.all([
+      if(loading)return;loading=true;pendingMessages=[];pendingGifts=[];
+      const [chat,gifts]=await Promise.all([
         supabase.from('room_messages').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(100),
         supabase.from('room_gift_feed').select('*').eq('room_id',roomId).order('created_at',{ascending:false}).limit(1000)
       ]);
@@ -48,8 +141,7 @@ export const VoiceRoomScreen: React.FC = () => {
       setMessages([...new Map(combined.map(message=>[message.id,message])).values()].slice(-100));
       const totals:Record<string,number>={};
       for(const row of giftRows){const recipient=String((row as any).recipient_public_id);totals[recipient]=(totals[recipient]||0)+Math.max(1,Number((row as any).quantity)||1);}
-      setGiftTotals(totals);giftRows.forEach(row=>seenGifts.add(String(row.id)));
-      }catch{if(!disposed)reportError("تعذر تحميل دردشة الغرفة.");}finally{loading=false;if(again&&!disposed){again=false;void load();}}
+      setGiftTotals(totals);
     };
     void load();
     const channel=supabase.channel(`chat:${roomId}`)
@@ -63,14 +155,15 @@ export const VoiceRoomScreen: React.FC = () => {
         if(!disposed)setMessages(previous=>previous.filter(message=>message.id!==event.old.id));
       })
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'room_gift_feed',filter:`room_id=eq.${roomId}`},event=>{
-        if(disposed||seenGifts.has(String(event.new.id)))return;seenGifts.add(String(event.new.id));
+        if(disposed)return;
         const row=event.new as any;const next=normalizeGift(row);const quantity=Math.max(1,Number(row.quantity)||1);const recipient=String(row.recipient_public_id);
         if(loading)pendingGifts.push(row);
         setMessages(prev=>prev.some(m=>m.id===next.id)?prev:[...prev.slice(-99),next]);
         setGiftTotals(prev=>({...prev,[recipient]:(prev[recipient]||0)+quantity}));
       }).subscribe();
-    const confirmed=(event:Event)=>{if((event as CustomEvent).detail?.roomId===roomId)void load()};window.addEventListener('toti:gift-confirmed',confirmed);
-    const timer=setInterval(()=>{void load()},15000);
+    const confirmed=(event:Event)=>{if((event as CustomEvent).detail?.roomId===roomId)void load()};
+    window.addEventListener('toti:gift-confirmed',confirmed);
+    const timer=setInterval(()=>{if(!document.hidden)void load()},30000);
     return()=>{disposed=true;clearInterval(timer);window.removeEventListener('toti:gift-confirmed',confirmed);void supabase.removeChannel(channel)};
   },[activeRoom?.id]);
   if(!activeRoom)return null;
@@ -82,13 +175,26 @@ export const VoiceRoomScreen: React.FC = () => {
   const openInfo=()=>{setMembersOnly(false);setInfoOpen(true)};
   const openMembers=()=>{setMembersOnly(true);setInfoOpen(true)};
   return <>
+    <AnimatePresence>
+      {luckyBonus&&<motion.div key={luckyBonus.gift_event_id}
+        initial={{opacity:0,scale:.82,y:-35}} animate={{opacity:1,scale:1,y:0}}
+        exit={{opacity:0,scale:.9,y:-28}} transition={{duration:.3}}
+        role="status" aria-live="polite" data-testid="lucky-cosmetic-announcement"
+        className="fixed top-[max(75px,calc(env(safe-area-inset-top)+62px))] inset-x-3 z-[160] pointer-events-none flex justify-center">
+        <div className="w-full max-w-sm rounded-2xl border border-amber-300/40 bg-gradient-to-l from-[#2a124d]/95 via-[#5a2787]/95 to-[#211431]/95 p-3 backdrop-blur-xl shadow-[0_12px_40px_rgba(92,41,137,.5)] text-center text-white">
+          <div className="font-black text-amber-200 text-lg">✨ ×{luckyBonus.multiplier} Lucky Bonus ✨</div>
+          <div className="mt-1 text-xs leading-5"><strong>{luckyBonus.recipient_name}</strong> حصل على <strong className="text-amber-200">{luckyBonus.lucky_points.toLocaleString('ar-IQ')} نقطة حظ</strong> من {luckyBonus.gift_name}</div>
+          <div className="mt-1 text-[10px] text-white/65">نقاط تجميلية فقط — غير قابلة للتحويل إلى Coins أو Diamonds</div>
+        </div>
+      </motion.div>}
+    </AnimatePresence>
     <RoomStage roomId={activeRoom.id} title={activeRoom.title} cover={activeRoom.internalBackground||'/assets/images/room_screen_bg_1790556227206.jpg'} thumbnail={activeRoom.coverImage} count={activeRoom.usersCount}
       welcome={(activeRoom.welcomeMessage ?? activeRoom.description)||'أهلاً وسهلاً بكم ❤️'}
       seats={activeRoom.seats.map(seat=><MicrophoneSeat key={seat.seatIndex} seat={{...seat,isSpeaking:Boolean(seat.user?.authId&&speakingIds.includes(seat.user.authId))&&!seat.isMuted}} onSeatClick={clickSeat} isCurrentUserSeat={seat.user?.authId===user.authId} isOwner={Boolean(seat.user?.authId&&seat.user.authId===activeRoom.ownerAuthId)} giftCount={seat.user?giftTotals[seat.user.id]||0:0}/>)}
       onDeleteMessage={activeRoom.canModerate?(id)=>{if(window.confirm('حذف هذه الرسالة؟'))void supabase.rpc('clear_room_chat',{p_room_id:activeRoom.id,p_message_id:id}).then(({error})=>{if(error)reportError('تعذر حذف الرسالة.');else setMessages(previous=>previous.filter(message=>message.id!==id))})}:undefined}
       messages={messages} chatEnabled={activeRoom.chatEnabled!==false} text={text} sending={sending}
       muted={micUiMuted} micBusy={micBusy} seated={Boolean(mySeat)} speaker={isSpeakerOn} handRaised={isHandRaised} canModerate={Boolean(activeRoom.canModerate)} audioConnected={connected}
-      musicName={musicName} musicPaused={musicPaused} onMusic={file=>{void startMusic(file).catch(error=>reportError(error instanceof Error?error.message:'تعذر تشغيل الموسيقى.'))}} onStopMusic={stopMusic} onPauseMusic={pauseMusic} onResumeMusic={()=>{void resumeMusic().catch(error=>reportError(error instanceof Error?error.message:'تعذر استئناف الموسيقى.'))}}
+      musicLibraryUserId={user.authId} musicName={sharedMusic?.track_name||musicName} musicPaused={sharedMusic?.status==='paused'||musicPaused} musicVolume={musicVolume} onMusicVolume={setMusicVolume} canControlMusic={Boolean(activeRoom.canModerate)} onMusic={file=>sendMusicAction('play',file)} onStopMusic={()=>sendMusicAction('stop')} onPauseMusic={()=>sendMusicAction('pause')} onResumeMusic={()=>sendMusicAction('resume')}
       onText={setText} onSend={send} onInfo={openInfo} onUsers={openMembers} onExit={()=>setExitOpen(true)} onGift={()=>{setGiftRecipient(null);setGiftOpen(true)}}
       onMic={()=>void handleMic()} onSpeaker={toggleSpeaker} onHand={()=>void toggleRaiseHand()} onLeaveSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}}
       onManage={()=>setManagementOpen(true)} onMessages={()=>setActiveSubScreen('messages')}/>
@@ -96,6 +202,6 @@ export const VoiceRoomScreen: React.FC = () => {
     <SeatActions index={emptySeat} locked={emptySeat!==null&&Boolean(activeRoom.seats[emptySeat]?.isLocked)} canLock={user.authId===activeRoom.ownerAuthId&&emptySeat!==0} busy={seatBusy} onClose={()=>setEmptySeat(null)}
       onTake={async()=>{if(emptySeat===null||seatBusy)return;setSeatBusy(true);try{await takeSeat(emptySeat);setEmptySeat(null)}finally{setSeatBusy(false)}}}
       onLock={async()=>{if(emptySeat===null||seatBusy)return;setSeatBusy(true);try{const action=activeRoom.seats[emptySeat]?.isLocked?unlockSeat:lockSeat;if(await action(emptySeat))setEmptySeat(null)}finally{setSeatBusy(false)}}}/>
-    {activeRoom.giftEffectsEnabled!==false&&activeGiftOverlay&&<GiftOverlayAnimation overlayData={activeGiftOverlay}/>}<RoomUserProfileModal isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={()=>setSelectedUser(null)} onGift={()=>{if(!selectedUser)return;setGiftRecipient(selectedUser);setSelectedUser(null);setGiftOpen(true)}} onManage={()=>{setSelectedUser(null);setManagementOpen(true)}} onMention={()=>{if(!selectedUser)return;setText(previous=>`${previous}${previous?' ':''}@${selectedUser.name} `);setSelectedUser(null)}} onMessage={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('chat_detail')}} onOpenMore={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('user_detail_profile')}}/><GiftStoreModal initialRecipient={giftRecipient} isOpen={giftOpen} onClose={()=>setGiftOpen(false)} room={activeRoom} onRechargeClick={()=>{setGiftOpen(false);setActiveSubScreen('recharge')}}/><RoomInfoModal isOpen={infoOpen} onClose={()=>setInfoOpen(false)} room={activeRoom} membersOnly={membersOnly} onSelectMember={setSelectedUser}/><RoomManagementModal isOpen={managementOpen} onClose={()=>setManagementOpen(false)} room={activeRoom}/>
+    {activeRoom.giftEffectsEnabled!==false&&activeGiftOverlay&&<GiftOverlayAnimation overlayData={activeGiftOverlay}/>}<RoomUserProfileModal selfMicMuted={micUiMuted} onToggleSelfMic={()=>void handleMic()} onLeaveSelfSeat={()=>{if(mySeat)void leaveSeat(mySeat.seatIndex)}} isOpen={Boolean(selectedUser)} targetUser={selectedUser} onClose={()=>setSelectedUser(null)} onGift={()=>{if(!selectedUser)return;setGiftRecipient(selectedUser);setSelectedUser(null);setGiftOpen(true)}} onManage={()=>{setSelectedUser(null);setManagementOpen(true)}} onMention={()=>{if(!selectedUser)return;setText(previous=>`${previous}${previous?' ':''}@${selectedUser.name} `);setSelectedUser(null)}} onMessage={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('chat_detail')}} onOpenMore={()=>{if(!selectedUser)return;setSelectedChatUser(selectedUser);setSelectedUser(null);setActiveSubScreen('user_detail_profile')}}/><GiftStoreModal initialRecipient={giftRecipient} isOpen={giftOpen} onClose={()=>setGiftOpen(false)} room={activeRoom} onRechargeClick={()=>{setGiftOpen(false);setActiveSubScreen('recharge')}}/><RoomInfoModal isOpen={infoOpen} onClose={()=>setInfoOpen(false)} room={activeRoom} membersOnly={membersOnly} onSelectMember={setSelectedUser}/><RoomManagementModal isOpen={managementOpen} onClose={()=>setManagementOpen(false)} room={activeRoom}/>
   </>;
 };

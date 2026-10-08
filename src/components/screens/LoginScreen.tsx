@@ -1,3 +1,4 @@
+import {phoneAuthEnabled} from '../../services/authAvailability';
 import {useDismissableLayer} from '../../hooks/useDismissableLayer';
 import React, {useState} from 'react';
 import {useApp} from '../../context/AppContext';
@@ -28,7 +29,7 @@ export const LoginScreen: React.FC = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || !phoneAuthEnabled) return;
     setBusy(true); setError(null);
     try {
       if (!sentPhone) {
@@ -61,12 +62,12 @@ export const LoginScreen: React.FC = () => {
     {error && <p role="alert" aria-live="assertive" className="fixed top-4 inset-x-4 z-[100] max-w-md mx-auto bg-rose-950/95 border border-rose-400 rounded-xl p-3 text-center text-sm shadow-xl">{error}</p>}
     <main className="relative z-10 p-6 pb-[max(2.5rem,env(safe-area-inset-bottom))] space-y-4 pt-[50dvh]">
       <button type="button" disabled={busy} onClick={google} className="w-full min-h-14 bg-white text-slate-900 rounded-full font-bold flex justify-between items-center px-6 disabled:opacity-50 active:scale-[.99] transition"><ChevronRight size={20}/><span>{busy ? 'يرجى الانتظار…' : 'سجل الدخول عبر Google'}</span><span className="text-blue-600 text-xl font-black" aria-hidden="true">G</span></button>
-      <button type="button" disabled={busy} onClick={()=>{setPhoneOpen(true);setSentPhone('');setOtp('');setError(null);}} className="w-full min-h-14 bg-gradient-to-r from-amber-500 to-yellow-300 text-slate-950 rounded-full font-bold flex justify-between items-center px-6 disabled:opacity-50 active:scale-[.99] transition"><ChevronRight size={20}/><span>سجل الدخول عبر الهاتف</span><Smartphone size={22}/></button>
+      <button type="button" disabled={busy||!phoneAuthEnabled} onClick={()=>{if(!phoneAuthEnabled)return;setPhoneOpen(true);setSentPhone('');setOtp('');setError(null);}} className="w-full min-h-14 bg-gradient-to-r from-amber-500 to-yellow-300 text-slate-950 rounded-full font-bold flex justify-between items-center px-6 disabled:opacity-50 active:scale-[.99] transition"><ChevronRight size={20}/><span>{phoneAuthEnabled?'سجل الدخول عبر الهاتف':'الدخول بالهاتف غير متاح حالياً'}</span><Smartphone size={22}/></button>
       <button type="button" onClick={()=>setTermsOpen(true)} className="w-full min-h-11 flex items-center justify-center gap-2 text-sm text-slate-200"><ShieldCheck size={18}/>سياسة الاستخدام والخصوصية</button>
       <p className="p-4 rounded-2xl bg-black/70 border border-amber-500/40 text-sm text-center">للتواصل مع الدعم، سجّل الدخول ثم افتح الرسائل الرسمية داخل التطبيق.</p>
     </main>
 
-    {phoneOpen && <div ref={phoneRef} className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="phone-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 border border-amber-500/40 shadow-2xl">
+    {phoneOpen && phoneAuthEnabled && <div ref={phoneRef} className="fixed inset-0 z-50 p-4 bg-black/85 flex items-center justify-center"><section role="dialog" aria-modal="true" aria-labelledby="phone-title" className="w-full max-w-sm bg-slate-900 rounded-3xl p-5 border border-amber-500/40 shadow-2xl">
       <div className="flex items-center justify-between"><h2 id="phone-title" className="font-bold">تسجيل الدخول عبر رقم الهاتف</h2><button type="button" disabled={busy} aria-label="إغلاق" onClick={closePhone} className="p-2"><X size={20}/></button></div>
       <form onSubmit={submit} className="mt-5 space-y-4">
         <label htmlFor="login-phone" className="block text-sm">رقم الهاتف</label>

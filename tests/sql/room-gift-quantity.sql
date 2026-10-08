@@ -46,5 +46,29 @@ begin
  assert not has_function_privilege('anon','public.send_room_gift_batch(uuid,bigint,text,uuid,integer)','execute'),'anonymous denied';
  assert has_function_privilege('authenticated','public.send_room_gift_batch(uuid,bigint,text,uuid,integer)','execute'),'authenticated allowed';
 end$$;
+-- Lucky receipts must accept every approved quantity, including self sends.
+do $$
+declare a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();r uuid:=gen_random_uuid();req uuid;g text;cost bigint;pid bigint;q integer;total bigint:=0;
+begin
+ insert into auth.users(id,email,raw_user_meta_data)values(a,a::text||'@test.invalid','{}'),(b,b::text||'@test.invalid','{}');
+ update public.profiles set gold=1000000000 where id=a;
+ select public_id into pid from public.profiles where id=b;
+ select id,price into g,cost from public.gift_catalog where is_active and relationship_type_id is null and diamond_source_type='LUCKY_GIFT' order by price limit 1;
+ assert g is not null,'Lucky catalog required';
+ insert into public.rooms(id,owner_id,name)values(r,a,'Rollback lucky quantities');
+ insert into public.room_members(room_id,user_id)values(r,a),(r,b);
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ foreach q in array array[1,7,17,77,777] loop
+  req:=gen_random_uuid();perform public.send_room_gift_batch(r,pid,g,req,q);perform public.send_room_gift_batch(r,pid,g,req,q);
+  total:=total+cost*q;
+  assert (select count(*) from public.gift_events where request_id=req)=1,'Lucky retry duplicates';
+  assert (select quantity from public.lucky_results where request_id=req)=q,'Lucky receipt quantity';
+  assert (select gold from public.profiles where id=a)=1000000000-total,'Exact lucky debit';
+ end loop;
+ req:=gen_random_uuid();pid:=(select public_id from public.profiles where id=a);
+ perform public.send_room_gift_batch(r,pid,g,req,17);perform public.send_room_gift_batch(r,pid,g,req,17);
+ assert (select gold from public.profiles where id=a)=1000000000-total-cost*17,'Self lucky retry debit';
+ assert (select received_gold from public.profiles where id=a)=0,'Self lucky rewards cannot mint financial diamonds';
+end$$;
 select 'quantity, idempotency, totals, failure rollback, self gift, existing single send and bag checks passed' as result;
 rollback;

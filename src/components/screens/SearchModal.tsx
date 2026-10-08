@@ -12,37 +12,41 @@ import { ChevronRight, Radio, Users } from 'lucide-react';
 export const SearchModal: React.FC = () => {
   const { setActiveSubScreen, rooms, joinRoom, setSelectedChatUser, reportError } = useApp();
   const [query, setQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'rooms' | 'users' | 'ids'>('all');
+  const [activeFilter, setActiveFilter] = useState<'rooms' | 'users'>('users');
 
   const normalizedQuery = query.toLowerCase().trim();
 
   // Search rooms
-  const matchedRooms = rooms.filter(
-    (r) =>
-      r.title.toLowerCase().includes(normalizedQuery) ||
-      r.id.includes(normalizedQuery) ||
+  // Search is explicitly scoped: account IDs never match rooms, and room IDs never match accounts.
+  const matchedRooms = rooms.filter((r) => {
+    if (!normalizedQuery) return false;
+    if (/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(normalizedQuery)) return r.id.toLowerCase() === normalizedQuery;
+    if (/^\d+$/.test(normalizedQuery)) return false; // Room IDs in this schema are UUIDs.
+    return r.title.toLowerCase().includes(normalizedQuery) ||
       r.owner.name.toLowerCase().includes(normalizedQuery) ||
-      r.category.toLowerCase().includes(normalizedQuery)
-  );
+      r.category.toLowerCase().includes(normalizedQuery);
+  });
 
   const [matchedUsers, setMatchedUsers] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
   useEffect(() => {
     let cancelled = false;
     setMatchedUsers([]);
-    if (normalizedQuery.length < 2) { setSearching(false); return; }
+    if (activeFilter !== 'users' || normalizedQuery.length < 2) { setSearching(false); return; }
     setSearching(true);
     const timer = setTimeout(async () => {
       try {
         const {data, error} = await supabase.rpc('search_public_profiles', {p_query: normalizedQuery, p_limit: 20});
         if (cancelled) return;
         if (error) throw error;
-        setMatchedUsers((data || []).map(profileToUser));
+        const profiles: User[] = (data || []).map(profileToUser);
+        // Numeric account lookups show only the exact account public ID.
+        setMatchedUsers(/^\d+$/.test(normalizedQuery) ? profiles.filter(user => user.id === normalizedQuery) : profiles);
       } catch { if (!cancelled) reportError('تعذر البحث عن المستخدمين. حاول مجدداً.'); }
       finally { if (!cancelled) setSearching(false); }
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [normalizedQuery]);
+  }, [normalizedQuery, activeFilter, reportError]);
 
   return (
     <div className="min-h-screen bg-[#0b0c16] text-slate-100 pb-24" dir="rtl">
@@ -61,7 +65,7 @@ export const SearchModal: React.FC = () => {
             onChange={setQuery}
             onClear={() => setQuery('')}
             autoFocus
-            placeholder="ابحث عن غرفة، اسم مستخدم، أو رقم ID..."
+            placeholder={activeFilter === "users" ? "ابحث عن حساب باسمه أو معرفه..." : "ابحث عن غرفة باسمها أو معرفها UUID..."}
           />
         </div>
       </header>
@@ -69,10 +73,8 @@ export const SearchModal: React.FC = () => {
       {/* Filter Tabs */}
       <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar border-b border-purple-500/10">
         {[
-          { id: 'all', label: 'الكل' },
-          { id: 'rooms', label: `الغرف (${matchedRooms.length})` },
-          { id: 'users', label: `المستخدمون (${matchedUsers.length})` },
-          { id: 'ids', label: 'أرقام ID' },
+          { id: 'users', label: 'البحث عن حساب' },
+          { id: 'rooms', label: 'البحث عن غرفة' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -93,7 +95,7 @@ export const SearchModal: React.FC = () => {
       {/* Results Feed */}
       <div className="p-4 space-y-4">
         {/* ROOMS RESULTS */}
-        {(activeFilter === 'all' || activeFilter === 'rooms' || activeFilter === 'ids') && (
+        {activeFilter === 'rooms' && (
           <div>
             <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2.5">
               <Radio size={14} className="text-purple-400" />
@@ -105,10 +107,7 @@ export const SearchModal: React.FC = () => {
                 {matchedRooms.map((room) => (
                   <button type="button" aria-label={`دخول غرفة ${room.title}`}
                     key={room.id}
-                    onClick={() => {
-                      joinRoom(room);
-                      setActiveSubScreen(null);
-                    }}
+                    onClick={() => { void joinRoom(room); }}
                     className="w-full text-right min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
                   >
                     <div className="flex-1 min-w-0 flex items-center gap-3">
@@ -144,7 +143,7 @@ export const SearchModal: React.FC = () => {
         )}
 
         {/* USERS RESULTS */}
-        {(activeFilter === 'all' || activeFilter === 'users' || activeFilter === 'ids') && (
+        {activeFilter === 'users' && (
           <div className="pt-2">
             <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-2.5">
               <Users size={14} className="text-purple-400" />
@@ -154,39 +153,27 @@ export const SearchModal: React.FC = () => {
             {matchedUsers.length > 0 ? (
               <div className="space-y-2">
                 {matchedUsers.map((itemUser) => (
-                  <button type="button" aria-label={`مراسلة ${itemUser.name}`}
-                    key={itemUser.id}
-                    onClick={() => {
-                      setSelectedChatUser(itemUser);
-                      setActiveSubScreen('chat_detail');
-                    }}
-                    className="w-full text-right min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 cursor-pointer transition-all"
-                  >
-                    <div className="flex-1 min-w-0 flex items-center gap-3">
+                  <div key={itemUser.id} className="w-full min-w-0 flex items-center gap-3 justify-between p-3 rounded-2xl bg-[#141629] border border-purple-500/15 hover:border-purple-400/40 transition-all">
+                    <button type="button" aria-label={`عرض ملف ${itemUser.name}`} onClick={()=>{setSelectedChatUser(itemUser);setActiveSubScreen('user_detail_profile');}} className="flex-1 min-w-0 flex items-center gap-3 text-right">
                       <UserAvatar user={itemUser} size="sm" showOnlineStatus />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-slate-100 truncate">
-                            {itemUser.name}
-                          </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-slate-100 truncate">{itemUser.name}</span>
                           <VIPBadge level={itemUser.vipLevel} size="sm" />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono mt-1">
-                          <span>@{itemUser.username}</span>
-                          <span>·</span>
-                          <span>ID: {itemUser.id}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className="shrink-0 px-3 py-2 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono mt-1">
+                          <span dir="ltr">@{itemUser.username}</span><span>·</span><span className="ui-id">ID: {itemUser.id}</span>
+                        </span>
+                      </span>
+                    </button>
+                    <button type="button" aria-label={`مراسلة ${itemUser.name}`} onClick={()=>{setSelectedChatUser(itemUser);setActiveSubScreen('chat_detail');}} className="shrink-0 px-3 py-2 bg-[#1a1d35] border border-purple-500/20 text-purple-300 text-xs font-semibold rounded-lg hover:bg-purple-600 hover:text-white transition-colors">
                       مراسلة
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : (
-              !searching && <EmptyState title={normalizedQuery.length<2?"اكتب حرفين على الأقل للبحث عن حساب":"لا يوجد مستخدمون مطابقون"} />
+              !searching && <EmptyState title={normalizedQuery.length<2?"اكتب حرفين على الأقل للبحث عن حساب":"لا يوجد حساب مطابق للمعرف المدخل"} />
             )}
           </div>
         )}

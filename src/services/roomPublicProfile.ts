@@ -7,12 +7,14 @@ export interface RoomPublicProfile {
   charmLevel?: number; wealthLevel?: number; countryCode?: string; countryFlag?: string;
   gender?: 'male' | 'female';
   receivedGold?:number;
-  agency?: {id: string; name: string; membersCount?:number};
+  agency?: {id: string; name: string; membersCount?:number;logoUrl?:string;role?:string};
   relationships?: ProfileRelationship[];
   equipment?: User['equipment'];
   couple?: ProfileRelationship;
 }
+export type RoomRelationship = ProfileRelationship;
 export interface ProfileRelationship {
+  relationId?:string;typeLabel?:string;isPrimary?:boolean;level?:number;nextLevelExperience?:number;card?:{id?:string;name?:string;presentation?:Record<string,unknown>}|null;
   cardId?:string; id:string; typeId:string; label:string; primary:boolean; startedAt:string; serverNow?:string;
   partner:RoomPublicProfile; days?:number; experience?:number; thresholds:number[];
   presentation:{icon?:string;accent?:string;background?:string;frame?:string;effect?:string};
@@ -82,5 +84,5 @@ export function validatedProfileCP(value:Record<string,unknown>|null,targetId:st
  const theme=value.presentation&&typeof value.presentation==='object'&&!Array.isArray(value.presentation)?value.presentation as Record<string,unknown>:{};
  const safeColor=(v:unknown)=>typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v)?v:undefined;
  const thresholds=Array.isArray(value.level_thresholds)&&value.level_thresholds.every((n,i,a)=>Number.isSafeInteger(n)&&n>=0&&(i===0||n>a[i-1]))?value.level_thresholds as number[]:[];
- return {cardId:value.card && typeof value.card==='object' && typeof (value.card as Record<string,unknown>).id==='string' ? (value.card as {id:string}).id : undefined,id:value.relation_id,typeId,label:typeof value.type_label==='string'?value.type_label:typeId==='love'?'رفيق الروح':typeId,primary:typeof value.is_primary==='boolean'?value.is_primary:typeId==='love',startedAt:value.accepted_at,serverNow:typeof value.server_now==='string'&&Number.isFinite(Date.parse(value.server_now))?value.server_now:undefined,partner,days,experience:typeof value.experience==='number'&&Number.isSafeInteger(value.experience)&&value.experience>=0?value.experience:undefined,thresholds,presentation:{icon:typeof theme.icon==='string'?theme.icon.slice(0,8):undefined,accent:safeColor(theme.accent),background:safeColor(theme.background),frame:typeof theme.frame==='string'?theme.frame:undefined,effect:typeof theme.effect==='string'?theme.effect:undefined}};
+ return {cardId:value.card && typeof value.card==='object' && typeof (value.card as Record<string,unknown>).id==='string' ? (value.card as {id:string}).id : undefined,relationId:value.relation_id,typeLabel:typeof value.type_label==='string'?value.type_label:typeId,isPrimary:typeof value.is_primary==='boolean'?value.is_primary:typeId==='love',level:typeof value.experience==='number'&&thresholds.length?1+thresholds.filter(n=>Number(value.experience)>=n).length:undefined,nextLevelExperience:typeof value.experience==='number'?thresholds.find(n=>n>Number(value.experience)):undefined,id:value.relation_id,typeId,label:typeof value.type_label==='string'?value.type_label:typeId==='love'?'رفيق الروح':typeId,primary:typeof value.is_primary==='boolean'?value.is_primary:typeId==='love',startedAt:value.accepted_at,serverNow:typeof value.server_now==='string'&&Number.isFinite(Date.parse(value.server_now))?value.server_now:undefined,partner,days,experience:typeof value.experience==='number'&&Number.isSafeInteger(value.experience)&&value.experience>=0?value.experience:undefined,thresholds,presentation:{icon:typeof theme.icon==='string'?theme.icon.slice(0,8):undefined,accent:safeColor(theme.accent),background:safeColor(theme.background),frame:typeof theme.frame==='string'?theme.frame:undefined,effect:typeof theme.effect==='string'?theme.effect:undefined}};
 }

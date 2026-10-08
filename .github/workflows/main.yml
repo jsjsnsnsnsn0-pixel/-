@@ -49,14 +49,15 @@ jobs:
           name: playwright-report
           path: playwright-report/
   build-apk:
-    # NOT REQUESTED — skipped by owner instruction unless explicitly dispatched.
-    if: github.event_name == 'workflow_dispatch' && inputs.build_android == true
+    # Owner explicitly requested Beta APK; still gated on all integration tests passing.
+    if: (github.event_name == 'workflow_dispatch' && inputs.build_android == true) || (github.event_name == 'pull_request' && github.head_ref == 'integration/totichat-beta-20261008')
     needs: validate
     runs-on: ubuntu-latest
     env:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL || secrets.VITE_AUTH_REDIRECT_URL }}
+      TOTICHAT_BETA: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,7 +80,7 @@ jobs:
         run: sha256sum android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: TotiChat-APK
+          name: TotiChat-Beta-APK-${{ github.sha }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
           if-no-files-found: error

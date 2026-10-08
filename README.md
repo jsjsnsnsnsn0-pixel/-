@@ -74,3 +74,7 @@ npx cap sync android
 تغييرات العضوية والمقعد والكتم والحظر وإغلاق الغرفة تنشئ طلباً دائماً في جدول خاص. وظيفة `livekit-reconcile` تقرأ الحالة الحالية من القاعدة وتسحب النشر أو تفصل المشاركين، دون الاعتماد على تعاون العميل. الطلبات تُوقّع بـHMAC بمفتاح محفوظ داخل Vault؛ مسار المستخدم `livekit-room` يحتفظ بفحص JWT. المحاولة الفاشلة تبقى في الطابور وتُعاد كل دقيقة عند وجود عمل، ولا تُرسل طلبات HTTP وقت الخمول.
 
 التنفيذ غير متزامن؛ قد يتأخر السحب وقت انقطاع LiveKit. تنفيذ removeParticipant على LiveKit Cloud يسحب رموز الدخول القديمة أيضاً؛ إن تغير المزود إلى خادم ذاتي فيجب اختبار منع إعادة استخدام الرموز. الاختبارات والحدود التشغيلية موثقة في تقرير الفحص.
+
+## Current integration audit
+
+See `docs/FULL_AUDIT_2026_10_08.md` for the reconciled source, measured bundle improvement, applied server fixes, current tests and outstanding release verification. Older reports above are historical snapshots, not the current feature inventory.

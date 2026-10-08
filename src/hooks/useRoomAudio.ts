@@ -1,3 +1,4 @@
+import {loadLiveKit} from '../services/livekitBootstrap';
 import {RoomMusicPublisher} from '../services/roomMusic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
@@ -41,6 +42,8 @@ export function useLiveKitRoomAudio(
 ) {
   const [musicName,setMusicName]=useState('');
   const [musicPaused,setMusicPaused]=useState(false);
+  const [musicVolume,setMusicVolume]=useState(1);
+  const musicVolumeRef=useRef(musicVolume);musicVolumeRef.current=musicVolume;
   const musicRef=useRef<RoomMusicPublisher|null>(null);
   if(!musicRef.current)musicRef.current=new RoomMusicPublisher(name=>{setMusicName(name);if(!name)setMusicPaused(false)});
   const [connected, setConnected] = useState(false);
@@ -97,16 +100,14 @@ export function useLiveKitRoomAudio(
 
   useEffect(() => {
     if (!roomId || !authId) return;
-    const SDK = liveKit();
-    const RoomCtor = SDK?.Room;
-    const Events = SDK?.RoomEvent;
-    if (!RoomCtor || !Events) {
-      onError('تعذر تحميل محرك LiveKit. تحقق من اتصال الإنترنت ثم أعد فتح التطبيق.');
-      return;
-    }
-
     const currentGeneration = ++generation.current;
     let disposed = false;
+    let stop = () => {};
+    void (async()=>{
+    const SDK = await loadLiveKit();
+    if(disposed || currentGeneration !== generation.current)return;
+    const RoomCtor = SDK.Room;
+    const Events = SDK.RoomEvent;
     playbackWarningShown.current = false;
     const client = new RoomCtor();
     clientRef.current = client;
@@ -118,6 +119,9 @@ export function useLiveKitRoomAudio(
       removeRemoteAudio(key);
       const element = track.attach?.() as HTMLMediaElement | undefined;
       if (!element) return;
+      const musicTrack=String(publication?.trackName||publication?.name||track?.name||'')==='room-music';
+      element.dataset.roomMusic=musicTrack?'true':'false';
+      element.volume=musicTrack?musicVolumeRef.current:1;
       element.autoplay = true;
       element.muted = !speakerRef.current;
       element.setAttribute('playsinline', 'true');
@@ -138,6 +142,7 @@ export function useLiveKitRoomAudio(
     };
     const onDisconnected = () => {
       if (!disposed) {
+        musicRef.current?.stop();
         setConnected(false);
         setSpeakingIds([]);
       }
@@ -178,7 +183,7 @@ export function useLiveKitRoomAudio(
       }
     })();
 
-    return () => {
+    stop = () => {
       musicRef.current?.stop();
       disposed = true;
       generation.current++;
@@ -190,8 +195,14 @@ export function useLiveKitRoomAudio(
       if (clientRef.current === client) clientRef.current = null;
       try { void client.disconnect?.(); } catch {}
     };
+    })().catch(error=>{if(!disposed)onError(friendlyAudioError(error))});
+    return ()=>{disposed=true;generation.current++;stop();};
   }, [roomId, authId, invokeAudio, clearRemoteAudio, removeRemoteAudio, onError, resumePlayback]);
 
+  useEffect(()=>{
+    musicRef.current?.setLocalVolume(speaker?musicVolume:0);
+    for(const element of remoteAudio.current.values())if(element.dataset.roomMusic==='true')element.volume=musicVolume;
+  },[musicVolume,speaker]);
   useEffect(() => {
     for (const element of remoteAudio.current.values()) element.muted = !speaker;
     if (speaker) { playbackWarningShown.current = false; void resumePlayback(); }
@@ -245,6 +256,7 @@ export function useLiveKitRoomAudio(
     const publications = client.localParticipant?.audioTrackPublications;
     if (!publications) return;
     for (const publication of publications.values?.() || []) {
+      if(publication?.source !== 'microphone')continue;
       const mediaTrack = publication?.track?.mediaStreamTrack;
       if (mediaTrack?.applyConstraints) {
         void mediaTrack.applyConstraints({ echoCancellation: true, noiseSuppression }).catch(() => {});
@@ -254,16 +266,22 @@ export function useLiveKitRoomAudio(
 
   useEffect(() => {
     if (!connected) return;
+    const client=clientRef.current;
+    const currentGeneration=generation.current;
+    let restoring=false;
     const resume = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible'||restoring) return;
+      restoring=true;
       void resumePlayback();
       void invokeAudio('sync-permissions').then(async permission => {
-        const client = clientRef.current;
-        if (!client || !hasSeatRef.current || mutedRef.current || permission.canPublish !== true) return;
+        if (!client || client!==clientRef.current || currentGeneration!==generation.current || !hasSeatRef.current || mutedRef.current || permission.canPublish !== true) return;
         const publications = client.localParticipant?.audioTrackPublications;
-        const hasLiveTrack = publications && [...(publications.values?.() || [])].some((p:any) => p?.track?.mediaStreamTrack?.readyState === 'live');
-        if (!hasLiveTrack) await client.localParticipant?.setMicrophoneEnabled?.(true, {echoCancellation:true, noiseSuppression:noiseRef.current});
-      }).catch(() => {});
+        const hasLiveTrack = publications && [...(publications.values?.() || [])].some((p:any) => p?.source==='microphone' && p?.track?.mediaStreamTrack?.readyState === 'live');
+        if (!hasLiveTrack) {
+          await client.localParticipant?.setMicrophoneEnabled?.(true, {echoCancellation:true, noiseSuppression:noiseRef.current});
+          if(client!==clientRef.current || currentGeneration!==generation.current || !hasSeatRef.current || mutedRef.current)await client.localParticipant?.setMicrophoneEnabled?.(false);
+        }
+      }).catch(() => {}).finally(()=>{restoring=false;});
     };
     document.addEventListener('visibilitychange', resume);
     window.addEventListener('focus', resume);
@@ -303,8 +321,10 @@ export function useLiveKitRoomAudio(
 
   const startMusic=useCallback(async(file:File)=>{
     const client=clientRef.current;
+    const currentGeneration=generation.current;
     if(!client||!connected)throw new Error('انتظر اتصال صوت الغرفة.');
     const permission=await invokeAudio('sync-permissions');
+    if(client!==clientRef.current||currentGeneration!==generation.current)throw new Error('ROOM_SESSION_ENDED');
     if(permission.canPublish!==true)throw new Error('لا تملك صلاحية بث الموسيقى الآن.');
     await musicRef.current!.start(file,client.localParticipant,()=>client===clientRef.current&&hasSeatRef.current&&!mutedRef.current);
     setMusicPaused(false);
@@ -312,7 +332,7 @@ export function useLiveKitRoomAudio(
   const stopMusic=useCallback(()=>{musicRef.current?.stop();setMusicPaused(false)},[]);
   const pauseMusic=useCallback(()=>{if(musicRef.current?.pause())setMusicPaused(true)},[]);
   const resumeMusic=useCallback(async()=>{if(await musicRef.current?.resume())setMusicPaused(false)},[]);
-  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused };
+  return { connected, enableMicrophone, speakingIds, startMusic,stopMusic,pauseMusic,resumeMusic,musicName,musicPaused,musicVolume,setMusicVolume };
 }
 
 // main.tsx bundles the pinned LiveKit SDK before the app module. Browser automation keeps
@@ -320,5 +340,5 @@ export function useLiveKitRoomAudio(
 // deterministic and do not call the real LiveKit Edge Function. Real browsers/WebViews
 // prefer LiveKit whenever the SDK loaded successfully.
 const automatedBrowser = typeof navigator !== 'undefined' && navigator.webdriver === true;
-const useLiveKitAtModuleLoad = !automatedBrowser && Boolean(liveKit()?.Room && liveKit()?.RoomEvent);
+const useLiveKitAtModuleLoad = !automatedBrowser;
 export const useRoomAudio = useLiveKitAtModuleLoad ? useLiveKitRoomAudio : useLegacyRoomAudio;

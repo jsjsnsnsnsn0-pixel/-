@@ -28,8 +28,14 @@ test('Android configuration installs official assets repeatedly and preserves ap
   await mkdir(join(dir,'android/app/src/main/res/drawable-v24'),{recursive:true});
   await writeFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'<manifest package="com.totichat.app"><uses-permission android:name="android.permission.INTERNET"/><application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"><activity android:launchMode="singleTask"></activity></application></manifest>');
   await cp('resources',join(dir,'resources'),{recursive:true});
+  await mkdir(join(dir,'android/app/src/main/res/values'),{recursive:true});
+  await writeFile(join(dir,'android/app/build.gradle'),'defaultConfig { versionCode 1; versionName "1.0" }');
+  await writeFile(join(dir,'android/app/src/main/res/values/strings.xml'),'<resources><string name="app_name">TotiChat</string></resources>');
   const script=join(process.cwd(),'scripts/configure-android.mjs');
-  execFileSync(process.execPath,[script],{cwd:dir});execFileSync(process.execPath,[script],{cwd:dir});
+  execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
+  execFileSync(process.execPath,[script],{cwd:dir,env:{...process.env,TOTICHAT_BETA:'1'}});
+  const gradle=await readFile(join(dir,'android/app/build.gradle'),'utf8');
+  assert.match(gradle,/versionCode 900006/);assert.match(gradle,/versionName "0\.9\.0-beta\.6"/);
   const manifest=await readFile(join(dir,'android/app/src/main/AndroidManifest.xml'),'utf8');
   assert.match(manifest,/package="com.totichat.app"/);assert.match(manifest,/android:scheme="com.totichat.app"/);
   assert.match(manifest,/android:icon="@mipmap\/ic_launcher"/);assert.match(manifest,/android:roundIcon="@mipmap\/ic_launcher_round"/);

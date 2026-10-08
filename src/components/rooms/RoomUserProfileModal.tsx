@@ -21,6 +21,7 @@ interface RoomUserProfileModalProps {
   onMessage?: () => void;
   onGift?:()=>void;
   onManage?:()=>void;
+  selfMicMuted?:boolean;onToggleSelfMic?:()=>void;onLeaveSelfSeat?:()=>void;
   targetUser?: User | null;
 }
 
@@ -32,7 +33,7 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
   onMessage,
   onGift,
   onManage,
-  targetUser,
+  targetUser,selfMicMuted,onToggleSelfMic,onLeaveSelfSeat,
 }) => {
   const layerRef=useDismissableLayer(isOpen,onClose);
 
@@ -214,11 +215,16 @@ export const RoomUserProfileModal: React.FC<RoomUserProfileModalProps> = ({
           {onGift&&allowed?.social.gift&&<button type="button" onClick={onGift} className="p-4 rounded-2xl bg-white/5">🎁 إرسال هدية</button>}
           {allowed?.social.follow&&<button type="button" disabled={actionBusy} onClick={()=>void follow()} className="p-4 rounded-2xl bg-white/5">{allowed.social.is_following?'إلغاء المتابعة':'متابعة'}</button>}
         </div>
+        {targetUser?.id===currentUser.id&&onToggleSelfMic&&activeRoom?.seats.some(seat=>seat.user?.id===currentUser.id)&&<section aria-label="مايك حسابي" className="grid grid-cols-2 gap-3 mt-3">
+         <button type="button" onClick={onToggleSelfMic} className="p-3 rounded-2xl bg-white/5">{selfMicMuted?'فتح المايك':'كتم المايك'}</button>
+         {onLeaveSelfSeat&&<button type="button" onClick={onLeaveSelfSeat} className="p-3 rounded-2xl bg-white/5">النزول من المايك</button>}
+        </section>}
         {canManage&&<section aria-label="أدوات الإشراف" className="mt-4 border-t border-white/15 pt-3"><h2 className="text-xs text-slate-300 text-right mb-3">أدوات الإشراف</h2><div className="grid grid-cols-2 gap-3 text-sm">
           {allowed!.moderation.filter(a=>a!=='ban').map(action=><button key={action} type="button" disabled={actionBusy} onClick={()=>{if(action!=='kick'||window.confirm('طرد هذا المستخدم من الغرفة؟'))void moderate(action)}} className={`p-3 rounded-2xl bg-white/5 disabled:opacity-40 ${action==='kick'?'text-rose-300':''}`}>{({mute:'كتم الصوت',unmute:'فتح الصوت',down:'إنزال من المايك',raise:'الصعود إلى المايك',kick:'الطرد من الغرفة'} as Record<string,string>)[action]}</button>)}
           {allowed!.moderation.includes('ban')&&<div className="rounded-2xl p-2 bg-white/5"><select aria-label="مدة حظر المستخدم" value={banMinutes} onChange={event=>setBanMinutes(event.target.value)} className="bg-[#211b35] p-2 rounded-xl w-full"><option value="60">ساعة</option><option value="1440">يوم</option><option value="10080">أسبوع</option><option value="forever">دائم</option></select><button type="button" disabled={actionBusy} className="p-2 text-rose-300" onClick={()=>{if(window.confirm('حظر هذا المستخدم من الغرفة؟'))void moderate('ban')}}>حظر المستخدم</button></div>}
         </div></section>}
         {allowed?.manage_moderators&&onManage&&<button type="button" onClick={onManage} className="w-full mt-3 p-3 rounded-2xl bg-white/5 text-sm">إدارة المشرفين</button>}
+        {allowed?.self&&activeRoom?.canModerate&&onManage&&<button type="button" onClick={onManage} className="w-full mt-3 p-3 rounded-2xl bg-white/5 text-sm">إدارة الغرفة</button>}
         <div>
         </div>
         {/* ========================================================= */}
