@@ -1,0 +1,37 @@
+name: Verify Published TotiChat Admin Preview
+on:
+  push:
+    branches:
+      - feature/standalone-admin-dashboard-20261008
+    paths:
+      - '.github/workflows/check-admin-edge-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify live preview route and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin'
+          curl --fail --silent --show-error --retry 3 --max-time 30 "$base" -o /tmp/totichat-admin-index.html
+          grep -F 'TotiChat' /tmp/totichat-admin-index.html
+          grep -F '/functions/v1/totichat-admin/app.js' /tmp/totichat-admin-index.html
+          grep -F 'id="app"' /tmp/totichat-admin-index.html
+          for path in app.js styles.css ui.js context.js config.js pages-core.js pages-wallet.js pages-roles.js pages-finance.js; do
+            curl --fail --silent --show-error --retry 3 --max-time 30 "$base/$path" -o "/tmp/admin-$path"
+            test -s "/tmp/admin-$path"
+          done
+          grep -F 'signInWithPassword' /tmp/admin-app.js
+          grep -F 'dashboard_session' /tmp/admin-app.js
+          if grep -F 'previewGate' /tmp/admin-app.js; then echo 'Unsafe demo gate still enabled'; exit 1; fi
+          grep -F 'sb_publishable_' /tmp/admin-config.js >/dev/null
+          if grep -E 'sb_secret_|service_role' /tmp/admin-config.js; then
+            echo 'Sensitive key included in public config'
+            exit 1
+          fi
+          echo 'PASS: published real-auth admin dashboard and JS/CSS assets are reachable.'

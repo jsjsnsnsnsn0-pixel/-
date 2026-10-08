@@ -1,0 +1,67 @@
+name: Publish Independent TotiChat Admin on GitHub Pages
+on:
+  push:
+    branches:
+      - feature/standalone-admin-dashboard-20261008
+    paths:
+      - '.github/workflows/deploy-admin-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: totichat-admin-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout admin feature branch
+        uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Load public Supabase configuration from published source
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 --max-time 30 \
+            'https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin/config.js' \
+            -o /tmp/totichat-public-config.js
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const js=fs.readFileSync('/tmp/totichat-public-config.js','utf8');
+          const match=js.match(/^window\.TOTICHAT_ADMIN_CONFIG=(\{[^\n]+\});?\s*$/);
+          if(!match)throw Error('Supabase public config missing');
+          const config=JSON.parse(match[1]);
+          if(config.url!=='https://bfadhdnudmsggylunhlh.supabase.co'||!config.key?.startsWith('sb_publishable_'))
+            throw Error('Invalid public Supabase project configuration');
+          fs.appendFileSync(process.env.GITHUB_ENV,
+            'VITE_SUPABASE_URL='+config.url+'\nVITE_SUPABASE_PUBLISHABLE_KEY='+config.key+'\n');
+          console.log('Verified public Supabase project configuration');
+          NODE
+      - name: Build only the independent dashboard
+        working-directory: admin-dashboard
+        run: |
+          npm run check
+          npm run build
+          sed -i 's|href="/styles.css"|href="./styles.css"|;s|src="/config.js"|src="./config.js"|;s|src="/app.js"|src="./app.js"|' dist/index.html
+          printf '' > dist/.nojekyll
+          test -s dist/index.html
+          test -s dist/app.js
+          if grep -r -E 'sb_secret_|service_role' dist/config.js; then
+            echo 'Forbidden secret in public config'; exit 1
+          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload admin site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: admin-dashboard/dist
+      - name: Deploy admin (not the TotiChat app)
+        uses: actions/deploy-pages@v4
+        id: deployment

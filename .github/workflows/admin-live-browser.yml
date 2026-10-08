@@ -1,0 +1,65 @@
+name: TotiChat Admin Live Browser Test
+on:
+  push:
+    branches: [feature/standalone-admin-dashboard-20261008]
+    paths:
+      - '.github/workflows/admin-live-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify admin site opens to REAL Supabase owner login
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+          const url='https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:390,height:844}});
+          const errors=[];
+          page.on('pageerror',error=>errors.push('pageerror: '+error.message));
+          page.on('console',msg=>{if(msg.type()==='error')errors.push('console: '+msg.text());});
+          page.on('requestfailed',req=>errors.push('network: '+req.url()+' '+req.failure()?.errorText));
+          const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+          if(!response||response.status()!==200)throw new Error('Admin page HTTP '+response?.status());
+          console.log('DIAG: initial content type='+(await response.allHeaders())['content-type']);
+          console.log('DIAG: HTTP document start='+(await response.text()).slice(0,220));
+          try{
+            await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:18000});
+          }catch(error){
+            console.error('DIAG: URL='+page.url());
+            console.error('DIAG: title='+(await page.title()));
+            console.error('DIAG: document='+(await page.content()).slice(0,1200));
+            console.error('DIAG: errors='+JSON.stringify(errors.slice(0,15)));
+            try{await page.screenshot({path:'admin-login-smoke.png',timeout:8000});}catch(e){console.error('screenshot failure '+e.message)}
+            throw error;
+          }
+          await page.getByText('اسم المستخدم أو البريد الإلكتروني').waitFor();
+          await page.getByText('كلمة المرور').waitFor();
+          await page.getByRole('button',{name:'تسجيل الدخول'}).waitFor();
+          await page.getByRole('button',{name:'الدخول عبر Google'}).waitFor();
+          if(errors.length)throw new Error('Browser script exception: '+errors.slice(0,3).join(' | '));
+          if(await page.getByText('Coins المتداولة').count())throw new Error('Admin metrics were exposed before authentication');
+          await page.screenshot({path:'admin-login-smoke.png'});
+          console.log('PASS: Public entry shows real Supabase login; no admin data is exposed before authentication.');
+          await browser.close();
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-live-login-screenshot
+          path: admin-login-smoke.png
+          if-no-files-found: ignore
+          retention-days: 7

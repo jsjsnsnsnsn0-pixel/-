@@ -1,0 +1,37 @@
+name: Standalone Admin Dashboard
+on:
+  push:
+    paths:
+      - 'admin-dashboard/**'
+      - '.github/workflows/admin-dashboard.yml'
+  pull_request:
+    paths:
+      - 'admin-dashboard/**'
+      - '.github/workflows/admin-dashboard.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Validate JavaScript
+        working-directory: admin-dashboard
+        run: npm run check
+      - name: Verify standalone build (no real credentials)
+        working-directory: admin-dashboard
+        env:
+          VITE_SUPABASE_URL: https://bfadhdnudmsggylunhlh.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_dummy_only
+        run: |
+          npm run build
+          test -f dist/index.html
+          test -f dist/app.js
+          test -f dist/pages-finance.js
+          test -f dist/config.js
+          if grep -R -lE 'service_role|sb_secret_' dist/config.js; then exit 1; fi

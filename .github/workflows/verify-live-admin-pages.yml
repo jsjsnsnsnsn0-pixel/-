@@ -1,0 +1,70 @@
+name: Verify Live TotiChat Admin GitHub Pages
+on:
+  push:
+    branches:
+      - feature/standalone-admin-dashboard-20261008
+    paths:
+      - '.github/workflows/verify-live-admin-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Wait for GitHub Pages to publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://jsjsnsnsnsn0-pixel.github.io/TotiChat/'
+          for i in {1..30}; do
+            if curl --fail --silent --show-error --max-time 10 "$url" -o /tmp/totichat-admin-live.html &&
+              grep -q '<div id="app"' /tmp/totichat-admin-live.html; then
+              echo "PASS: live HTML is published at $url"
+              break
+            fi
+            echo "Waiting for GitHub Pages publication, attempt $i"
+            sleep 7
+          done
+          grep -q '<div id="app"' /tmp/totichat-admin-live.html
+          curl --fail --silent --show-error --max-time 20 "${url}app.js" -o /tmp/totichat-admin-app.js
+          grep -F 'dashboard_session' /tmp/totichat-admin-app.js >/dev/null
+          grep -F 'dashboard_claim_email_role' /tmp/totichat-admin-app.js >/dev/null
+          grep -F 'https://jsjsnsnsnsn0-pixel.github.io/TotiChat/' /tmp/totichat-admin-app.js >/dev/null
+          if grep -F 'signInWithPassword' /tmp/totichat-admin-app.js; then echo 'Old password login still deployed'; exit 1; fi
+          if grep -F 'previewGate' /tmp/totichat-admin-app.js; then echo 'Insecure preview gate detected'; exit 1; fi
+      - run: npx playwright install --with-deps chromium
+      - name: Browser verify actual published site on mobile viewport
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium} from '@playwright/test';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:390,height:844}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(e.message));
+          page.on('requestfailed',request=>{if(!request.url().includes('google'))errors.push(request.url()+': '+request.failure()?.errorText)});
+          const response=await page.goto('https://jsjsnsnsnsn0-pixel.github.io/TotiChat/',{waitUntil:'domcontentloaded',timeout:30000});
+          if(response?.status()!==200)throw Error('GitHub Pages HTTP: '+response?.status());
+          try{
+            await page.getByRole('heading',{name:'TotiChat Admin'}).waitFor({timeout:25000});
+            await page.getByRole('button',{name:'تسجيل الدخول عبر Google'}).waitFor();
+            if(await page.locator('input').count()!==0)throw Error('Old username/password inputs are still visible');
+            if(await page.getByText('اسم الدخول admin').count())throw Error('Old footer explanation still visible');
+          }catch(error){
+            console.error('Browser body: '+(await page.locator('body').innerText()).slice(0,1000));
+            console.error('JS errors: '+JSON.stringify(errors.slice(0,10)));
+            throw error;
+          }
+          if(errors.length)throw Error('Browser errors: '+JSON.stringify(errors.slice(0,5)));
+          if(await page.getByText('Coins المتداولة').count())throw Error('Protected data before login');
+          console.log('PASS: Live TotiChat Admin is Google-only, owner/staff protected, with no old password fields.');
+          await browser.close();
+          NODE
