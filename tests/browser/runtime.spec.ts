@@ -295,6 +295,7 @@ test('search keeps user public IDs separate from room UUIDs',async({page})=>{
   await rooms.fill(roomId);
   await expect(page.getByRole('button',{name:'دخول غرفة غرفة الاختبار',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'البحث عن حساب',exact:true}).click();
+  await page.getByPlaceholder('ابحث عن حساب باسمه أو معرفه...').fill('451305');
   await expect(page.getByRole('button',{name:'عرض ملف مستخدم البحث',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
