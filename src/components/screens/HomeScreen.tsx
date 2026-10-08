@@ -1,7 +1,8 @@
 import {RoyalRooms} from '../rooms/RoyalRooms';
+import {discoverHomeRooms,HOME_COUNTRIES,type HomeCountryFilter} from '../../services/roomDiscovery';
 import {EmptyState} from '../common/UIState';
 import {setImageFallback} from '../../utils/imageFallback';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useRealtimeRankings } from '../../context/RealtimeRankingsContext';
 import { ChevronDown, Search, Radio } from 'lucide-react';
@@ -18,8 +19,10 @@ export const HomeScreen: React.FC = () => {
   // Top header tab: حفلة | ملكي | اكتشف
   const [activeTopTab, setActiveTopTab] = useState<'party' | 'royal' | 'discover'>('party');
 
-  // Filter bar: trending | iraq | saudi
-  const [selectedFilter, setSelectedFilter] = useState<'trending' | 'iraq' | 'saudi'>('trending');
+  // Real country selection: room-owner flags come from public profile metadata.
+  const [selectedFilter, setSelectedFilter] = useState<HomeCountryFilter>('trending');
+  const displayedRooms = useMemo(() => discoverHomeRooms(rooms,selectedFilter),[rooms,selectedFilter]);
+  const countryLabel=HOME_COUNTRIES.find(country=>country.id===selectedFilter)?.label||'البلد';
   const [showCountryMenu, setShowCountryMenu] = useState(false);
 
   // Modal for displaying the official Special ID rules image (المعرف الجميل)
@@ -232,76 +235,70 @@ export const HomeScreen: React.FC = () => {
         /* DISCOVER VIEW: Exact vertical stack of banners like the screenshot + المعرف المميز */
         <div className="px-3 pt-2 pb-6 space-y-3.5 animate-fade-in bg-black/90 min-h-[calc(100vh-60px)]">
           {/* Banner 0: Toti Chat - المعرف المميز */}
-          <div
+          <button type="button" aria-label="المعرف المميز - Toti Chat"
             onClick={() => setShowSpecialIdModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/50 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400">
             <img
               src="/assets/images/toti_distinguished_id_1790717836703.jpg"
               alt="المعرف المميز - Toti Chat"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 1: هدية مخصصة */}
-          <div
+          <button type="button" aria-label="هدية مخصصة"
             onClick={() => setShowCustomGiftModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-purple-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-purple-400">
             <img
               src="/assets/images/custom_gift_banner_1790726268730.jpg"
               alt="هدية مخصصة"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 2: النجم العالمي */}
-          <div
+          <button type="button" aria-label="النجم العالمي"
             onClick={() => setActiveSubScreen('charm_wealth')}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black">
             <img
               src="/assets/images/global_star_banner_1790726285845.jpg"
               alt="النجم العالمي"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 3: نشاط إعادة الشحن */}
-          <div
+          <button type="button" aria-label="نشاط إعادة الشحن"
             onClick={() => setShowRechargeActivityModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-amber-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-amber-400">
             <img
               src="/assets/images/recharge_activity_banner_1790725680784.jpg"
               alt="نشاط إعادة الشحن"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 4: رفقاء الروح الأسبوعية */}
-          <div
+          <button type="button" aria-label="رفقاء الروح الأسبوعية"
             onClick={() => setShowSoulmatesModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-pink-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-pink-400">
             <img
               src="/assets/images/soulmates_exact_banner_1790725479589.jpg"
               alt="رفقاء الروح الأسبوعية"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Banner 5: Toty Chat افتتاح الوكالة جديده */}
-          <div
+          <button type="button" aria-label="افتتاح الوكالة جديده"
             onClick={() => setShowAgencyModal(true)}
-            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400"
-          >
+            className="w-full aspect-[2.7/1] rounded-[24px] overflow-hidden shadow-lg border border-cyan-500/40 cursor-pointer active:scale-[0.99] transition-transform bg-black hover:border-cyan-400">
             <img
               src="/assets/images/agency_opening_banner_1790725265910.jpg"
               alt="افتتاح الوكالة جديده"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
         </div>
       ) : (
         /* PARTY (حفلة) VIEW */
@@ -587,7 +584,7 @@ export const HomeScreen: React.FC = () => {
       {/* ============================================================== */}
       {/* 4. FILTER PILLS BAR: شائع 🔥 | العراق 🇮🇶 | المملكة العربية السعودية 🇸🇦 | ▼ */}
       {/* ============================================================== */}
-      <div className="px-3 mt-3 relative">
+      {activeTopTab==='party'&&<div className="px-3 mt-3 relative">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
           {/* 1. شائع 🔥 (Active Mint Green Pill) */}
           <button
@@ -606,9 +603,9 @@ export const HomeScreen: React.FC = () => {
           {/* 2. العراق 🇮🇶 */}
           <button
             type="button"
-            aria-pressed={selectedFilter==='iraq'} onClick={() => setSelectedFilter('iraq')}
+            aria-pressed={selectedFilter==='IQ'} onClick={() => setSelectedFilter('IQ')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full font-bold text-xs cursor-pointer whitespace-nowrap transition-colors shrink-0 ${
-              selectedFilter === 'iraq'
+              selectedFilter === 'IQ'
                 ? 'bg-[#10b981] text-white'
                 : 'bg-white/80 text-emerald-950'
             }`}
@@ -620,9 +617,9 @@ export const HomeScreen: React.FC = () => {
           {/* 3. المملكة العربية السعودية 🇸🇦 */}
           <button
             type="button"
-            aria-pressed={selectedFilter==='saudi'} onClick={() => setSelectedFilter('saudi')}
+            aria-pressed={selectedFilter==='SA'} onClick={() => setSelectedFilter('SA')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full font-bold text-xs cursor-pointer whitespace-nowrap transition-colors shrink-0 ${
-              selectedFilter === 'saudi'
+              selectedFilter === 'SA'
                 ? 'bg-[#10b981] text-white'
                 : 'bg-white/80 text-emerald-950'
             }`}
@@ -635,6 +632,7 @@ export const HomeScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowCountryMenu((p) => !p)}
+            aria-label="اختيار البلد لعرض الغرف" aria-expanded={showCountryMenu}
             className="ui-icon-button rounded-full bg-white/80 flex items-center justify-center text-emerald-950 cursor-pointer shrink-0 hover:bg-white active:scale-90 transition-transform"
             title="اختيار دولة"
           >
@@ -645,22 +643,12 @@ export const HomeScreen: React.FC = () => {
         {/* Dropdown Menu for Countries */}
         {showCountryMenu && (
           <div className="mt-2 p-2.5 bg-white/88 backdrop-blur-2xl rounded-[22px] shadow-xl border border-white/80 flex flex-wrap gap-2 animate-fadeIn z-20">
-            {[
-              { id: 'trending', label: 'شائع', flag: '🔥' },
-              { id: 'iraq', label: 'العراق', flag: '🇮🇶' },
-              { id: 'saudi', label: 'المملكة العربية السعودية', flag: '🇸🇦' },
-              { id: 'syria', label: 'سوريا', flag: '🇸🇾' },
-              { id: 'uae', label: 'الإمارات', flag: '🇦🇪' },
-              { id: 'kuwait', label: 'الكويت', flag: '🇰🇼' },
-              { id: 'egypt', label: 'مصر', flag: '🇪🇬' },
-            ].map((country) => (
+            {HOME_COUNTRIES.map((country) => (
               <button
                 key={country.id}
                 type="button"
                 onClick={() => {
-                  if (country.id === 'trending' || country.id === 'iraq' || country.id === 'saudi') {
-                    setSelectedFilter(country.id as any);
-                  }
+                  setSelectedFilter(country.id);
                   setShowCountryMenu(false);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 rounded-full text-xs font-bold text-emerald-950 transition-colors cursor-pointer"
@@ -671,14 +659,14 @@ export const HomeScreen: React.FC = () => {
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {activeTopTab==='royal'?<RoyalRooms/>:<>
       {/* ============================================================== */}
-      {/* 5. 2x2 ROOMS GRID: Real Rooms from State                       */}
+      {/* 5. RESPONSIVE ROOMS GRID: Real Rooms from State                */}
       {/* ============================================================== */}
       <div className="px-3 mt-3 grid grid-cols-2 gap-2.5">
-        {rooms.slice(0, 4).map((room) => {
+        {displayedRooms.slice(0, 8).map((room) => {
 
           return (
             <button type="button" aria-label={`دخول غرفة ${room.title}`}
@@ -730,7 +718,13 @@ export const HomeScreen: React.FC = () => {
           );
         })}
       </div>
-      {!rooms.length && <div className="mx-3 mt-3 text-emerald-950"><EmptyState title="لا توجد غرف نشطة حالياً" description="يمكنك إنشاء غرفتك أو العودة لاحقاً." /></div>}
+      {!displayedRooms.length && <div className="mx-3 mt-3 text-emerald-950"><EmptyState title={selectedFilter==='trending'?'لا توجد غرف نشطة حالياً':`لا توجد غرف من ${countryLabel} حالياً`} description={selectedFilter==='trending'?'يمكنك إنشاء غرفتك أو العودة لاحقاً.':'هذه التصفية تعرض فقط الغرف التي يملك أصحابها بلداً محدداً في حساباتهم. اختر شائع لعرض كل الغرف.'}>
+        {selectedFilter!=='trending'&&<button type="button" className="ui-control px-4 rounded-full bg-emerald-700 text-white font-bold text-xs" onClick={()=>setSelectedFilter('trending')}>عرض جميع الغرف</button>}
+      </EmptyState></div>}
+      {displayedRooms.length>0&&<div className="mx-3 mt-3 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-emerald-950/80" role="status">{selectedFilter==='trending'?'الأكثر حضوراً':countryLabel} · {displayedRooms.length} غرفة</p>
+        <button type="button" onClick={()=>setActiveSubScreen('rooms')} className="ui-control rounded-xl border border-emerald-900/20 bg-white/70 px-3 text-xs font-bold text-emerald-900">كل الغرف ←</button>
+      </div>}
       </>}
         </>
       )}

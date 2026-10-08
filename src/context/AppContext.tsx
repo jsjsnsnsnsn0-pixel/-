@@ -1,4 +1,5 @@
 import {createRefreshQueue} from '../services/refreshQueue';
+import {flagFromCountryCode} from '../services/roomDiscovery';
 import { walletTitles } from '../services/diamonds';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, startTransition } from 'react';
 import { User, Room, Gift, Transaction, Conversation, NotificationItemData, ActiveGiftAnimation } from '../types';
@@ -159,6 +160,22 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     // A timeout in any optional request must not make every active room vanish.
     if (rs.error) throw rs.error;
     if (id !== authRef.current) return [];
+    // Only owner country ISO codes are read for discovery (no contact/private data).
+    // This optional profile metadata may fail under RLS; never hide actual rooms.
+    const countryByOwner=new Map<string,string>();
+    const ownerIds=[...new Set((rs.data||[]).map(row=>String(row.owner_id)).filter(Boolean))];
+    if(ownerIds.length){
+      try{
+        const {data:ownerProfiles,error:countryError}=await supabase.from('profiles')
+          .select('id,country_code').in('id',ownerIds);
+        if(!countryError){
+          for(const profile of ownerProfiles||[])if(typeof profile.country_code==='string'){
+            countryByOwner.set(String(profile.id),profile.country_code);
+          }
+        }
+      }catch{/* Missing optional metadata must not remove a room. */}
+    }
+    if(id!==authRef.current)return [];
     const priorRooms = new Map(roomsRef.current.map(room => [room.id, room]));
     const membersByRoom=new Map<string,any[]>();for(const member of ms.data||[]){const group=membersByRoom.get(member.room_id)||[];group.push(member);membersByRoom.set(member.room_id,group)}
     const lockKeys=new Set((ls.data||[]).map(lock=>`${lock.room_id}:${lock.seat_number}`));
@@ -174,6 +191,8 @@ export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       });
       return {
         id: row.id, owner, ownerAuthId: row.owner_id, createdAt: row.created_at, title: row.name,
+        countryFlag:flagFromCountryCode(countryByOwner.get(String(row.owner_id)))
+          ||(row.owner_id===id?userRef.current.countryFlag:prior?.countryFlag),
         isActive: row.is_active, welcomeMessage: row.welcome_message ?? row.description ?? '',
         chatEnabled: row.chat_enabled ?? true, giftEffectsEnabled: row.gift_effects_enabled ?? true,
         vehicleEffectsEnabled: row.vehicle_effects_enabled ?? true, entranceEffectsEnabled: row.entrance_effects_enabled ?? true,
