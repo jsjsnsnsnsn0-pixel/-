@@ -39,14 +39,20 @@ export class RoomMusicPublisher {
     source.connect(output);source.connect(localGain);localGain.connect(context.destination);
     const track=output.stream.getAudioTracks()[0];
     let cleaned=false;
-    const cleanup=()=>{if(cleaned)return;cleaned=true;audio.onended=null;audio.onerror=null;audio.pause();audio.removeAttribute('src');source.disconnect();localGain.disconnect();track.stop();URL.revokeObjectURL(url);void context.close().catch(()=>{});void participant.unpublishTrack(track).catch(()=>{});if(this.audio===audio){this.audio=null;this.context=null;this.localGain=null;}};
+    let published=false;
+    let unpublishIssued=false;
+    // An in-flight publish can finish after stop(); detach only after the
+    // publication resolves, and never ask LiveKit to unpublish twice.
+    const unpublish=()=>{if(unpublishIssued)return;unpublishIssued=true;void participant.unpublishTrack(track).catch(()=>{});};
+    const cleanup=()=>{if(cleaned)return;cleaned=true;audio.onended=null;audio.onerror=null;audio.pause();audio.removeAttribute('src');source.disconnect();localGain.disconnect();track.stop();URL.revokeObjectURL(url);void context.close().catch(()=>{});if(published)unpublish();if(this.audio===audio){this.audio=null;this.context=null;this.localGain=null;}};
     this.cleanup=cleanup;
     audio.onended=()=>this.stop();audio.onerror=()=>this.stop();
     try {
       await context.resume();
       if(generation!==this.generation||!allowed()){cleanup();return;}
       await participant.publishTrack(track,{name:'room-music',source:'screen_share_audio',audioPreset:{maxBitrate:128000},dtx:false});
-      if(generation!==this.generation||!allowed()){cleanup();void participant.unpublishTrack(track).catch(()=>{});return;}
+      published=true;
+      if(generation!==this.generation||!allowed()){cleanup();unpublish();return;}
       await audio.play();
       if(generation!==this.generation||!allowed()){cleanup();return;}
       this.onChange(file.name);
