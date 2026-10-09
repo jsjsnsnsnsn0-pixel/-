@@ -283,6 +283,54 @@ body{background:#c1f7e7}
 .sheet.room-glass .room-glass-close{position:static;align-self:flex-start;width:29px;height:29px;min-height:29px;flex-shrink:0;background:#ffffff25;border:1px solid #f0d4ff79;box-shadow:none;color:#fff;border-radius:50%;font-size:20px;padding:0}
 @media(max-width:350px){.sheet.room-glass .room-action{min-height:80px;gap:10px}.sheet.room-glass .room-action .room-action-icon{width:56px;height:56px;flex-basis:56px}.sheet.room-glass .room-action-label{padding-left:30px;font-size:18px}}
 
+
+/* Profile detail final reference: same emerald + antique-gold palette as Me and Agency */
+.profile-royal.pr-final{--profile-gold:#ebcf83;--profile-jade:#40dbae;--profile-dark:#001d16;background:radial-gradient(circle at 65% 8%,#125741 0%,#053326 36%,#001912 80%);min-height:100dvh;color:#f4e7c8;padding:0 0 35px;overflow-x:hidden}
+.pr-final .pr-scene{height:clamp(375px,51dvh,475px);position:relative;background:linear-gradient(0deg,#01241c 0%,transparent 79%),url('https://raw.githubusercontent.com/jsjsnsnsnsn0-pixel/TotiChat/main/public/assets/images/avatar_male_ghutra_1790628422202.jpg') center 32%/cover}
+.pr-final .pr-scene::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,#00231b 0%,#01241ca6 28%,#04231b1a 71%),radial-gradient(circle at 15% 85%,#003b2cb5,transparent 65%);pointer-events:none}
+.pr-final .pr-scene::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:85px;background:linear-gradient(transparent,#00231b);pointer-events:none}
+.pr-final .pr-top-actions{position:absolute;top:18px;left:16px;right:16px;display:flex;align-items:center;justify-content:space-between;z-index:4}
+.pr-final .pr-top-actions button{border:1.5px solid #f3d284;border-radius:50%;width:47px;height:47px;display:grid;place-items:center;background:linear-gradient(140deg,#084a3b,#04251f);color:#fbe4a6;font-size:26px;box-shadow:0 0 12px #f4c16d9d;backdrop-filter:blur(6px)}
+.pr-final .pr-event{position:absolute;top:96px;left:0;max-width:84%;z-index:3;border:1.5px solid #eeb1ff;border-left:0;border-radius:0 55px 55px 0;padding:9px 12px 9px 5px;display:flex;align-items:center;gap:7px;background:linear-gradient(96deg,#7412b6ec,#ae35e0ee,#bc7afaeb);box-shadow:0 0 15px #ba64e4ba;font-size:11px;line-height:1.5;text-align:right;color:white}
+.pr-final .pr-event img{height:48px;width:48px;flex:0 0 48px;border:2px solid #f5b4ff;border-radius:50%;object-fit:cover}
+.pr-final .pr-event span{max-height:60px;overflow:hidden}
+.pr-final .pr-persona{position:absolute;right:15px;left:12px;bottom:3px;z-index:4;display:flex;gap:14px;align-items:end;justify-content:space-between}
+.pr-final .pr-avatar-border{position:relative;width:clamp(116px,33vw,152px);height:clamp(116px,33vw,152px);flex-shrink:0;border:3px solid #f6d58a;border-radius:50%;padding:3px;background:#04533d;box-shadow:0 0 0 2px #2dac78,0 0 22px #f8d2868a}
+.pr-final .pr-avatar-border img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.pr-final .pr-avatar-border .pr-crown{position:absolute;top:-25px;right:-7px;font-size:27px;filter:drop-shadow(0 0 7px #daba57);transform:rotate(14deg)}
+.pr-final .pr-person-meta{flex:1;min-width:0;text-align:right;padding-bottom:6px}
+.pr-final .pr-person-meta h1{display:block;margin:0 0 5px;color:#ffe8b3;font-size:clamp(19px,6vw,29px);font-weight:900;text-shadow:0 2px 8px #000;overflow:hidden;text-overflow:ellipsis}
+.pr-final .pr-person-meta .pr-male{color:#59b8ff}
+.pr-final .pr-person-meta .pr-minor{display:block;color:#e8e7db;font-size:12px;margin-bottom:7px}
+.pr-final .pr-person-meta .pr-vipstrip{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid #f7cf7c;background:linear-gradient(100deg,#3c3013bd,#140f10cc);border-radius:25px;padding:6px 10px;color:#ffe5a4;font-size:11px;font-weight:900}
+.pr-final .pr-about{padding:10px 18px 15px;color:#e1e8dc;text-align:center;font-size:12px;line-height:1.65}
+.pr-final .pr-gold-frame{border:1.5px solid #f5d58b;border-radius:22px;background:linear-gradient(145deg,#07503b,#032e25 58%,#021d19);box-shadow:inset 0 0 13px #29bb8e38,0 2px 13px #0006;position:relative}
+.pr-final .pr-numbers{display:grid;grid-template-columns:repeat(4,1fr);margin:0 13px 12px;padding:15px 3px 12px;text-align:center}
+.pr-final .pr-numbers:before{content:'◇';position:absolute;top:-14px;right:50%;transform:translateX(50%);font-size:25px;color:#ffe1a1;text-shadow:0 0 10px #eec966}
+.pr-final .pr-numbers button{background:transparent;color:#f7e0a9;border-left:1px solid #b6ab7680;min-width:0}
+.pr-final .pr-numbers button:last-child{border:0}
+.pr-final .pr-numbers strong{display:block;font-size:20px}
+.pr-final .pr-numbers small{display:block;font-size:10px;color:#6bf0c3;margin-top:3px}
+.pr-final .pr-agencywide{display:grid;grid-template-columns:72px minmax(0,1fr) 24px;align-items:center;gap:9px;width:calc(100% - 26px);margin:0 13px 14px;padding:9px;border:1.5px solid #f6d689;border-radius:22px;min-height:111px;background:linear-gradient(105deg,#052f26dc,#053527b0),url('https://raw.githubusercontent.com/jsjsnsnsnsn0-pixel/TotiChat/main/public/assets/images/agency_opening_banner_1790725265910.jpg') center/cover;box-shadow:inset 0 0 14px #eec76f3c,0 5px 13px #0007;color:#ffe5b2;text-align:right}
+.pr-final .pr-agencywide img{width:70px;height:77px;object-fit:cover;border:1px solid #f5ce7a;border-radius:17px;box-shadow:0 0 9px #eec66d88}
+.pr-final .pr-agencywide strong{display:block;font-size:17px}.pr-final .pr-agencywide small{display:block;font-size:11px;color:#d5e3d8;margin:3px 0}.pr-final .pr-agencywide .arrow{font-size:27px}
+.pr-final .pr-group{margin:0 12px 22px}
+.pr-final .pr-major-tabs{display:grid;grid-template-columns:1fr 1fr;gap:1px}
+.pr-final .pr-major-tabs button{background:linear-gradient(105deg,#053d30,#011a15);border:1px solid #487f64;padding:14px 5px;border-radius:16px 16px 0 0;color:#86c8a9;font-size:15px;font-weight:900}
+.pr-final .pr-major-tabs button.active{background:linear-gradient(135deg,#174632,#4a4b2c);border-color:#f1cb80;color:#ffe6a7;box-shadow:inset 0 0 12px #c8ad5d59}
+.pr-final .pr-cosmetic-panel{padding:12px 10px 16px;border-radius:0 0 20px 20px;border:1px solid #d5b574;border-top:0;background:linear-gradient(125deg,#03271e,#001b17 85%);min-height:275px}
+.pr-final .pr-small-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:4px;background:#011914;border:1px solid #275c4a;border-radius:14px}
+.pr-final .pr-small-tabs button{background:none;color:#e5e3d4;font-size:11px;padding:10px 1px;border-radius:11px;min-width:0}
+.pr-final .pr-small-tabs button.active{color:#ffe3a0;background:linear-gradient(#355135,#123b2e);border:1px solid #e1ba72;font-weight:900}
+.pr-final .pr-display-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:stretch;padding-top:18px;gap:10px}
+.pr-final .pr-display-items button{background:linear-gradient(#0b5a42,#002b20);border:1.5px solid #edc57e;border-radius:16px;color:#f9e6b5;padding:11px 8px;min-height:174px;min-width:0;box-shadow:0 0 12px #e3bc6f52}
+.pr-final .pr-display-items button .pr-art{width:100%;height:124px;display:grid;place-items:center}
+.pr-final .pr-display-items button .pr-art img{width:100%;height:115px;object-fit:contain;filter:drop-shadow(0 0 10px #f4cf6e81)}
+.pr-final .pr-display-items button .pr-art.emoji{font-size:54px}
+.pr-final .pr-display-items button span.caption{font-size:11px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pr-final .pr-display-items button:active{transform:scale(.98)}
+@media(max-width:360px){.pr-final .pr-persona{gap:6px}.pr-final .pr-avatar-border{width:103px;height:103px}.pr-final .pr-person-meta .pr-vipstrip{font-size:10px;gap:5px;padding:4px 6px}.pr-final .pr-scene{height:365px}.pr-final .pr-event{max-width:88%}}
+
 </style></head><body><div class="phone" id="app"></div><div class="overlay" id="overlay" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div><div id="composerWrap" class="composer-wrap" hidden><div class="composer-row"><button class="composer-send" data-a="sendPreview" disabled>إرسال</button><button class="composer-tools" data-a="toast" data-v="المؤثرات حسب مقتنياتك وVIP">✧</button><input type="text" id="composerInput" class="composer-input" dir="rtl" maxlength="500" autocomplete="off" placeholder="أدخل الرسالة..." aria-label="رسالة الغرفة"><span class="composer-vip">VIP 5 👑</span><button class="composer-tools" data-a="closeComposer" aria-label="إغلاق الكتابة">✕</button></div><small class="composer-hint">الرسائل في المعاينة محلية ولا تُرسل إلى مستخدمين حقيقيين</small></div><div class="toast" id="toast"></div><div class="loadingview" id="loading"><img id="loading-logo" alt="TotiChat"><p>جارٍ تحميل TotiChat…</p></div>
 <script>
 const A='https://raw.githubusercontent.com/jsjsnsnsnsn0-pixel/TotiChat/main/public/assets/images/';
@@ -296,7 +344,7 @@ const rdata=[['مملكة النجوم','room1','357'],['فخامة الملوك
 const people=[['شهد','female','VIP5','1.2K','vip5'],['ريان','male','VIP1','240','vip1'],['محمد','prince','VIP8','293','vip8'],['توتي','avatar','VIP5','293','vip5'],['خولة','syrian','VIP3','290','vip1'],['ملاك','female','VIP2','261','vip1'],['بشار','male','VIP1','248','vip1'],['نور','female','VIP4','197','vip5'],['ليث','prince','VIP8','146','vip8']];
 const countries=[['IQ','🇮🇶','العراق'],['SA','🇸🇦','السعودية'],['EG','🇪🇬','مصر'],['JO','🇯🇴','الأردن'],['MA','🇲🇦','المغرب'],['DZ','🇩🇿','الجزائر'],['LB','🇱🇧','لبنان'],['KW','🇰🇼','الكويت'],['AE','🇦🇪','الإمارات'],['QA','🇶🇦','قطر'],['SY','🇸🇾','سوريا'],['TR','🇹🇷','تركيا'],['US','🇺🇸','أمريكا'],['DE','🇩🇪','ألمانيا'],['FR','🇫🇷','فرنسا'],['IN','🇮🇳','الهند'],['GB','🇬🇧','بريطانيا'],['PK','🇵🇰','باكستان']];
 const gifts={هدية:[['وردة حمراء','🌹',400],['صولجان أزرق','🪄',11996],['تنين ذهبي','🐉',999999],['مفتاح كريستال','🗝️',7999],['الأسد الذهبي','🦁',59999],['قناع','🎭',600],['فراشة','🦋',40],['سيارة ملكية','🏎️',99000]],'الحظ Pro':[['حزمة الحظ','🎁',777],['بيضة الحظ','🥚',777],['777','🎰',777],['صندوق كنز','🧰',777],['تاج الحظ','👑',777],['كريستال','💎',777],['فراشة حظ','🦋',777],['قمر','🌙',777]],الحظ:[['حلوى','🍭',80],['آيس كريم','🍨',80],['وردة','🌷',80],['سكوتري','🛵',80],['جرعة','⚗️',300],['جرس','🔔',600],['صولجان','🪄',600],['قناع','🎭',600]],CP:[['قلب','💝',200],['خاتم','💍',1500],['وردة CP','🌹',500],['عهد','💞',8888]]};
-let screen=(new URLSearchParams(window.location.search).get('screen')==='room'?'room':'home'),homeTab='حفلة',country='العراق',selection=0,giftTab='هدية',giftChosen=-1,recipient=0,banner=0,rankTab='الثروة',period='يومياً',chatTab='الكل',profileTab='تفاصيل عني',owned='غطاء الرأس',roomInfoTab='معلومات',audioMute=false;
+let screen=(['room','me','profilePreview','agencyPreview'].includes(new URLSearchParams(window.location.search).get('screen'))?new URLSearchParams(window.location.search).get('screen'):'home'),homeTab='حفلة',country='العراق',selection=0,giftTab='هدية',giftChosen=-1,recipient=0,banner=0,rankTab='الثروة',period='يومياً',chatTab='الكل',profileTab='تفاصيل عني',owned='غطاء الرأس',roomInfoTab='معلومات',audioMute=false;
 function act(kind,data=''){return 'data-a="'+kind+'" data-v="'+String(data).replace(/"/g,'&quot;')+'"'}
 function iconbtn(sym,action,val=''){return '<button class="iconbtn" '+act(action,val)+'>'+sym+'</button>'}
 function shell(x,dark=false,withNav=true){return '<div class="status '+(dark?'dark':'')+'"><span>٢:٣٩ ص • ◉ ◉ ◉</span><span>4G ▮▮ ▰ ◉ ◉</span></div><div class="previewflag">TotiChat • معاينة UI/UX فقط</div><main class="main '+(dark?'':'pastel')+'">'+x+'</main>'+(withNav?nav():'')}
@@ -325,15 +373,19 @@ const grid='<div class="me-links">'+shortcuts.map(s=>'<button class="me-link" '+
 const menu='<div class="me-more">'+other.map(s=>'<button '+act('go',s[2])+'><span class="more-icon">'+s[1]+'</span><span>'+s[0]+'</span><span class="chev">‹</span></button>').join('')+'</div>';
 return shell('<main class="me-royal">'+identity+stats+agencyMembershipCard()+vip+grid+menu+'</main>');
 }
+
 function profileRoyal(){
-const packs={ميدالياتي:[['medals','الميدالية الملكية'],['badge','شارة الإنجاز'],['falcon','وسام الصقر']],المركبة:[['car','المركبة الحصرية']], 'غطاء الرأس':[['crown','التاج الملكي']],هدية:[['gift','هدية مميزة']],علاقاتي:[['heart','علاقة CP']]};
-const art={medals:'🏅',badge:'🌟',falcon:'🦅',car:'🏎️',crown:'👑',gift:'🎁',heart:'💗'};
-const cover='<div class="pr-cover" '+(previewProfileCover?'style="background-image:linear-gradient(to top,#021813 0%,#001b1661 54%,#010e102e 100%),url('+previewProfileCover+')"':'')+'><button class="pr-back" '+act('back')+' aria-label="رجوع">›</button><button class="pr-edit" '+act('go','profileEdit')+' aria-label="تعديل البروفايل">✎</button>'+profilePic('class="pr-avatar"')+'</div>';
-const details='<section class="pr-details"><h2>'+escapeHTML(previewProfileName)+'　<span style="color:#4eb4ff">♂</span></h2><p>🇮🇶 IQ　 |　ID: 7273804 ⧉</p><div class="pr-badges"><span>👑 VIP 5</span><span>💠 LV45</span><span>💎 30</span></div><div class="pr-bio">'+escapeHTML(previewProfileBio)+'</div></section>';
-const stats='<div class="pr-stats">'+[['0','زوار'],['33','متابعة'],['120','الأصدقاء'],['240','متابعين']].reverse().map(x=>'<div><b>'+x[0]+'</b><small>'+x[1]+'</small></div>').join('')+'</div>';
-const tabs='<div class="pr-tabs"><button '+act('profileFullSelect','ميدالياتي')+' class="'+(previewProfileTab!=='علاقاتي'?'active':'')+'">تفاصيل عني</button><button '+act('profileFullSelect','علاقاتي')+' class="'+(previewProfileTab==='علاقاتي'?'active':'')+'">علاقاتي</button></div><div class="pr-subtabs">'+['ميدالياتي','المركبة','غطاء الرأس','هدية'].map(x=>'<button class="'+(previewProfileTab===x?'active':'')+'" '+act('profileFullSelect',x)+'>'+x+'</button>').join('')+'</div>';
-const tile=(packs[previewProfileTab]||packs.ميدالياتي).map(x=>'<button '+act('sheet','visualItem:'+x[1])+'><span class="pr-itemicon">'+art[x[0]]+'</span><b>'+x[1]+'</b></button>').join('');
-return '<div class="status dark" style="background:#062019;color:#fff"><span>٢:٣٩ ص · 4G</span><span>◉ ▮▮ ▰</span></div><main class="profile-royal">'+cover+details+stats+agencyMembershipCard(true)+tabs+'<div class="pr-cardpanel"><div class="pr-itemgrid">'+tile+'</div></div></main>';
+const goods={ميدالياتي:[['medals','شارة مستخدم'],['badge','وسام الإنجاز']],المركبة:[['car','مركبة ملكية']], 'غطاء الرأس':[['crown','غطاء الرأس الملكي']],هدية:[['gift','هدايا الحساب']],علاقاتي:[['heart','علاقة CP']]};
+const icons={medals:'🏅',badge:'🌟',car:'🏎️',crown:'👑',gift:'🎁',heart:'💗'};
+const coverStyle=previewProfileCover?'style="background-image:linear-gradient(0deg,#00231b,transparent 80%),url('+previewProfileCover+')"':'';
+const header='<div class="pr-scene" '+coverStyle+'><div class="pr-top-actions"><button '+act('back')+' aria-label="رجوع">›</button><button '+act('go','profileEdit')+' aria-label="تعديل البروفايل">✎</button></div><div class="pr-event">'+im('female','alt="صورة المرسل"')+'<span>🎁 فعاليات وهدايا TotiChat · اكتشف المكافآت الجديدة</span></div><div class="pr-persona"><span class="pr-avatar-border">'+profilePic()+'<span class="pr-crown">👑</span></span><div class="pr-person-meta"><h1>'+escapeHTML(previewProfileName)+' <span class="pr-male">♂</span></h1><span class="pr-minor">🇮🇶 IQ　 |　ID: 7273804 ⧉</span><span class="pr-vipstrip"><span>👑 VIP 5</span><span>💠 LV45</span></span></div></div></div>';
+const info='<p class="pr-about">'+escapeHTML(previewProfileBio)+'</p>';
+const stats='<div class="pr-gold-frame pr-numbers">'+[['240','متابعين'],['120','الأصدقاء'],['33','متابعة'],['0','زوار']].map(x=>'<button '+act('go','friendsPreview')+'><strong>'+x[0]+'</strong><small>'+x[1]+'</small></button>').join('')+'</div>';
+const membership=previewDemoAgencyMember?'<button class="pr-agencywide" '+act('go','agencyPreview')+'>'+im('agency','alt="شعار الوكالة"')+'<span><strong>وكالة النجوم</strong><small>الوكيل: محمد الأمير</small><small>Agency ID: 1001</small></span><span class="arrow">‹</span></button>':'';
+const tab='<div class="pr-major-tabs"><button class="'+(previewProfileTab!=='علاقاتي'?'active':'')+'" '+act('profileFullSelect','ميدالياتي')+'>تفاصيل عني</button><button class="'+(previewProfileTab==='علاقاتي'?'active':'')+'" '+act('profileFullSelect','علاقاتي')+'>علاقاتي</button></div>';
+const subtabs='<div class="pr-small-tabs">'+['ميدالياتي','المركبة','غطاء الرأس','هدية'].map(x=>'<button class="'+(previewProfileTab===x?'active':'')+'" '+act('profileFullSelect',x)+'>'+ (x==='ميدالياتي'?'ميدالية':x) +'</button>').join('')+'</div>';
+const tiles=(goods[previewProfileTab]||goods.ميدالياتي).map(x=>'<button '+act('sheet','visualItem:'+x[1])+'><span class="pr-art">'+(x[0]==='medals'?im('medals','alt="ميدالية عرض توضيحي"'): '<span class="pr-art emoji">'+icons[x[0]]+'</span>')+'</span><span class="caption">'+x[1]+'</span></button>').join('');
+return '<div class="status dark" style="background:#03231b;color:#fff"><span>٢:٣٩ ص · 4G</span><span>◉ ▮▮ ▰</span></div><main class="profile-royal pr-final">'+header+info+stats+membership+'<section class="pr-group">'+tab+'<div class="pr-cosmetic-panel">'+subtabs+'<div class="pr-display-items">'+tiles+'</div></div></section></main>';
 }
 
 function profileEditPage(){
