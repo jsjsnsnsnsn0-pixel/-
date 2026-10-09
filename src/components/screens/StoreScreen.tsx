@@ -21,7 +21,8 @@ interface StoreItem {
 export const StoreScreen: React.FC = () => {
   const { user, refreshWallet, reportError, setActiveSubScreen } = useApp();
   const scheduleTimeout = useTimeouts();
-  const [activeTab, setActiveTab] = useState<'frames' | 'cars' | 'bubbles' | 'badges'>('frames');
+  const [activeTab, setActiveTab] = useState<'all' | 'frames' | 'cars' | 'bubbles' | 'badges'>('all');
+  const [search, setSearch] = useState('');
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
@@ -36,7 +37,7 @@ export const StoreScreen: React.FC = () => {
     }));
   }, [user.authId]);
   const {data: items, loading, error, reload} = useServerData(load, []);
-  const filteredItems = items.filter(item => item.category === activeTab);
+  const filteredItems = items.filter(item => (activeTab === 'all' || item.category === activeTab) && (item.name.toLowerCase().includes(search.trim().toLowerCase()) || item.description.toLowerCase().includes(search.trim().toLowerCase())));
   const handleBuy = async (item: StoreItem) => {
     if (busy) return;
     setBusy(true); setPurchaseSuccess(null);
@@ -57,113 +58,77 @@ export const StoreScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-28">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveSubScreen(null)}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 cursor-pointer"
-          >
-            <ChevronRight size={22} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-500 flex items-center justify-center">
-              <ShoppingBag size={18} />
-            </div>
-            <h1 className="text-base font-bold text-slate-900">المتجر الفاخر</h1>
-          </div>
-        </div>
-
-        {/* User Balance Chips */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 px-2 py-1 rounded-full text-xs font-bold text-amber-700">
-            <span>🪙</span>
-            <span>{user.gold.toLocaleString('ar-SA')}</span>
-          </div>
-          <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-full text-xs font-bold text-slate-600">
-            <span>🥈</span>
-            <span>{(user.silverCoins || 0).toLocaleString('ar-SA')}</span>
-          </div>
-        </div>
+    <main dir="rtl" className="min-h-screen text-[#ffedc9] pb-28"
+      style={{background:'radial-gradient(ellipse at 55% 0%,#145741 0%,#04382e 28%,#00261e 64%,#00160f 100%)'}}>
+      <header className="relative px-4 pt-6 pb-4 text-center border-b border-[#ba9459]">
+        <button type="button" aria-label="رجوع" onClick={()=>setActiveSubScreen(null)}
+          className="absolute right-3 top-4 w-10 h-10 grid place-items-center border border-[#e9c679] bg-[#042e26] text-[#ffe0a1] rounded-full"><ChevronRight size={23}/></button>
+        <h1 className="font-black text-[22px] text-[#ffdfa1] flex gap-2 items-center justify-center"><ShoppingBag size={24}/> متجر TotiChat</h1>
+        <p className="text-xs text-[#a6e4cd] mt-1">الإطارات · المركبات · الشارات · فقاعات الدردشة</p>
       </header>
-
-      {/* Purchase Notification */}
-      {purchaseSuccess && (
-        <div className="m-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs animate-fadeIn">
-          <Check size={16} className="text-emerald-600" />
-          <span>{purchaseSuccess}</span>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1 p-3 bg-white border-b border-slate-100 text-xs font-bold">
-        {[
-          { id: 'frames', label: 'إطارات', icon: Sparkles },
-          { id: 'cars', label: 'سيارات الدخول', icon: Car },
-          { id: 'bubbles', label: 'فقاعات الشات', icon: MessageCircle },
-          { id: 'badges', label: 'شارات الشرف', icon: Crown },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`py-2 px-1 rounded-xl flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-pink-50 text-pink-600 font-black shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          );
+      <div className="mx-3 mt-4 grid grid-cols-2 gap-2">
+        <button type="button" onClick={()=>setActiveSubScreen('recharge')} className="px-3 py-3 rounded-2xl border border-[#eac175] bg-gradient-to-br from-[#154c3c] to-[#022b24] text-right">
+          <span className="block text-[10px] text-[#a9e5c7]">🪙 رصيد الذهب</span>
+          <span className="text-[15px] font-black text-[#ffe2a6] tabular-nums">{user.gold.toLocaleString('ar-SA')}</span>
+        </button>
+        <button type="button" onClick={()=>setActiveSubScreen('silver_coins')} className="px-3 py-3 rounded-2xl border border-[#eac175] bg-gradient-to-br from-[#154c3c] to-[#022b24] text-right">
+          <span className="block text-[10px] text-[#a9e5c7]">🥈 العملات الفضية</span>
+          <span className="text-[15px] font-black text-[#ffe2a6] tabular-nums">{(user.silverCoins||0).toLocaleString('ar-SA')}</span>
+        </button>
+      </div>
+      <div className="mx-3 mt-3 relative">
+        <label htmlFor="store-product-search" className="sr-only">البحث في المتجر</label>
+        <input id="store-product-search" type="search" value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="ابحث عن إطار أو منتج"
+          className="block w-full text-sm px-4 py-3 rounded-2xl bg-[#083d32] border border-[#af915d] text-[#fff1c8] outline-none placeholder:text-[#a1c1b1] focus:border-[#ffdf8c]"/>
+      </div>
+      {purchaseSuccess&&<div role="status" className="mx-3 my-3 p-3 border border-[#5bd6a5] bg-[#104e3c] text-[#d9ffe8] text-xs font-bold rounded-xl flex items-center gap-2"><Check size={17}/>{purchaseSuccess}</div>}
+      <div role="tablist" aria-label="تصنيفات المتجر" className="mx-3 mt-3 mb-3 flex gap-1 overflow-x-auto pb-1">
+        {([
+          {id:'all',label:'الكل',icon:ShoppingBag},{id:'frames',label:'الإطارات',icon:Sparkles},
+          {id:'cars',label:'المركبات',icon:Car},{id:'bubbles',label:'الفقاعات',icon:MessageCircle},
+          {id:'badges',label:'الشارات',icon:Crown},
+        ] as const).map(tab=>{
+          const Icon=tab.icon;
+          const selected=activeTab===tab.id;
+          return <button role="tab" aria-selected={selected} key={tab.id} type="button"
+            onClick={()=>setActiveTab(tab.id)}
+            className={'shrink-0 min-w-[65px] px-2 py-2 rounded-xl border flex flex-col gap-1 items-center text-[11px] font-extrabold '+(selected?'border-[#ffdf9f] bg-gradient-to-br from-[#ffe5a8] to-[#dfac51] text-[#32220f]':'border-[#6d977e] bg-[#073a30] text-[#dfefd9]')}>
+            <Icon size={18}/>{tab.label}
+          </button>;
         })}
       </div>
-
-      {loading && <p className="p-4 text-center">جارٍ تحميل المتجر…</p>}
-      {error && <button onClick={() => void reload()} className="p-4">{error} — إعادة المحاولة</button>}
-      {!loading && !error && !filteredItems.length && <p className="p-4">لا توجد منتجات متاحة في هذا القسم.</p>}
-      {/* Store Items Grid */}
-      <div className="p-4 grid grid-cols-2 gap-3">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-3xl p-3.5 border border-slate-100 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
-          >
+      {loading&&<p role="status" className="mx-3 p-4 text-center border border-[#7db495] rounded-xl">جارٍ تحميل منتجات المتجر…</p>}
+      {error&&<div role="alert" className="mx-3 p-4 text-center border border-[#e6a073] rounded-xl">
+        <p className="text-sm mb-2">{error}</p><button onClick={()=>void reload()} className="p-2 text-xs rounded-xl bg-[#16493c] border border-[#cdb176]">إعادة المحاولة</button>
+      </div>}
+      {!loading&&!error&&!filteredItems.length&&<p className="mx-3 p-5 text-center text-sm text-[#c2e2d1]">ماكو منتجات متاحة بهذا التصنيف حالياً.</p>}
+      <section aria-label="منتجات المتجر" className="px-3 grid grid-cols-2 gap-3">
+        {filteredItems.map(item=><article key={item.id}
+          className="min-w-0 flex flex-col overflow-hidden rounded-[19px] border border-[#d4ae68] bg-gradient-to-br from-[#0d4939] via-[#052d26] to-[#011e1a] shadow-[inset_0_0_13px_#4daa8348,0_5px_16px_#0008]">
+          <div className="relative min-h-[117px] bg-gradient-to-br from-[#0c4437] to-[#06221e] flex items-center justify-center p-3 border-b border-[#947344a3]">
+            {(/^(\/assets\/|https?:\/\/)/.test(item.image))?
+              <img src={item.image} alt={item.name} className="h-[95px] w-full object-contain"/>:
+              <span className="text-5xl drop-shadow-[0_2px_10px_#ecd1839e]">{item.image||'🎁'}</span>}
+            {item.isOwned&&<span className="absolute top-2 right-2 bg-[#166c4b] text-[#b4ffdc] text-[9px] font-bold border border-[#77c994] rounded-full px-2 py-1">مملوك</span>}
+          </div>
+          <div className="p-3 flex-1 flex flex-col justify-between gap-2">
             <div>
-              <div className="h-24 rounded-2xl bg-gradient-to-tr from-slate-50 to-pink-50/40 flex items-center justify-center text-4xl mb-3 border border-pink-100/50">
-                {item.image}
-              </div>
-              <h3 className="font-bold text-xs text-slate-900 mb-1">{item.name}</h3>
-              <p className="text-[10px] text-slate-500 leading-tight line-clamp-2 mb-2">
-                {item.description}
-              </p>
-              <span className="text-[10px] text-pink-600 font-semibold bg-pink-50 px-2 py-0.5 rounded-full inline-block mb-3">
-                صلاحية {item.duration}
-              </span>
+              <h3 className="text-[#ffe0a4] font-black text-xs mb-1 line-clamp-2">{item.name}</h3>
+              <p className="text-[#b7d2c3] text-[10px] leading-5 line-clamp-2">{item.description}</p>
+              <span className="inline-block mt-2 text-[10px] text-[#e8c989] border border-[#917d54] bg-[#0a3b31] rounded-full px-2 py-1">المدة: {item.duration}</span>
             </div>
-
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-1 font-bold text-xs">
-                <span>{item.currency === 'gold' ? '🪙' : '🥈'}</span>
-                <span className={item.currency === 'gold' ? 'text-amber-600' : 'text-slate-600'}>
-                  {item.price.toLocaleString('ar-SA')}
-                </span>
-              </div>
-              <button
-                disabled={busy || loading}
-                onClick={() => void handleBuy(item)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-bold rounded-xl shadow-xs hover:from-pink-600 hover:to-rose-600 cursor-pointer active:scale-95 transition-all"
-              >
-                {busy ? 'جارٍ التنفيذ…' : item.isOwned ? 'تجهيز' : 'شراء'}
+            <div className="border-t border-[#947b506b] pt-2 flex flex-wrap gap-1 items-center justify-between">
+              <span className="text-[#ffdf9c] text-xs font-black tabular-nums">{item.currency==='gold'?'🪙':'🥈'} {item.price.toLocaleString('ar-SA')}</span>
+              <button type="button" disabled={busy||loading} onClick={()=>void handleBuy(item)}
+                className="rounded-xl bg-gradient-to-r from-[#ffecac] to-[#db9d42] border border-[#fff0b0] text-[#2e240e] px-3 py-2 text-[11px] font-black disabled:opacity-50 active:scale-[.98]">
+                {busy?'جارٍ التنفيذ…':item.isOwned?'تجهيز':'شراء'}
               </button>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
+        </article>)}
+      </section>
+      <p className="text-center text-[#8dc1a8] text-[10px] mt-5 px-6">الأسعار والرصيد والمقتنيات من النظام الحقيقي، وتأكيد الشراء يعتمد على استجابة الخادم.</p>
+    </main>
   );
 };
