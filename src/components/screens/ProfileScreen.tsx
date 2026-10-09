@@ -7,6 +7,7 @@ import {useServerData} from '../../hooks/useServerData';
 import {rpc} from '../../services/backend';
 import {WealthBadgeExact, CharmBadgeExact} from '../common/LevelIcons';
 import {VIPBadge} from '../common/VIPBadge';
+import {ShimmeringAccountName} from '../common/ShimmeringAccountName';
 import {
   Award, BadgeCheck, Bookmark, Check, ChevronLeft, Coins, Copy, Crown,
   Edit3, Headphones, Home, Medal, Settings, ShoppingBag, Sparkles, Star,
@@ -68,7 +69,9 @@ export const ProfileScreen:React.FC=()=>{
      className="w-[96px] h-[96px] rounded-full object-cover shrink-0 border-[3px] border-[#e8c16f] ring-2 ring-[#245f48] shadow-[0_0_18px_#d7b26b6b]"/>
     <span className="flex-1 min-w-0 flex flex-col gap-2">
      <span className="flex items-center gap-1.5 min-w-0">
-      <span className="font-black text-[21px] leading-tight text-[#ffedc5] truncate">{user.name||'مستخدم جديد'}</span>
+      {(user.vipLevel??0)>0
+       ? <ShimmeringAccountName name={user.name||'مستخدم جديد'} vipLevel={user.vipLevel} size="xl" showSparkles={true} className="min-w-0 max-w-full"/>
+       : <span className="font-black text-[21px] leading-tight text-[#ffedc5] truncate">{user.name||'مستخدم جديد'}</span>}
       <span aria-label={user.gender==='female'?'أنثى':'ذكر'} className={'text-base '+(user.gender==='female'?'text-pink-300':'text-sky-300')}>{user.gender==='female'?'♀':'♂'}</span>
      </span>
      <span className="text-[#d7e5d9] text-[11px]">{user.countryFlag||'🌍'} {user.countryCode||''} <span className="opacity-70">│</span> ID: {user.id}</span>
