@@ -1,385 +1,123 @@
-import { copyText } from '../../utils/clipboard';
-import { setImageFallback } from '../../utils/imageFallback';
-import { useTimeouts } from '../../hooks/useTimeouts';
-import React, { useState } from 'react';
-import { useApp } from '../../context/AppContext';
-import { WealthBadgeExact, CharmBadgeExact } from '../common/LevelIcons';
-import { ShimmeringAccountName } from '../common/ShimmeringAccountName';
-import { VIPBadge } from '../common/VIPBadge';
-import { RoyalAccountId } from '../common/RoyalAccountId';
+import React, {useState} from 'react';
+import {copyText} from '../../utils/clipboard';
+import {setImageFallback} from '../../utils/imageFallback';
+import {useTimeouts} from '../../hooks/useTimeouts';
+import {useApp} from '../../context/AppContext';
+import {WealthBadgeExact, CharmBadgeExact} from '../common/LevelIcons';
+import {VIPBadge} from '../common/VIPBadge';
 import {
-  ChevronLeft,
-  Copy,
-  Check,
-  Edit,
-  Edit3,
-  Heart,
-  Star,
-  Wallet,
-  Home as HomeIcon,
-  ShoppingBag,
-  Bookmark,
-  Award,
-  Sparkles,
-  Coins,
-  Headphones,
-  Settings,
-  Camera,
-  LogOut,
+  Award, BadgeCheck, Bookmark, Check, ChevronLeft, Coins, Copy, Crown,
+  Edit3, Headphones, Home, Medal, Settings, ShoppingBag, Sparkles, Star,
+  UsersRound, Wallet,
 } from 'lucide-react';
 
-export const ProfileScreen: React.FC = () => {
-  const {
-    user,
-    setActiveSubScreen,
-    setSelectedChatUser,
-    joinRoom,
-    rooms,
-    logout,
-    hasUnseenVisitors,
-    hasUnseenFollowers,
-    markVisitorsAsSeen,
-    markFollowersAsSeen,
-  } = useApp();
-  const scheduleTimeout = useTimeouts();
-  const [copied, setCopied] = useState(false);
+const goldBorder='border border-[#dcb86c] shadow-[inset_0_0_16px_rgba(62,199,149,.14),0_6px_19px_rgba(0,0,0,.28)]';
+const shortcutStyle='min-h-[105px] rounded-2xl border-[1.5px] border-[#d6b25e] bg-gradient-to-b from-[#fff9e7] to-[#f3e3be] shadow-[0_5px_14px_rgba(0,0,0,.33)] flex flex-col items-center justify-center gap-2 text-[#123b30] font-black active:scale-[.98] transition-transform';
 
-  const copyUserId = async () => {
-    if (!await copyText(user.id)) return;
-    setCopied(true);
-    scheduleTimeout(() => setCopied(false), 2000);
-  };
-
-  // Open user's own room or join first room
-  const handleOpenMyRoom = () => {
-    const myRoom = rooms.find((r) => r.owner.id === user.id) || rooms[0];
-    if (myRoom) {
-      joinRoom(myRoom);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eaf6ee] via-[#f4faf6] to-[#f8fafc] text-slate-800 pb-24 select-none">
-      {/* Top Bar with Profile Edit Icon */}
-      <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-        <button
-          onClick={() => setActiveSubScreen('edit_profile')}
-          className="w-10 h-10 rounded-2xl bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center cursor-pointer shadow-xs transition-transform active:scale-95 border border-slate-200/60"
-          title="تعديل الملف الشخصي والصورة والاسم"
-        >
-          <Edit3 size={20} className="stroke-[2] text-slate-700" />
-        </button>
-
-        <div className="w-10" />
-      </div>
-
-      {/* Main Profile Info Section (Avatar on the Right, Info on the Left) */}
-      <div className="px-5 pt-1 pb-4 flex items-center justify-between gap-4">
-        {/* Left Info Column */}
-        <div className="flex-1">
-          {/* Row 1: Name, Gender & Detail Profile Chevron */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
-              className="w-7 h-7 rounded-lg bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
-              title="عرض الملف الشخصي الكامل والشارات"
-            >
-              <ChevronLeft size={18} className="stroke-[2.5]" />
-            </button>
-
-            <div
-              className="flex items-center gap-2 cursor-pointer group"
-              title="اسم الحساب"
-            >
-              <ShimmeringAccountName
-                name={user.name || 'مستخدم جديد'}
-                vipLevel={user.vipLevel}
-                size="xl"
-                showSparkles={Boolean(user.vipLevel && user.vipLevel > 0)}
-                onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
-              />
-              {/* Gender Badge */}
-              <div
-                className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-[11px] font-bold shadow-xs shrink-0 ${
-                  user.gender === 'female' ? 'bg-[#ec4899]' : 'bg-[#5b96f7]'
-                }`}
-              >
-                {user.gender === 'female' ? '♀' : '♂'}
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Account ID and Country Flag */}
-          <div className="flex items-center justify-end gap-2 mt-1.5">
-            <span className="text-xs font-bold text-slate-500 font-mono">
-              {user.countryCode || 'IQ'} {user.countryFlag || '🇮🇶'}
-            </span>
-            <RoyalAccountId id={user.id} vipLevel={user.vipLevel} size="md" />
-          </div>
-
-          {/* Row 3: Rank Badges: Charm Level, Wealth Level, VIP Badge */}
-          <div className="flex items-center justify-end gap-1.5 mt-2 flex-wrap">
-            {/* Charm Level Badge */}
-            {(user.charmLevel ?? 0) > 0 && (
-              <CharmBadgeExact
-                level={user.charmLevel ?? 1}
-                size="sm"
-                onClick={() => setActiveSubScreen('charm_level')}
-              />
-            )}
-
-            {/* Wealth Level Badge */}
-            {(user.wealthLevel ?? 0) > 0 && (
-              <WealthBadgeExact
-                level={user.wealthLevel ?? user.level ?? 1}
-                size="sm"
-                onClick={() => setActiveSubScreen('wealth_level')}
-              />
-            )}
-
-            {/* Winged VIP Badge (only if user has VIP) */}
-            {(user.vipLevel ?? 0) > 0 && (
-              <VIPBadge
-                level={user.vipLevel || 1}
-                size="sm"
-                onClick={() => setActiveSubScreen('vip')}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Right Avatar with Circular Frame */}
-        <div
-          onClick={() => { setSelectedChatUser(null); setActiveSubScreen('user_detail_profile'); }}
-          className="relative shrink-0 cursor-pointer group"
-          title="عرض الملف الشخصي"
-        >
-          <div className="w-[84px] h-[84px] rounded-full overflow-hidden border-2 border-white shadow-md bg-slate-900 ring-2 ring-slate-200/60 relative">
-            <img
-              src={user.avatar || '/assets/images/default_arab_user_avatar_1790806239365.jpg'}
-              onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')}
-              alt={user.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Statistics Row: زائر | متابعين | متابعة */}
-      <div className="px-6 py-3">
-        <div className="grid grid-cols-3 text-center">
-          {/* Column 1: زائر */}
-          <div
-            onClick={() => {
-              markVisitorsAsSeen();
-              setActiveSubScreen('visitors');
-            }}
-            className="cursor-pointer relative group"
-          >
-            <div className="inline-block relative">
-              <span className="block text-xl font-black text-slate-900 font-mono">
-                {user.visitorsCount || 0}
-              </span>
-              {hasUnseenVisitors && (
-                <span className="absolute -top-1 -right-2 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping ring-2 ring-white" />
-              )}
-            </div>
-            <span className="text-xs text-slate-500 font-medium block">زائر</span>
-          </div>
-
-          {/* Column 2: متابعين */}
-          <div
-            onClick={() => {
-              markFollowersAsSeen();
-              setActiveSubScreen('friends');
-            }}
-            className="cursor-pointer relative group"
-          >
-            <div className="inline-block relative">
-              <span className="block text-xl font-black text-slate-900 font-mono">
-                {user.followersCount || 0}
-              </span>
-              {hasUnseenFollowers && (
-                <span className="absolute -top-1 -right-2 min-w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-xs border border-white">
-                  +1
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-slate-500 font-medium block">متابعين</span>
-          </div>
-
-          {/* Column 3: متابعة */}
-          <div
-            onClick={() => setActiveSubScreen('friends')}
-            className="cursor-pointer"
-          >
-            <span className="block text-xl font-black text-slate-900 font-mono">
-              {user.followingCount || 0}
-            </span>
-            <span className="text-xs text-slate-500 font-medium block">متابعة</span>
-          </div>
-        </div>
-      </div>
-
-      {/* VIP Luxury Card Banner */}
-      <div className="px-5 mt-2">
-        <div
-          onClick={() => setActiveSubScreen('vip')}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#17161b] via-[#211e26] to-[#141318] p-3 text-white flex items-center justify-between shadow-md cursor-pointer hover:shadow-lg transition-all border border-amber-500/20"
-          style={{
-            backgroundImage: `radial-gradient(ellipse at 80% 50%, rgba(245, 158, 11, 0.15), transparent 70%), linear-gradient(135deg, #111015 0%, #1e1b24 50%, #111015 100%)`,
-          }}
-        >
-          {/* Left: check now link */}
-          <div className="flex items-center gap-1 text-[11px] text-[#e6ca95] font-semibold hover:text-amber-300">
-            <ChevronLeft size={14} className="stroke-[2.5]" />
-            <span className="tracking-wide">check now</span>
-          </div>
-
-          {/* Right: VIP Diamond */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-amber-300 tracking-wider">
-              {user.vipLevel && user.vipLevel > 0 ? `VIP ${user.vipLevel}` : 'VIP'}
-            </span>
-            <span className="text-lg">💎</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Circular Action Buttons: محفظة | غرفتي | المتجر | وكالة */}
-      <div className="px-5 mt-4">
-        <div className="grid grid-cols-4 gap-2 text-center">
-          {/* 1. محفظة / شحن */}
-          <div
-            onClick={() => setActiveSubScreen('recharge')}
-            className="flex flex-col items-center cursor-pointer group"
-          >
-            <div className="w-14 h-14 rounded-full bg-[#ffede2] text-[#ff7828] flex items-center justify-center shadow-xs group-hover:scale-105 active:scale-95 transition-all">
-              <Wallet size={24} className="stroke-[2.2]" />
-            </div>
-            <span className="text-xs font-bold text-slate-800 mt-1.5">شحن / محفظة</span>
-          </div>
-
-          {/* 2. غرفتي */}
-          <div
-            onClick={handleOpenMyRoom}
-            className="flex flex-col items-center cursor-pointer group"
-          >
-            <div className="w-14 h-14 rounded-full bg-[#f4eefd] text-[#a855f7] flex items-center justify-center shadow-xs group-hover:scale-105 active:scale-95 transition-all relative">
-              <HomeIcon size={24} className="stroke-[2.2]" />
-              <Heart size={10} className="absolute inset-0 m-auto fill-[#a855f7] translate-y-0.5" />
-            </div>
-            <span className="text-xs font-bold text-slate-800 mt-1.5">غرفتي</span>
-          </div>
-
-          {/* 3. المتجر */}
-          <div
-            onClick={() => setActiveSubScreen('store')}
-            className="flex flex-col items-center cursor-pointer group"
-          >
-            <div className="w-14 h-14 rounded-full bg-[#ffeef3] text-[#f43f5e] flex items-center justify-center shadow-xs group-hover:scale-105 active:scale-95 transition-all">
-              <ShoppingBag size={24} className="stroke-[2.2]" />
-            </div>
-            <span className="text-xs font-bold text-slate-800 mt-1.5">المتجر</span>
-          </div>
-
-          {/* 4. وكالة */}
-          <div
-            onClick={() => setActiveSubScreen('agency')}
-            className="flex flex-col items-center cursor-pointer group"
-          >
-            <div className="w-14 h-14 rounded-full bg-[#e6f9fa] text-[#06b6d4] flex items-center justify-center shadow-xs group-hover:scale-105 active:scale-95 transition-all">
-              <Bookmark size={24} className="stroke-[2.2]" />
-            </div>
-            <span className="text-xs font-bold text-slate-800 mt-1.5">وكالة</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Menu List Items Card */}
-      <div className="px-5 mt-5">
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs divide-y divide-slate-50 overflow-hidden">
-          {/* 1. شارة */}
-          <div
-            onClick={() => setActiveSubScreen('badges')}
-            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
-          >
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-900">شارة</span>
-              <div className="w-8 h-8 rounded-full bg-[#4f86f7] text-white flex items-center justify-center shadow-xs">
-                <Star size={16} className="fill-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* 2. السحر/ الثروة */}
-          <div
-            onClick={() => setActiveSubScreen('charm_wealth')}
-            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
-          >
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-900">السحر/ الثروة</span>
-              <div className="w-8 h-8 rounded-full bg-[#10b981] text-white flex items-center justify-center shadow-xs">
-                <Sparkles size={16} className="fill-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. اكسب عملات فضية */}
-          <div
-            onClick={() => setActiveSubScreen('silver_coins')}
-            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
-              <span className="px-2.5 py-0.5 rounded-full bg-[#f59e0b] text-white text-[11px] font-black">
-                جديد
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-900">اكسب عملات فضية</span>
-              <div className="w-8 h-8 rounded-full bg-[#9333ea] text-white flex items-center justify-center shadow-xs">
-                <Coins size={16} />
-              </div>
-            </div>
-          </div>
-
-          {/* 4. مركز المساعدة */}
-          <div
-            onClick={() => setActiveSubScreen('help_center')}
-            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
-          >
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-900">مركز المساعدة</span>
-              <div className="w-8 h-8 rounded-full bg-[#06b6d4] text-white flex items-center justify-center shadow-xs">
-                <Headphones size={16} />
-              </div>
-            </div>
-          </div>
-
-          {/* 5. اعدادات */}
-          <div
-            onClick={() => setActiveSubScreen('settings')}
-            className="flex items-center justify-between p-4 hover:bg-slate-50/60 cursor-pointer transition-colors"
-          >
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2]" />
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-900">اعدادات</span>
-              <div className="w-8 h-8 rounded-full bg-[#a855f7] text-white flex items-center justify-center shadow-xs">
-                <Settings size={16} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+export const ProfileScreen:React.FC=()=>{
+ const {user,setActiveSubScreen,setSelectedChatUser,joinRoom,rooms,
+  hasUnseenVisitors,hasUnseenFollowers,markVisitorsAsSeen,markFollowersAsSeen}=useApp();
+ const scheduleTimeout=useTimeouts();
+ const [copied,setCopied]=useState(false);
+ const detail=()=>{setSelectedChatUser(null);setActiveSubScreen('user_detail_profile')};
+ const copyId=async()=>{if(!await copyText(user.id))return;setCopied(true);scheduleTimeout(()=>setCopied(false),2000)};
+ const openRoom=()=>{const own=rooms.find(r=>r.owner.id===user.id)||rooms[0];if(own)joinRoom(own)};
+ const avatar=user.avatar||'/assets/images/default_arab_user_avatar_1790806239365.jpg';
+ const linkedAgency=Boolean(user.agencyId&&user.agencyName);
+ const stats=[
+  {label:'متابعين',value:user.followersCount||0,click:()=>{markFollowersAsSeen();setActiveSubScreen('friends')},unseen:hasUnseenFollowers},
+  {label:'الأصدقاء',value:user.friendsCount||0,click:()=>setActiveSubScreen('friends'),unseen:false},
+  {label:'متابعة',value:user.followingCount||0,click:()=>setActiveSubScreen('friends'),unseen:false},
+  {label:'زوار',value:user.visitorsCount||0,click:()=>{markVisitorsAsSeen();setActiveSubScreen('visitors')},unseen:hasUnseenVisitors}
+ ];
+ const shortcuts=[
+  {name:'شحن',icon:<Wallet size={35}/>,click:()=>setActiveSubScreen('recharge')},
+  {name:'غرفتي',icon:<Home size={35}/>,click:openRoom},
+  {name:'المستوى',icon:<Sparkles size={35}/>,click:()=>setActiveSubScreen('level')},
+  {name:'المتجر',icon:<ShoppingBag size={35}/>,click:()=>setActiveSubScreen('store')}
+ ];
+ const items=[
+  {name:'الوكالة',icon:<UsersRound size={18}/>,route:'agency'},
+  {name:'الشارات',icon:<Medal size={18}/>,route:'badges'},
+  {name:'السحر والثروة',icon:<Award size={18}/>,route:'charm_wealth'},
+  {name:'اكسب عملات فضية',icon:<Coins size={18}/>,route:'silver_coins'},
+  {name:'مركز المساعدة',icon:<Headphones size={18}/>,route:'help_center'},
+  {name:'الإعدادات',icon:<Settings size={18}/>,route:'settings'}
+ ];
+ return <main dir="rtl" className="min-h-screen pb-28 select-none text-[#fff0ca] overflow-x-hidden"
+  style={{background:'radial-gradient(ellipse at 88% 1%,#17594d 0%,#04382e 30%,#02241c 69%,#011710 100%)'}}>
+  <section className="relative min-h-[255px] px-4 pt-4 pb-7 isolate">
+   <div className="absolute inset-0 -z-20"
+    style={{backgroundImage:'linear-gradient(90deg,rgba(1,28,22,.44),rgba(4,46,36,.24)),url("'+avatar.replaceAll('"','%22')+'")',backgroundSize:'cover',backgroundPosition:'center 28%'}}/>
+   <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#02251d] via-[#02271dbb] to-[#08231c5c]"/>
+   <div className="flex justify-between items-center mb-9">
+    <span className="font-black tracking-wide text-[#ffdf96] text-xs">♛ TotiChat</span>
+    <button type="button" onClick={()=>setActiveSubScreen('edit_profile')} title="تعديل معلومات البروفايل"
+      aria-label="تعديل الملف الشخصي" className="w-11 h-11 rounded-full bg-[#083d32e8] border border-[#efcf86] text-[#ffe4a9] shadow-[0_0_10px_#d9a95066] grid place-items-center"><Edit3 size={20}/></button>
+   </div>
+   <button type="button" onClick={detail} className="flex items-center text-right gap-4 w-full">
+    <img src={avatar} alt={user.name} onError={e=>setImageFallback(e,'/assets/images/default_arab_user_avatar_1790806239365.jpg')}
+     className="w-[96px] h-[96px] rounded-full object-cover shrink-0 border-[3px] border-[#e8c16f] ring-2 ring-[#245f48] shadow-[0_0_18px_#d7b26b6b]"/>
+    <span className="flex-1 min-w-0 flex flex-col gap-2">
+     <span className="font-black text-[21px] leading-tight text-[#ffedc5] truncate">{user.name||'مستخدم جديد'}
+      <span className={'mr-1 text-base '+(user.gender==='female'?'text-pink-300':'text-sky-300')}>{user.gender==='female'?'♀':'♂'}</span>
+     </span>
+     <span className="text-[#d7e5d9] text-[11px]">{user.countryFlag||'🌍'} {user.countryCode||''} <span className="opacity-70">│</span> ID: {user.id}</span>
+     <span className="flex flex-wrap gap-1.5 items-center">
+      {(user.vipLevel??0)>0&&<span className="text-xs bg-[#5d4523] border border-[#c79d59] rounded-md px-2 py-1 text-[#ffe4a4]">👑 VIP {user.vipLevel}</span>}
+      <span className="text-[11px] rounded-md bg-[#07573f] text-[#8df4cc] px-2 py-1 border border-[#43856d]">💠 LV {user.level}</span>
+     </span>
+    </span>
+    <ChevronLeft size={18} className="text-[#f4d797] shrink-0"/>
+   </button>
+   <div className="flex flex-wrap gap-2 mt-3 items-center justify-start">
+    {(user.charmLevel??0)>0&&<CharmBadgeExact level={user.charmLevel||1} size="sm" onClick={()=>setActiveSubScreen('charm_level')}/>}
+    {(user.wealthLevel??0)>0&&<WealthBadgeExact level={user.wealthLevel||user.level||1} size="sm" onClick={()=>setActiveSubScreen('wealth_level')}/>}
+    {(user.vipLevel??0)>0&&<VIPBadge level={user.vipLevel||1} size="sm" onClick={()=>setActiveSubScreen('vip')}/>}
+    <button type="button" onClick={()=>void copyId()} className="inline-flex items-center gap-1 rounded-full bg-[#002d25b8] px-2 py-1 text-[10px] text-[#e4d4b6] border border-[#967a49]">
+     {copied?<Check size={13}/>:<Copy size={13}/>} {copied?'تم النسخ':'نسخ ID'}
+    </button>
+   </div>
+  </section>
+  <section aria-label="إحصائيات الحساب" className={goldBorder+' relative grid grid-cols-4 mx-3 -mt-1 p-3 py-4 rounded-[20px] bg-gradient-to-l from-[#05352c] via-[#08604b] to-[#002f28]'}>
+   {stats.map((s,i)=><button type="button" key={s.label} onClick={s.click}
+    className={'min-w-0 relative text-center px-1 '+(i<3?'border-l border-[#8ab79561]':'')}>
+    <span className="relative inline-block text-[#fff0c9] text-xl font-black tabular-nums">{s.value}{s.unseen&&<span className="absolute -top-0.5 -left-1.5 w-2 h-2 bg-rose-400 rounded-full"/>}</span>
+    <span className="block mt-1 text-[10px] text-[#75f0c1] font-extrabold">{s.label}</span>
+   </button>)}
+  </section>
+  {linkedAgency&&<button type="button" onClick={()=>setActiveSubScreen('agency')}
+   className={goldBorder+' mx-3 mt-3 flex items-center gap-3 w-[calc(100%-24px)] rounded-2xl px-3 py-3 text-right bg-[#063c2d]'}
+   style={{backgroundImage:'linear-gradient(105deg,#013d31e8,#054c3ae2),url("/assets/images/agency_opening_banner_1790725265910.jpg")',backgroundSize:'cover'}}>
+    <img src={user.agencyAvatar||'/assets/images/agency_opening_banner_1790725265910.jpg'}
+     alt="شعار الوكالة" onError={e=>setImageFallback(e,'/assets/images/agency_opening_banner_1790725265910.jpg')}
+     className="w-14 h-14 rounded-xl object-cover border border-[#dfb978] shrink-0"/>
+    <span className="flex-1 min-w-0">
+     <span className="block text-[10px] text-[#91f0c9]">👥 وكالتي</span>
+     <strong className="block truncate text-[#ffe5ac]">{user.agencyName}</strong>
+     <span className="block text-[10px] text-[#c7e1d3]">ID: {user.agencyId}</span>
+     {user.agencyOwner&&<span className="block text-[10px] text-[#e9d2a5]">الوكيل: {user.agencyOwner}</span>}
+    </span><ChevronLeft size={19} className="text-[#f5d58a]"/>
+   </button>}
+  <button type="button" onClick={()=>setActiveSubScreen('vip')}
+   className="relative overflow-hidden flex items-center justify-between w-[calc(100%-24px)] mx-3 mt-3 rounded-2xl px-5 py-3 border border-[#d7b471] bg-gradient-to-l from-[#0d1620] via-[#173c37] to-[#0b1e23] shadow-lg text-[#ffdc92]">
+   <span className="font-black text-lg flex gap-2 items-center"><Crown size={23}/> VIP {user.vipLevel&&user.vipLevel>0?user.vipLevel:''}</span>
+   <span className="text-xs font-bold flex items-center gap-1">عرض المزايا <ChevronLeft size={15}/></span>
+  </button>
+  <div className="grid grid-cols-4 gap-2 px-3 mt-3">
+   {shortcuts.map(x=><button key={x.name} type="button" onClick={x.click} className={shortcutStyle}>
+    <span className="text-[#b58032] drop-shadow-md">{x.icon}</span><span className="text-[11px]">{x.name}</span>
+   </button>)}
+  </div>
+  <nav aria-label="خيارات الحساب" className="mx-3 mt-3 rounded-2xl overflow-hidden border border-[#bca16a] shadow-lg bg-gradient-to-b from-[#063a2e] to-[#022c24]">
+   {items.map((x,i)=><button type="button" key={x.route} onClick={()=>setActiveSubScreen(x.route)}
+    className={'w-full flex items-center gap-3 px-4 min-h-[55px] text-right text-[#f6e3bb] '+(i<items.length-1?'border-b border-[#c4a06a55]':'')}>
+    <span className="w-9 h-9 shrink-0 grid place-items-center rounded-xl bg-gradient-to-br from-[#21664b] to-[#073d32] text-[#ffdc91]">{x.icon}</span>
+    <span className="flex-1 text-sm font-extrabold">{x.name}</span>
+    {x.route==='silver_coins'&&<span className="text-[10px] bg-[#775323] rounded-full px-2 py-1">جديد</span>}
+    <ChevronLeft size={17} className="text-[#e8c885]"/>
+   </button>)}
+  </nav>
+  <p className="text-center text-[10px] mt-5 text-[#7ab9a1] flex items-center gap-2 justify-center"><Star size={13}/><BadgeCheck size={13}/> TotiChat</p>
+ </main>;
 };
