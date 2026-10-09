@@ -36,21 +36,21 @@ export const ProfileScreen:React.FC=()=>{
   {label:'متابعين',value:user.followersCount||0,click:()=>{markFollowersAsSeen();setActiveSubScreen('friends')},unseen:hasUnseenFollowers},
   {label:'الأصدقاء',value:user.friendsCount||0,click:()=>setActiveSubScreen('friends'),unseen:false},
   {label:'متابعة',value:user.followingCount||0,click:()=>setActiveSubScreen('friends'),unseen:false},
-  {label:'زوار',value:user.visitorsCount||0,click:()=>{markVisitorsAsSeen();setActiveSubScreen('visitors')},unseen:hasUnseenVisitors}
+  {label:'زائر',value:user.visitorsCount||0,click:()=>{markVisitorsAsSeen();setActiveSubScreen('visitors')},unseen:hasUnseenVisitors}
  ];
  const shortcuts=[
-  {name:'شحن',icon:<Wallet size={35}/>,click:()=>setActiveSubScreen('recharge')},
+  {name:'شحن / محفظة',icon:<Wallet size={35}/>,click:()=>setActiveSubScreen('recharge')},
   {name:'غرفتي',icon:<Home size={35}/>,click:openRoom},
   {name:'المستوى',icon:<Sparkles size={35}/>,click:()=>setActiveSubScreen('level')},
   {name:'المتجر',icon:<ShoppingBag size={35}/>,click:()=>setActiveSubScreen('store')}
  ];
  const items=[
-  {name:'الوكالة',icon:<UsersRound size={18}/>,route:'agency'},
-  {name:'الشارات',icon:<Medal size={18}/>,route:'badges'},
-  {name:'السحر والثروة',icon:<Award size={18}/>,route:'charm_wealth'},
+  {name:'وكالة',icon:<UsersRound size={18}/>,route:'agency'},
+  {name:'شارة',icon:<Medal size={18}/>,route:'badges'},
+  {name:'السحر/ الثروة',icon:<Award size={18}/>,route:'charm_wealth'},
   {name:'اكسب عملات فضية',icon:<Coins size={18}/>,route:'silver_coins'},
   {name:'مركز المساعدة',icon:<Headphones size={18}/>,route:'help_center'},
-  {name:'الإعدادات',icon:<Settings size={18}/>,route:'settings'}
+  {name:'اعدادات',icon:<Settings size={18}/>,route:'settings'}
  ];
  return <main dir="rtl" className="min-h-screen pb-28 select-none text-[#fff0ca] overflow-x-hidden"
   style={{background:'radial-gradient(ellipse at 88% 1%,#17594d 0%,#04382e 30%,#02241c 69%,#011710 100%)'}}>
@@ -60,15 +60,16 @@ export const ProfileScreen:React.FC=()=>{
    <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#02251d] via-[#02271dbb] to-[#08231c5c]"/>
    <div className="flex justify-between items-center mb-9">
     <span className="font-black tracking-wide text-[#ffdf96] text-xs">♛ TotiChat</span>
-    <button type="button" onClick={()=>setActiveSubScreen('edit_profile')} title="تعديل معلومات البروفايل"
+    <button type="button" onClick={()=>setActiveSubScreen('edit_profile')} title="تعديل الملف الشخصي والصورة والاسم"
       aria-label="تعديل الملف الشخصي" className="w-11 h-11 rounded-full bg-[#083d32e8] border border-[#efcf86] text-[#ffe4a9] shadow-[0_0_10px_#d9a95066] grid place-items-center"><Edit3 size={20}/></button>
    </div>
-   <button type="button" onClick={detail} className="flex items-center text-right gap-4 w-full">
+   <button type="button" onClick={detail} title="عرض الملف الشخصي" className="flex items-center text-right gap-4 w-full">
     <img src={avatar} alt={user.name} onError={e=>setImageFallback(e,'/assets/images/default_arab_user_avatar_1790806239365.jpg')}
      className="w-[96px] h-[96px] rounded-full object-cover shrink-0 border-[3px] border-[#e8c16f] ring-2 ring-[#245f48] shadow-[0_0_18px_#d7b26b6b]"/>
     <span className="flex-1 min-w-0 flex flex-col gap-2">
-     <span className="font-black text-[21px] leading-tight text-[#ffedc5] truncate">{user.name||'مستخدم جديد'}
-      <span className={'mr-1 text-base '+(user.gender==='female'?'text-pink-300':'text-sky-300')}>{user.gender==='female'?'♀':'♂'}</span>
+     <span className="flex items-center gap-1.5 min-w-0">
+      <span className="font-black text-[21px] leading-tight text-[#ffedc5] truncate">{user.name||'مستخدم جديد'}</span>
+      <span aria-label={user.gender==='female'?'أنثى':'ذكر'} className={'text-base '+(user.gender==='female'?'text-pink-300':'text-sky-300')}>{user.gender==='female'?'♀':'♂'}</span>
      </span>
      <span className="text-[#d7e5d9] text-[11px]">{user.countryFlag||'🌍'} {user.countryCode||''} <span className="opacity-70">│</span> ID: {user.id}</span>
      <span className="flex flex-wrap gap-1.5 items-center">
@@ -110,7 +111,7 @@ export const ProfileScreen:React.FC=()=>{
   <button type="button" onClick={()=>setActiveSubScreen('vip')}
    className="relative overflow-hidden flex items-center justify-between w-[calc(100%-24px)] mx-3 mt-3 rounded-2xl px-5 py-3 border border-[#d7b471] bg-gradient-to-l from-[#0d1620] via-[#173c37] to-[#0b1e23] shadow-lg text-[#ffdc92]">
    <span className="font-black text-lg flex gap-2 items-center"><Crown size={23}/> VIP {user.vipLevel&&user.vipLevel>0?user.vipLevel:''}</span>
-   <span className="text-xs font-bold flex items-center gap-1">عرض المزايا <ChevronLeft size={15}/></span>
+   <span className="text-xs font-bold flex items-center gap-1"><span>check now</span> <ChevronLeft size={15}/></span>
   </button>
   <div className="grid grid-cols-4 gap-2 px-3 mt-3">
    {shortcuts.map(x=><button key={x.name} type="button" onClick={x.click} className={shortcutStyle}>
