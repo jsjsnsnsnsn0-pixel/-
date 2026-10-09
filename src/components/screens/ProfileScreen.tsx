@@ -1,8 +1,10 @@
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {copyText} from '../../utils/clipboard';
 import {setImageFallback} from '../../utils/imageFallback';
 import {useTimeouts} from '../../hooks/useTimeouts';
 import {useApp} from '../../context/AppContext';
+import {useServerData} from '../../hooks/useServerData';
+import {rpc} from '../../services/backend';
 import {WealthBadgeExact, CharmBadgeExact} from '../common/LevelIcons';
 import {VIPBadge} from '../common/VIPBadge';
 import {
@@ -23,7 +25,13 @@ export const ProfileScreen:React.FC=()=>{
  const copyId=async()=>{if(!await copyText(user.id))return;setCopied(true);scheduleTimeout(()=>setCopied(false),2000)};
  const openRoom=()=>{const own=rooms.find(r=>r.owner.id===user.id)||rooms[0];if(own)joinRoom(own)};
  const avatar=user.avatar||'/assets/images/default_arab_user_avatar_1790806239365.jpg';
- const linkedAgency=Boolean(user.agencyId&&user.agencyName);
+ // Agency membership is server-backed. Profile snapshots do not always include agency metadata.
+ const loadAgency=useCallback(()=>rpc<{agency:{id:number;name:string;owner_id:string}|null}>('agency_state'),[user.authId]);
+ const {data:agencyState}=useServerData(loadAgency,{agency:null});
+ const membership=agencyState.agency;
+ const agencyId=membership?.id||user.agencyId;
+ const agencyName=membership?.name||user.agencyName;
+ const linkedAgency=Boolean(agencyId&&agencyName);
  const stats=[
   {label:'متابعين',value:user.followersCount||0,click:()=>{markFollowersAsSeen();setActiveSubScreen('friends')},unseen:hasUnseenFollowers},
   {label:'الأصدقاء',value:user.friendsCount||0,click:()=>setActiveSubScreen('friends'),unseen:false},
@@ -94,8 +102,8 @@ export const ProfileScreen:React.FC=()=>{
      className="w-14 h-14 rounded-xl object-cover border border-[#dfb978] shrink-0"/>
     <span className="flex-1 min-w-0">
      <span className="block text-[10px] text-[#91f0c9]">👥 وكالتي</span>
-     <strong className="block truncate text-[#ffe5ac]">{user.agencyName}</strong>
-     <span className="block text-[10px] text-[#c7e1d3]">ID: {user.agencyId}</span>
+     <strong className="block truncate text-[#ffe5ac]">{agencyName}</strong>
+     <span className="block text-[10px] text-[#c7e1d3]">ID: {agencyId}</span>
      {user.agencyOwner&&<span className="block text-[10px] text-[#e9d2a5]">الوكيل: {user.agencyOwner}</span>}
     </span><ChevronLeft size={19} className="text-[#f5d58a]"/>
    </button>}
