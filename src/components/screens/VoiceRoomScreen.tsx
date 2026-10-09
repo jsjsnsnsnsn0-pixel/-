@@ -82,7 +82,7 @@ export const VoiceRoomScreen: React.FC = () => {
       <p className="text-[10px] text-[#9ac6b0] text-center mt-3">اضغط مقعداً فارغاً للجلوس، واضغط صورة مستخدم لعرض ملفه.</p>
     </div>
     <div className="relative mx-3 mt-3 flex-1 rounded-[20px] border border-[#af945a82] bg-[#011e19cc] p-3 shadow-[inset_0_0_13px_#24a08022]">
-      <h2 className="text-sm font-bold text-[#f4d68f] mb-3">✦ دردشة الغرفة</h2>
+      <h2 className="text-sm font-bold text-[#f4d68f] mb-3"><span aria-hidden="true">✦</span> <span>دردشة الغرفة</span></h2>
       <div className="max-h-64 overflow-y-auto space-y-2" aria-live="polite">{messages.length ? messages.map(m => <p key={m.id} className="text-sm break-words"><span className="text-[#7cf3c1] font-bold">{m.sender_display_name || 'مستخدم'}: </span>{m.content}</p>) : <p className="text-slate-400 text-xs">ابدأ الحديث برسالة.</p>}</div>
       <form onSubmit={send} className="mt-3 flex gap-2 border-t border-[#d6b56d40] pt-3"><input value={text} onChange={e => setText(e.target.value)} maxLength={1000} placeholder="اكتب رسالة…" aria-label="رسالة الغرفة" className="min-w-0 flex-1 bg-[#0f443b] border border-[#80ac926e] focus:border-[#f4d78c] outline-none rounded-xl p-2.5 text-sm text-[#fff1d3] placeholder:text-[#a9cbb9]" /><button disabled={sending || !text.trim()} aria-label="إرسال" className="p-2 text-[#f4d588] bg-[#0b4235] border border-[#b99659] rounded-xl disabled:opacity-40"><Send size={20}/></button></form>
     </div>
