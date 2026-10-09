@@ -105,7 +105,7 @@ export const AgencyScreen:React.FC=()=>{
   <header className="relative text-center pt-6 pb-4 min-h-[104px]">
    <button type="button" onClick={()=>setActiveSubScreen(null)} aria-label="رجوع"
     className="absolute right-0 top-5 w-10 h-10 border border-[#ad8bc1] bg-[#1a122d] rounded-full grid place-items-center text-[#f9dba4]"><ChevronRight size={24}/></button>
-   <h1 className="font-black text-[23px] text-[#ffe3a8] drop-shadow-[0_0_10px_#d7a458]">♛ الوكالة</h1>
+   <h1 className="font-black text-[23px] text-[#ffe3a8] drop-shadow-[0_0_10px_#d7a458]">♛ بوابة الوكالات</h1>
    <p className="mt-1 text-[11px] text-[#dacfe4]">الوكالات · المضيفون · طلبات الانضمام والإدارة</p>
   </header>
   <nav aria-label="صفحات الوكالة" className="grid grid-cols-4 gap-1 mb-3">
@@ -132,7 +132,7 @@ export const AgencyScreen:React.FC=()=>{
   <section className={panel+' p-3'}>
    <h2 className="font-black text-[#ffe0a1] text-sm mb-2">الدعم الرسمي</h2>
    <button onClick={()=>void openChat()} disabled={opening} className={outlineButton+' w-full flex justify-center gap-2 items-center'}>
-    <Headphones size={16}/> {opening?'جارٍ فتح المحادثة…':'محادثة الدعم الفني الرسمي · ID 451305'}
+    <Headphones size={16}/> {opening?'جارٍ فتح المحادثة…':<><span>الدعم الرسمي · ID</span> <span>451305</span></>}
    </button>
    <small className="block text-center mt-2 text-[#bbaed1]">لا تُعرض أرصدة أو مستحقات تجريبية بدل بيانات الحساب الفعلية.</small>
   </section>
