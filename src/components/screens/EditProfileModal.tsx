@@ -104,7 +104,7 @@ export const EditProfileModal: React.FC = () => {
        onError={e=>setImageFallback(e,'/assets/images/default_arab_user_avatar_1790806239365.jpg')}
        alt="صورتك الشخصية" className="w-full h-full object-cover rounded-full border-[3px] border-[#f5d687] ring-2 ring-[#236b4b] shadow-[0_0_18px_#e9c57484]"/>
       {(user.vipLevel??0)>0&&<Crown size={29} className="absolute -top-3 -right-2 text-[#ffdd87]"/>}
-      <button onClick={()=>setPhotoPicker(true)} disabled={saving} aria-label="تغيير الصورة" className="absolute -bottom-1 right-0 w-10 h-10 bg-[#063b30] rounded-full grid place-items-center border border-[#f4d285] text-[#ffe5a1] shadow-lg"><Camera size={19}/></button>
+      <span aria-hidden="true" className="absolute -bottom-1 right-0 w-10 h-10 bg-[#063b30] rounded-full grid place-items-center border border-[#f4d285] text-[#ffe5a1] shadow-lg"><Camera size={19}/></span>
      </div>
      <div className="flex-1 min-w-0">
       <p className="text-lg sm:text-xl font-black break-words text-[#ffe9b1]">{name||user.name} <span className="text-[#57b6f6]">{gender==='female'?'♀':'♂'}</span></p>
