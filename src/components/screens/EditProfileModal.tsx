@@ -1,543 +1,168 @@
-import React, { useState, useRef } from 'react';
-import { supabase } from '../../services/supabase';
-import { setImageFallback } from '../../utils/imageFallback';
-import { useApp } from '../../context/AppContext';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Camera,
-  Check,
-  Calendar,
-  Globe,
-  Settings,
-  X,
-  Upload,
-  Sparkles,
-} from 'lucide-react';
-import {
-  ShimmeringAccountName,
-  SHIMMER_THEMES,
-  ShimmerStyleKey,
-} from '../common/ShimmeringAccountName';
+import React, {useEffect, useRef, useState} from 'react';
+import {supabase} from '../../services/supabase';
+import {useApp} from '../../context/AppContext';
+import {setImageFallback} from '../../utils/imageFallback';
+import {Camera, Check, ChevronDown, ChevronRight, Crown, ImagePlus, MapPin, Pencil, Save, Sparkles, UserRound, X, CalendarDays} from 'lucide-react';
+import {SHIMMER_THEMES, ShimmerStyleKey} from '../common/ShimmeringAccountName';
+
+type Country = {name:string;code:string;flag:string};
+const countries: Country[] = [
+  {name:'العراق',code:'IQ',flag:'🇮🇶'},{name:'السعودية',code:'SA',flag:'🇸🇦'},{name:'الإمارات',code:'AE',flag:'🇦🇪'},
+  {name:'مصر',code:'EG',flag:'🇪🇬'},{name:'الأردن',code:'JO',flag:'🇯🇴'},{name:'الكويت',code:'KW',flag:'🇰🇼'},
+  {name:'قطر',code:'QA',flag:'🇶🇦'},{name:'البحرين',code:'BH',flag:'🇧🇭'},{name:'عُمان',code:'OM',flag:'🇴🇲'},
+  {name:'اليمن',code:'YE',flag:'🇾🇪'},{name:'سوريا',code:'SY',flag:'🇸🇾'},{name:'لبنان',code:'LB',flag:'🇱🇧'},
+  {name:'فلسطين',code:'PS',flag:'🇵🇸'},{name:'المغرب',code:'MA',flag:'🇲🇦'},{name:'الجزائر',code:'DZ',flag:'🇩🇿'},
+  {name:'تونس',code:'TN',flag:'🇹🇳'},{name:'ليبيا',code:'LY',flag:'🇱🇾'},{name:'السودان',code:'SD',flag:'🇸🇩'},
+  {name:'تركيا',code:'TR',flag:'🇹🇷'},{name:'الولايات المتحدة',code:'US',flag:'🇺🇸'},
+  {name:'المملكة المتحدة',code:'GB',flag:'🇬🇧'},{name:'ألمانيا',code:'DE',flag:'🇩🇪'},{name:'فرنسا',code:'FR',flag:'🇫🇷'},
+  {name:'الهند',code:'IN',flag:'🇮🇳'}
+];
+const panel='rounded-[20px] border border-[#e8c477] bg-gradient-to-l from-[#054834] via-[#032c24] to-[#011d18] shadow-[inset_0_0_14px_rgba(32,207,144,.16),0_4px_15px_rgba(0,0,0,.4)]';
+const field=panel+' flex items-center gap-3 p-3 mb-3';
+const input='min-w-0 w-full rounded-xl border border-[#257b5f] bg-[#001d19]/90 text-[#fff1ce] outline-none px-3 py-3 text-sm focus:border-[#f5d58c] focus:ring-1 focus:ring-[#f0c778] placeholder:text-[#84a99c]';
 
 export const EditProfileModal: React.FC = () => {
-  const { user, setUser, updateProfile, reportError, setActiveSubScreen } = useApp();
-
-  // Field states
-  const [name, setName] = useState(user.name);
-  const [bio, setBio] = useState(user.bio || '');
-  const [birthday, setBirthday] = useState(user.birthday || '');
-  const [region, setRegion] = useState(user.region || 'الشرق الأوسط');
-  const [country, setCountry] = useState(user.country || 'مصر');
-  const [countryCode, setCountryCode] = useState(user.countryCode || 'EG');
-  const [countryFlag, setCountryFlag] = useState(user.countryFlag || '🇪🇬');
-  const [avatar, setAvatar] = useState(user.avatar);
-
-  // Sub-dialogs
-  const [editingField, setEditingField] = useState<
-    'none' | 'name' | 'name_shimmer' | 'bio' | 'birthday' | 'country' | 'region' | 'avatar_picker'
-  >('none');
-  const [tempText, setTempText] = useState('');
-
-  // Hidden native file input for gallery upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-
-  // Handle local image file picker from gallery
-  const [uploading, setUploading] = useState(false);
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !user.authId || uploading) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-      reportError('اختر صورة JPEG أو PNG أو WebP لا يتجاوز حجمها 5 ميغابايت.'); return;
-    }
-    setUploading(true);
-    const extension = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
-    const path = `${user.authId}/${crypto.randomUUID()}.${extension}`;
-    try {
-      const {error} = await supabase.storage.from('avatars').upload(path, file, {contentType: file.type, upsert: false});
-      if (error) throw error;
-      const {data} = supabase.storage.from('avatars').getPublicUrl(path);
-      if (await updateProfile({avatar: data.publicUrl})) { setAvatar(data.publicUrl); setEditingField('none'); }
-      else await supabase.storage.from('avatars').remove([path]);
-    } catch { reportError('تعذر رفع الصورة. حاول مجدداً.'); }
-    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
-  };
-
-  const triggerGalleryPicker = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Preset avatars for convenience
-  const avatarPresets = [
-    '/assets/images/mr_balmain_avatar_1790227488334.jpg',
-    '/assets/images/avatar_prince_arab_1790226081300.jpg',
-    '/assets/images/avatar_layla_arab_1790226090704.jpg',
-    '/assets/images/avatar_male_ghutra_1790628422202.jpg',
-    '/assets/images/avatar_female_ghutra_1790628438051.jpg',
-  ];
-
-  const countriesList = [
-    { name: 'مصر', code: 'EG', flag: '🇪🇬' },
-    { name: 'السعودية', code: 'SA', flag: '🇸🇦' },
-    { name: 'الإمارات', code: 'AE', flag: '🇦🇪' },
-    { name: 'العراق', code: 'IQ', flag: '🇮🇶' },
-    { name: 'الكويت', code: 'KW', flag: '🇰🇼' },
-    { name: 'المغرب', code: 'MA', flag: '🇲🇦' },
-    { name: 'الجزائر', code: 'DZ', flag: '🇩🇿' },
-    { name: 'الأردن', code: 'JO', flag: '🇯🇴' },
-  ];
-
-  const handleSaveName = () => {
-    if (tempText.trim()) {
-      setName(tempText.trim());
-      setUser((prev) => ({ ...prev, name: tempText.trim() }));
-    }
-    setEditingField('none');
-  };
-
-  const handleSaveBio = () => {
-    setBio(tempText.trim());
-    setUser((prev) => ({ ...prev, bio: tempText.trim() }));
-    setEditingField('none');
-  };
-
-  const handleSaveBirthday = (val: string) => {
-    setBirthday(val);
-    setUser((prev) => ({ ...prev, birthday: val }));
-    setEditingField('none');
-  };
-
-  const handleSelectCountry = (c: { name: string; code: string; flag: string }) => {
-    setCountry(c.name);
-    setCountryCode(c.code);
-    setCountryFlag(c.flag);
-    setUser((prev) => ({
-      ...prev,
-      country: c.name,
-      countryCode: c.code,
-      countryFlag: c.flag,
-    }));
-    setEditingField('none');
-  };
-
-  return (
-    <div className="min-h-screen bg-white text-slate-800 pb-20 select-none">
-      {/* Hidden file input for native device photo gallery */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-
-      {/* Header exactly matching screenshot: chevron on the right, title in center */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3.5 flex items-center justify-between">
-        <div className="w-8" />
-        <h1 className="text-base font-black text-slate-900">تعديل الملف الشخصي</h1>
-        <button
-          onClick={() => setActiveSubScreen(null)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-800 hover:bg-slate-100 cursor-pointer"
-          title="رجوع"
-        >
-          <ChevronRight size={26} className="stroke-[2.5]" />
-        </button>
-      </header>
-
-
-      {/* List items matching the exact order and look in the screenshot */}
-      <div className="divide-y divide-slate-100 px-4">
-        {/* Row 1: إطار (Avatar and Frame) */}
-        <div
-          onClick={() => setEditingField('avatar_picker')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-            <div className="relative group">
-              <div className="w-13 h-13 rounded-full overflow-hidden border border-slate-200 shadow-xs">
-                <img src={avatar} alt={name} className="w-full h-full object-cover" />
-              </div>
-              <div className="absolute inset-0 bg-black/25 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
-                <Camera size={16} />
-              </div>
-            </div>
-          </div>
-          <span className="text-sm font-bold text-slate-900">إطار</span>
-        </div>
-
-        {/* Row 2: اسم الكنية (Nickname / Name) */}
-        <div
-          onClick={() => {
-            setTempText(name);
-            setEditingField('name');
-          }}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-            <span className="text-sm font-semibold text-slate-400 font-sans">{name}</span>
-          </div>
-          <span className="text-sm font-bold text-slate-900">اسم الكنية</span>
-        </div>
-
-        {/* Row 2.5: لمعان وألوان اسم الحساب (ذهبي، أحمر، أسود، فضي، مستمر) */}
-        <div
-          onClick={() => setEditingField('name_shimmer')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-            <div className="flex items-center gap-1.5">
-              <ShimmeringAccountName name={name} size="sm" showSparkles={true} />
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Sparkles size={14} className="text-amber-500" />
-            <span className="text-sm font-bold text-slate-900">ألوان ولمعان الاسم</span>
-          </div>
-        </div>
-
-        {/* Row 3: سيرة ذاتية (Bio) */}
-        <div
-          onClick={() => {
-            setTempText(bio);
-            setEditingField('bio');
-          }}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2 max-w-[200px] overflow-hidden">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2] shrink-0" />
-            <span className="text-sm font-normal text-slate-400 truncate">
-              {bio || ''}
-            </span>
-          </div>
-          <span className="text-sm font-bold text-slate-900">سيرة ذاتية</span>
-        </div>
-
-        {/* Row 4: عيد ميلاد (Birthday) */}
-        <div
-          onClick={() => setEditingField('birthday')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-            <span className="text-sm font-normal text-slate-400">
-              {birthday || ''}
-            </span>
-          </div>
-          <span className="text-sm font-bold text-slate-900">عيد ميلاد</span>
-        </div>
-
-        {/* Row 5: منطقة (Region) */}
-        <div
-          onClick={() => setEditingField('region')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-normal text-slate-400">{region}</span>
-          </div>
-          <span className="text-sm font-bold text-slate-900">منطقة</span>
-        </div>
-
-        {/* Row 6: دولة (Country with Flag & Code) */}
-        <div
-          onClick={() => setEditingField('country')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-            <span className="text-sm font-bold text-slate-500 font-mono">{countryCode}</span>
-            <span className="text-base">{countryFlag}</span>
-          </div>
-          <span className="text-sm font-bold text-slate-900">دولة</span>
-        </div>
-
-        {/* Row 7: اعدادات (Settings) */}
-        <div
-          onClick={() => setActiveSubScreen('settings')}
-          className="py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
-        >
-          <ChevronLeft size={18} className="text-slate-300 stroke-[2.2]" />
-          <span className="text-sm font-bold text-slate-900">اعدادات</span>
-        </div>
-      </div>
-
-      {/* --- Dialog 1: Change Avatar / Photo Gallery --- */}
-      {editingField === 'avatar_picker' && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center">
-          <div className="w-full max-w-md bg-white rounded-t-3xl p-5 space-y-4 animate-slideUp">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <button
-                onClick={() => setEditingField('none')}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-              <h3 className="text-base font-black text-slate-900">تغيير الصورة الشخصية</h3>
-              <div className="w-8" />
-            </div>
-
-            {/* Direct Phone Gallery Button */}
-            <button
-              onClick={triggerGalleryPicker}
-              className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-md shadow-cyan-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
-            >
-              <Upload size={18} />
-              <span>اختيار صورة من معرض الهاتف 🖼️</span>
-            </button>
-
-            {/* Avatar presets selection */}
-            <div>
-              <span className="text-xs font-bold text-slate-500 block mb-2 text-right">
-                أو اختر من النماذج الرمزية:
-              </span>
-              <div className="grid grid-cols-5 gap-2">
-                {avatarPresets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setAvatar(preset);
-                      setUser((prev) => ({ ...prev, avatar: preset }));
-                      setEditingField('none');
-                    }}
-                    className={`aspect-square rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                      avatar === preset
-                        ? 'border-cyan-500 scale-105 shadow-md'
-                        : 'border-slate-200 hover:opacity-80'
-                    }`}
-                  >
-                    <img src={preset} alt={`preset-${idx}`} onError={(e) => setImageFallback(e, '/assets/images/default_arab_user_avatar_1790806239365.jpg')} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Dialog 2: Edit Name Modal --- */}
-      {editingField === 'name' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-black text-slate-900 text-right">تعديل اسم الكنية</h3>
-            <input
-              type="text"
-              value={tempText}
-              onChange={(e) => setTempText(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-cyan-500 text-right"
-              placeholder="اكتب اسم الكنية الجديد..."
-              autoFocus
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEditingField('none')}
-                className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleSaveName}
-                className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-500 cursor-pointer shadow-xs"
-              >
-                حفظ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Dialog 3: Edit Bio Modal --- */}
-      {editingField === 'bio' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-black text-slate-900 text-right">تعديل السيرة الذاتية</h3>
-            <textarea
-              rows={3}
-              value={tempText}
-              onChange={(e) => setTempText(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-cyan-500 text-right resize-none"
-              placeholder="اكتب نبذة شخصية قصيرة..."
-              autoFocus
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEditingField('none')}
-                className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleSaveBio}
-                className="flex-1 py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-500 cursor-pointer shadow-xs"
-              >
-                حفظ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Dialog 4: Edit Birthday Modal --- */}
-      {editingField === 'birthday' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4 text-right">
-            <h3 className="text-base font-black text-slate-900">تحديد تاريخ الميلاد</h3>
-            <input
-              type="date"
-              defaultValue={birthday || '1998-05-15'}
-              onChange={(e) => handleSaveBirthday(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-cyan-500 cursor-pointer"
-            />
-            <button
-              onClick={() => setEditingField('none')}
-              className="w-full py-2.5 rounded-xl bg-cyan-600 text-white text-xs font-bold hover:bg-cyan-500 cursor-pointer"
-            >
-              تم
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- Dialog 5: Select Country Modal --- */}
-      {editingField === 'country' && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-3">
-            <h3 className="text-base font-black text-slate-900 text-right mb-2">اختر الدولة</h3>
-            <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
-              {countriesList.map((c) => (
-                <div
-                  key={c.code}
-                  onClick={() => handleSelectCountry(c)}
-                  className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 cursor-pointer rounded-xl"
-                >
-                  <span className="text-xs font-bold text-slate-400 font-mono">{c.code}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-800">{c.name}</span>
-                    <span className="text-lg">{c.flag}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => setEditingField('none')}
-              className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer mt-2"
-            >
-              إغلاق
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- Dialog 6: Account Name Color & Continuous Shine Selector --- */}
-      {editingField === 'name_shimmer' && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
-          <div
-            className="w-full max-w-md bg-gradient-to-b from-[#18202f] to-[#0b0f17] text-white rounded-3xl p-5 border border-amber-500/30 shadow-2xl relative max-h-[85vh] overflow-y-auto no-scrollbar"
-            dir="rtl"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <Sparkles size={18} className="text-white drop-shadow" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">تخصيص لمعان اسم الحساب</h3>
-                  <p className="text-[11px] text-amber-300/80">
-                    ذهبي • أحمر • أسود • فضي • ألوان تلمع باستمرار
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setEditingField('none')}
-                className="w-8 h-8 rounded-full bg-slate-800/80 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Live Name Preview Showcase */}
-            <div className="my-4 p-4 rounded-2xl bg-[#090d15] border border-amber-500/20 text-center relative overflow-hidden">
-              <div className="text-[11px] text-slate-400 mb-1">معاينة مباشرة لاسمك:</div>
-              <div className="py-2">
-                <ShimmeringAccountName
-                  name={name}
-                  size="xl"
-                  showSparkles={true}
-                  showPaletteButton={false}
-                />
-              </div>
-            </div>
-
-            {/* List of Themes */}
-            <div className="space-y-2.5">
-              <div className="text-xs font-bold text-slate-300 px-1">اختر اللون واللمعان المفضل:</div>
-              {SHIMMER_THEMES.map((theme) => {
-                const currentStyle = user.nameShimmerStyle || 'quad_luxury';
-                const isSelected = theme.id === currentStyle;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => {
-                      setUser((prev) => ({
-                        ...prev,
-                        nameShimmerStyle: theme.id,
-                      }));
-                      setEditingField('none');
-                    }}
-                    className={`w-full p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-between text-right border ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-transparent border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                        : 'bg-slate-900/60 hover:bg-slate-800/80 border-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${theme.previewGradient} flex items-center justify-center shadow-md shrink-0 border border-white/20`}
-                      >
-                        <Sparkles size={16} className="text-white drop-shadow" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-black ${theme.className}`}>{name}</span>
-                          {isSelected && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black">
-                              مفعّل
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">{theme.subtitle}</div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 mr-2">
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center border ${
-                          isSelected
-                            ? 'bg-amber-400 border-amber-300 text-slate-950'
-                            : 'border-slate-700 bg-slate-800 text-transparent'
-                        }`}
-                      >
-                        <Check size={14} className="stroke-[3]" />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setEditingField('none')}
-              className="w-full mt-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold cursor-pointer transition-colors"
-            >
-              إغلاق
-            </button>
-          </div>
-        </div>
-      )}
+ const {user,updateProfile,setSelectedChatUser,setActiveSubScreen,reportError}=useApp();
+ const [name,setName]=useState(user.name||'');
+ const [bio,setBio]=useState(user.bio||'');
+ const currentCountry=countries.find(c=>c.code===user.countryCode);
+ const [country,setCountry]=useState<Country>({name:user.country||currentCountry?.name||'',code:user.countryCode||'',flag:user.countryFlag||currentCountry?.flag||'🌍'});
+ // Existing region column stores the editable city: no backend schema change.
+ const [city,setCity]=useState(user.region||'');
+ const [birthday,setBirthday]=useState(user.birthday||'');
+ const [gender,setGender]=useState<'male'|'female'|''>(user.gender||'');
+ const [shimmer,setShimmer]=useState<ShimmerStyleKey|undefined>(user.nameShimmerStyle);
+ const [showShimmer,setShowShimmer]=useState(false);
+ const [photoPicker,setPhotoPicker]=useState(false);
+ const [countryPicker,setCountryPicker]=useState(false);
+ const [photo,setPhoto]=useState<File|null>(null);
+ const [previewUrl,setPreviewUrl]=useState('');
+ const [presetAvatar,setPresetAvatar]=useState('');
+ const [saving,setSaving]=useState(false);
+ const [validation,setValidation]=useState('');
+ const fileInput=useRef<HTMLInputElement>(null);
+ const today=new Date().toISOString().slice(0,10);
+ useEffect(()=>{if(!photo)return;const url=URL.createObjectURL(photo);setPreviewUrl(url);return()=>URL.revokeObjectURL(url)},[photo]);
+ const avatar=photo?(previewUrl||user.avatar):(presetAvatar||user.avatar);
+ const presets=[
+  '/assets/images/mr_balmain_avatar_1790227488334.jpg',
+  '/assets/images/avatar_prince_arab_1790226081300.jpg',
+  '/assets/images/avatar_layla_arab_1790226090704.jpg',
+  '/assets/images/avatar_male_ghutra_1790628422202.jpg',
+  '/assets/images/avatar_female_ghutra_1790628438051.jpg'
+ ];
+ const back=()=>{if(saving)return;setSelectedChatUser(null);setActiveSubScreen('user_detail_profile')};
+ const chooseFile=(e:React.ChangeEvent<HTMLInputElement>)=>{
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){setValidation('اختر صورة JPG أو PNG أو WebP بحجم لا يتجاوز 5 ميغابايت.');return}
+  setPhoto(file);setPresetAvatar('');setPhotoPicker(false);setValidation('');
+ };
+ const save=async()=>{
+  if(saving)return;
+  const cleanName=name.trim(),cleanBio=bio.trim();
+  if(cleanName.length<2||cleanName.length>35){setValidation('الاسم يجب أن يتكوّن من حرفين إلى 35 حرفاً.');return}
+  if(cleanBio.length>150||city.trim().length>80){setValidation('النبذة لا تتجاوز 150 حرفاً والمدينة 80 حرفاً.');return}
+  if(birthday&&(Number.isNaN(Date.parse(birthday))||birthday>today||birthday<'1900-01-01')){setValidation('تاريخ الميلاد غير صحيح.');return}
+  setValidation('');setSaving(true);let uploaded='';
+  try{
+   let photoURL=presetAvatar||user.avatar;
+   if(photo){
+    if(!user.authId){setValidation('يجب تسجيل الدخول قبل رفع الصورة.');return}
+    const ext=photo.type==='image/jpeg'?'jpg':photo.type==='image/png'?'png':'webp';
+    uploaded=user.authId+'/'+crypto.randomUUID()+'.'+ext;
+    const result=await supabase.storage.from('avatars').upload(uploaded,photo,{contentType:photo.type,upsert:false});
+    if(result.error)throw result.error;
+    photoURL=supabase.storage.from('avatars').getPublicUrl(uploaded).data.publicUrl;
+   }
+   const ok=await updateProfile({name:cleanName,bio:cleanBio,avatar:photoURL,gender:gender||undefined,
+    birthday:birthday||undefined,region:city.trim()||undefined,country:country.name||undefined,
+    countryCode:country.code||undefined,countryFlag:country.flag||undefined,nameShimmerStyle:shimmer});
+   if(!ok){
+    if(uploaded)await supabase.storage.from('avatars').remove([uploaded]);
+    setValidation('تعذّر حفظ التغييرات. بقيت البيانات المدخلة محفوظة هنا.');return;
+   }
+   setSelectedChatUser(null);setActiveSubScreen('user_detail_profile');
+  }catch{
+   if(uploaded)await supabase.storage.from('avatars').remove([uploaded]);
+   reportError('تعذّر حفظ الملف الشخصي. تأكد من الاتصال وحاول مجدداً.');
+   setValidation('لم يتم حفظ التغييرات. يمكنك المحاولة مرة أخرى.');
+  }finally{setSaving(false)}
+ };
+ return <main dir="rtl" className="min-h-[100dvh] text-[#ffebbe] pb-[max(100px,env(safe-area-inset-bottom))] overflow-x-hidden"
+  style={{background:'radial-gradient(ellipse at 50% 0%,#185c42,#083f31 28%,#001f19 66%,#00140f)'}}>
+  <header className="relative pt-7 pb-5 px-4 text-center">
+   <div className="absolute inset-0 opacity-20 pointer-events-none" style={{backgroundImage:"url('/assets/images/agency_login_portal_1790714750581.jpg')",backgroundSize:'cover',backgroundPosition:'center'}} />
+   <button onClick={back} aria-label="رجوع" className="absolute right-4 top-5 z-10 w-12 h-12 rounded-full grid place-items-center bg-[#03352c] border border-[#f0cc7b] text-[#ffe5a3] shadow-[0_0_15px_#ffd06e8c]"><ChevronRight size={29}/></button>
+   <h1 className="relative text-[23px] font-black drop-shadow-[0_3px_5px_#00180f]">تعديل الملف الشخصي</h1>
+   <p className="relative mt-1 text-[13px] text-[#e2e6d4]">عدّل صورتك وبياناتك الشخصية</p>
+  </header>
+  <section className="px-3 max-w-xl mx-auto">
+   <div className={panel+' relative px-4 py-5 mb-5'}>
+    <div className="flex items-center gap-4">
+     <div className="relative w-[118px] h-[118px] shrink-0">
+      <img src={avatar||'/assets/images/default_arab_user_avatar_1790806239365.jpg'}
+       onError={e=>setImageFallback(e,'/assets/images/default_arab_user_avatar_1790806239365.jpg')}
+       alt="صورتك الشخصية" className="w-full h-full object-cover rounded-full border-[3px] border-[#f5d687] ring-2 ring-[#236b4b] shadow-[0_0_18px_#e9c57484]"/>
+      {(user.vipLevel??0)>0&&<Crown size={29} className="absolute -top-3 -right-2 text-[#ffdd87]"/>}
+      <button onClick={()=>setPhotoPicker(true)} disabled={saving} aria-label="تغيير الصورة" className="absolute -bottom-1 right-0 w-10 h-10 bg-[#063b30] rounded-full grid place-items-center border border-[#f4d285] text-[#ffe5a1] shadow-lg"><Camera size={19}/></button>
+     </div>
+     <div className="flex-1 min-w-0">
+      <p className="text-lg sm:text-xl font-black break-words text-[#ffe9b1]">{name||user.name} <span className="text-[#57b6f6]">{gender==='female'?'♀':'♂'}</span></p>
+      <p className="text-xs text-[#cde6d9] mt-1">{country.flag} {country.name} │ ID: {user.id}</p>
+      <button onClick={()=>setPhotoPicker(true)} disabled={saving} className="mt-3 px-3 py-2 border border-[#e8c376] rounded-full bg-[#013323] text-xs font-extrabold text-[#f8e1a7] flex items-center gap-2"><Camera size={14}/> تغيير الصورة</button>
+      <p className="text-[10px] mt-1.5 text-[#a7c2b6]">JPG / PNG / WebP · حتى 5MB</p>
+     </div>
     </div>
-  );
+   </div>
+   <div className={field}>
+    <label htmlFor="edit-visible-name" className="w-[98px] shrink-0 text-xs font-extrabold flex items-center gap-1"><UserRound size={17}/> الاسم الظاهر</label>
+    <div className="min-w-0 flex-1 flex items-center gap-1"><input id="edit-visible-name" className={input} value={name} maxLength={35} onChange={e=>setName(e.target.value)}/>
+     {name&&<button type="button" aria-label="مسح الاسم" onClick={()=>setName('')}><X size={16}/></button>}
+     <button type="button" title="زينة الاسم" aria-label="زينة الاسم" onClick={()=>setShowShimmer(v=>!v)}><Sparkles size={18}/></button>
+    </div>
+   </div>
+   {showShimmer&&<div className={panel+' p-3 mb-3'}>
+    <h3 className="text-xs font-bold mb-2">✨ ألوان ولمعان الاسم</h3>
+    <div className="grid grid-cols-2 gap-2">{SHIMMER_THEMES.map(t=><button key={t.id} type="button" onClick={()=>setShimmer(t.id)}
+     className={'text-[11px] p-2 border rounded-xl '+(shimmer===t.id?'bg-[#705620] border-[#f9dc98]':'bg-[#092c25] border-[#39745c]')}>
+     {shimmer===t.id&&<Check size={12} className="inline"/>} {t.name}</button>)}</div>
+   </div>}
+   <div className={field}>
+    <label className="w-[98px] shrink-0 text-xs font-extrabold flex items-center gap-1"><MapPin size={17}/> الدولة</label>
+    <button type="button" onClick={()=>setCountryPicker(v=>!v)} className={input+' flex items-center justify-between text-right'}><span>{country.flag} {country.name||'اختر الدولة'}</span><ChevronDown size={15}/></button>
+   </div>
+   {countryPicker&&<div className={panel+' grid grid-cols-2 gap-2 p-2 mb-3 max-h-52 overflow-y-auto'}>{countries.map(c=><button type="button" key={c.code} onClick={()=>{setCountry(c);setCountryPicker(false)}} className="text-xs text-right p-2 bg-[#063327] border border-[#438363] rounded-xl">{c.flag} {c.name}</button>)}</div>}
+   <div className={field}><label htmlFor="edit-city" className="w-[98px] shrink-0 text-xs font-extrabold flex items-center gap-1"><MapPin size={17}/> المدينة</label>
+    <input id="edit-city" className={input} value={city} onChange={e=>setCity(e.target.value)} maxLength={80} placeholder="مدينتك"/></div>
+   <div className={field}><label htmlFor="edit-dob" className="w-[98px] shrink-0 text-xs font-extrabold flex items-center gap-1"><CalendarDays size={17}/> تاريخ الميلاد</label>
+    <input id="edit-dob" type="date" className={input+' [color-scheme:dark]'} min="1900-01-01" max={today} value={birthday} onChange={e=>setBirthday(e.target.value)}/></div>
+   <fieldset className={field}>
+    <legend className="sr-only">الجنس</legend>
+    <span className="w-[98px] shrink-0 text-xs font-extrabold flex items-center gap-1"><UserRound size={17}/> الجنس</span>
+    <div className="flex-1 min-w-0 flex gap-1">{([['male','ذكر ♂'],['female','أنثى ♀']] as const).map(g=><button type="button" key={g[0]} onClick={()=>setGender(g[0])} aria-pressed={gender===g[0]}
+     className={'flex-1 p-3 rounded-xl text-xs font-extrabold border '+(gender===g[0]?'bg-gradient-to-b from-[#ffebad] to-[#d6a245] border-[#fff2b7] text-[#342408]':'bg-[#03241b] border-[#c1a261] text-[#e6e2cf]')}>{g[1]}</button>)}</div>
+   </fieldset>
+   <div className={panel+' p-3 mb-5'}>
+    <label htmlFor="edit-biography" className="text-sm font-extrabold flex items-center gap-2 mb-2"><Pencil size={17}/> نبذة عني</label>
+    <textarea id="edit-biography" className={input+' min-h-[107px] resize-y'} value={bio} onChange={e=>setBio(e.target.value)} maxLength={150} placeholder="اكتب نبذة قصيرة عنك..."/>
+    <small dir="ltr" className="block text-left text-[#a8c9b5]">{bio.length}/150</small>
+   </div>
+   {validation&&<p role="alert" className="p-3 mb-3 border border-[#e99a8d] bg-[#4a1f20] rounded-xl text-sm text-[#ffe0db]">{validation}</p>}
+   <div className="flex gap-3">
+    <button disabled={saving} onClick={()=>void save()} className="flex-[1.7] min-h-[55px] flex items-center justify-center gap-2 rounded-2xl border border-[#fff3ba] bg-gradient-to-r from-[#ffeaa8] via-[#f5cb6a] to-[#e7a63c] text-[#37270c] font-black disabled:opacity-50"><Save size={21}/>{saving?'جارٍ الحفظ…':'حفظ التغييرات'}</button>
+    <button disabled={saving} onClick={back} className="flex-1 rounded-2xl border border-[#e4bb71] bg-[#05352a] text-[#fce0a5] font-extrabold">إلغاء</button>
+   </div>
+   <p className="text-center text-[11px] text-[#a7ceba] mt-3">سيتم حفظ معلومات الملف الشخصي فقط. إعدادات الحساب والأمان منفصلة.</p>
+  </section>
+  <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFile} className="hidden"/>
+  {photoPicker&&<div role="dialog" aria-modal="true" aria-label="اختيار صورة الملف الشخصي" className="fixed inset-0 z-[100] bg-[#000c0ae8] backdrop-blur-md flex items-end sm:items-center justify-center">
+   <div className={panel+' w-full max-w-md p-4'}>
+    <div className="flex justify-between items-center mb-4"><h2 className="font-black">الصورة الشخصية</h2><button aria-label="إغلاق" onClick={()=>setPhotoPicker(false)}><X size={22}/></button></div>
+    <button type="button" onClick={()=>fileInput.current?.click()} className="w-full p-3 flex justify-center items-center gap-2 border border-[#f0d389] bg-[#16503e] rounded-xl font-bold"><ImagePlus size={19}/> اختيار صورة من المعرض</button>
+    <p className="text-xs my-3 text-[#b3d4bc]">أو اختر صورة رمزية:</p>
+    <div className="grid grid-cols-5 gap-2">{presets.map(p=><button type="button" key={p} onClick={()=>{setPresetAvatar(p);setPhoto(null);setPreviewUrl('');setPhotoPicker(false)}} className="aspect-square rounded-full overflow-hidden border-2 border-[#d9b777]">
+     <img alt="صورة رمزية" src={p} className="w-full h-full object-cover" onError={e=>setImageFallback(e,'/assets/images/default_arab_user_avatar_1790806239365.jpg')}/></button>)}</div>
+   </div>
+  </div>}
+ </main>;
 };
