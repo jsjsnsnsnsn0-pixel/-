@@ -19,6 +19,21 @@ const ADMIN_ALLOWED=new Set(['dashboard.view','users.view','users.edit','users.b
  'rooms.view','rooms.moderate','rooms.manage','rooms.close','reports.view','vip.manage','levels.manage','cp.manage']);
 const SUPPORT_ALLOWED=new Set(['dashboard.view','reports.view']);
 const DB_ALLOWED=new Set(['dashboard.view','agencies.view','agencies.approve','agencies.reject','reports.view']);
+const PERMISSION_LABELS={
+ 'dashboard.view':'عرض لوحة التحكم',
+ 'users.view':'عرض المستخدمين','users.edit':'تعديل بيانات المستخدمين',
+ 'users.ban':'حظر مستخدم','users.unban':'رفع الحظر','users.verify':'توثيق الحسابات',
+ 'rooms.view':'مشاهدة الغرف','rooms.manage':'إدارة الغرف',
+ 'rooms.close':'إغلاق غرفة','rooms.moderate':'الإشراف على الغرف',
+ 'reports.view':'عرض التقارير',
+ 'agencies.view':'عرض طلبات وكالات المضيفين','agencies.approve':'قبول وفتح وكالة مضيفين',
+ 'agencies.reject':'رفض طلب وكالة',
+ 'agencies.manage':'إدارة وكالات المضيفين — محمية',
+ 'wallet.view':'عرض المحفظة','wallet.history':'سجل العملات',
+ 'wallet.credit':'إضافة Coins','wallet.debit':'خصم Coins',
+ 'settlements.view':'عرض التسويات','settlements.run':'تنفيذ التسويات',
+ 'audit.view':'عرض السجل الإداري','roles.manage':'تعديل صلاحيات الموظفين'
+};
 const OWNER_ONLY=/^(wallet\.|settlements\.|system\.|roles\.|audit\.|hosts\.|agencies\.manage$)/;
 const EXTRA_BLOCKED=/^(agencies\.|hosts\.|settlements\.|roles\.|system\.)/;
 const isPrincipal=()=>state.session?.owner===true||state.session?.primary_partner===true;
@@ -108,14 +123,17 @@ export function addRoleToolbar(work,data){
   original=current;
   const serverPermissions=data.permissions||[];
   const permitted=capabilities(role,serverPermissions);
+  // Show previously granted permissions too, even if no longer delegable.
+  // Such legacy privileges may be switched OFF, but cannot be switched ON.
+  const shown=[...new Set([...permitted,...current])];
   const isAppOnly=Boolean(APP_ONLY[role.key]);
   const supported=Boolean(template)&&['admin','support','db'].includes(role.key);
-  for(const name of permitted){
+  for(const name of shown){
    const canStart=current.has(name);
    if(canStart)active.add(name);
   }
   const categories={};
-  for(const name of permitted){
+  for(const name of shown){
    const group=sectionOf(name);
    (categories[group]??=[]).push(name);
   }
@@ -123,16 +141,22 @@ export function addRoleToolbar(work,data){
    const panel=box('rankGroup',el('h3',{},group));
    for(const permission of names){
     const isEnabled=active.has(permission);
+    const canEnable=permitted.includes(permission);
     const check=el('input',{type:'checkbox',value:permission,checked:isEnabled,role:'switch',
-     'aria-label':'تشغيل أو إيقاف '+permission,'aria-checked':String(isEnabled)});
+     disabled:!canEnable&&!isEnabled,
+     'aria-label':'تشغيل أو إيقاف '+(PERMISSION_LABELS[permission]||permission),
+     'aria-checked':String(isEnabled)});
     check.addEventListener('change',()=>{
+     if(check.checked&&!canEnable){check.checked=false;return}
      if(check.checked)active.add(permission);else active.delete(permission);
+     // An existing legacy privilege can be revoked, not re-granted.
+     if(!canEnable&&!check.checked)check.disabled=true;
      count();
-  });
+    });
     panel.append(el('label',{class:'rankPermission rankPermissionSwitch'},
-      box('rankPermissionInfo',el('strong',{},permission),
-       el('small',{},isAppOnly?'صلاحية داخل التطبيق — تحتاج Backend منفصل':
-        'اضغط للتشغيل أو الإيقاف لهذه الرتبة')),
+      box('rankPermissionInfo',el('strong',{},PERMISSION_LABELS[permission]||permission),
+       el('small',{},permission+' • '+(isAppOnly?'داخل التطبيق؛ الربط مطلوب':
+        canEnable?'شغّل أو طفّي الصلاحية':'صلاحية سابقة — الإيقاف فقط'))),
       check));
    }
    grid.append(panel);
@@ -162,9 +186,10 @@ export function addRoleToolbar(work,data){
   const role=roles.find(r=>r.key===activeKey),template=role&&getTemplate(data,role);
   if(!isPrincipal()||!template||!['admin','support','db'].includes(role.key))return;
   const safe=new Set(capabilities(role,data.permissions||[]));
-  const kept=[...original].filter(x=>!safe.has(x));
-  const grants=[...active].filter(x=>safe.has(x));
-  const payload=[...new Set([...kept,...grants])];
+  // Revoke legacy permissions that the operator explicitly switched off.
+  // No forbidden permission can be granted through this editor.
+  const payload=[...new Set([...original].filter(x=>active.has(x)),
+   ...[...active].filter(x=>safe.has(x)))];
   // Work with the existing RPC; it enforces Owner server-side and currently
   // refuses the partner. A rejected RPC yields an honest error, not fake UI.
   if(!confirm('تأكيد تعديل قالب '+role.label+'؟ راح تتغير صلاحيات كل موظف عنده نفس الرتبة.'))return;
