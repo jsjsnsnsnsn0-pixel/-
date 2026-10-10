@@ -86,6 +86,7 @@ test('add-role action lists all agreed identities without creating Owner or part
  for(const id of ['owner','primary_partner','extra_super','admin','support','db','charging_agent','host_agent'])
   assert.ok(roleCreate.includes("key:'"+id+"'"));
  assert.ok(roleCreate.includes('＋ إضافة رتبة'));
+ assert.ok(roleCreate.includes("roles.filter(r=>r.key!=='owner')"), 'Owner must not be selectable in Add Role');
  assert.ok(roleCreate.includes('readonly:true'));
  assert.ok(roleCreate.includes("role.key==='owner'"));
  assert.ok(roleCreate.includes("role.key==='primary_partner'"));
