@@ -22,3 +22,25 @@ test('overview continues to use authenticated Supabase RPC, not mock counters',(
  assert.match(core,/allowed\(permission\)/);
  assert.doesNotMatch(core,/Math\.random/);
 });
+
+const agencyView=readFileSync(new URL('./pages-agencies.js',import.meta.url),'utf8');
+const compiled=readFileSync(new URL('./build.mjs',import.meta.url),'utf8');
+const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+test('full host agencies workspace is limited to Owner and explicitly designated primary partner in UI',()=>{
+ assert.match(app,/agencyPrincipal\(\)\&\&allowed\(s\[2\]\)/);
+ assert.match(app,/state\.session\?\.primary_partner===true/);
+ assert.match(agencyView,/canManage\(\)/);
+ assert.match(app,/agency-applications/);
+});
+test('agency directory, monthly reports and reviews use real RPCs without mocked finance',()=>{
+ assert.match(agencyView,/rpc\('agency_directory'\)/);
+ assert.match(agencyView,/rpc\('dashboard_monthly_settlements'/);
+ assert.match(agencyView,/rpc\('dashboard_agency_registrations'\)/);
+ assert.match(agencyView,/rpc\('dashboard_agency_review'/);
+ assert.doesNotMatch(agencyView,/Math\.random/);
+ assert.doesNotMatch(agencyView,/dashboard_monthly_finalize/);
+});
+test('new mobile agency workspace styles are included in independent build',()=>{
+ assert.match(compiled,/agencies-ui\.css/);
+ assert.match(html,/agencies-ui\.css/);
+});

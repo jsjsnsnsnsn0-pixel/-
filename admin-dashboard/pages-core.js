@@ -10,7 +10,8 @@ export function overview(work){
   el('h2',{},'إدارة المنصة بثقة ووضوح'),
   note('البيانات أدناه تُقرأ مباشرة من قاعدة TotiChat. كل إجراء إداري يخضع لصلاحيات حسابك.')));
  const quick=box('quickActions');
- for(const [id,label,permission] of [['users','إدارة المستخدمين','users.view'],['rooms','متابعة الغرف','rooms.view'],['roles','الرتب والصلاحيات','roles.view']]){
+ for(const [id,label,permission] of [['users','إدارة المستخدمين','users.view'],['rooms','متابعة الغرف','rooms.view'],['roles','الرتب والصلاحيات','roles.view'],['agencies','وكالات المضيفين','agencies.view']]){
+  if(id==='agencies'&&!state.session?.owner&&!state.session?.primary_partner)continue;
   if(!allowed(permission))continue;
   quick.append(btn(label,()=>{state.section=id;state.refresh()},'btn ghost'));
  }
@@ -18,12 +19,16 @@ export function overview(work){
  work.append(hero,panel(box('rowHead',title('مؤشرات المنصة'),el('span',{class:'liveLabel'},'● بيانات مباشرة')),
   note('الأرقام الفعلية من دوال Supabase المحمية.'),content));
  load(content,()=>rpc('dashboard_overview'),data=>{
-  content.append(...[
+  const cards=[
    ['المستخدمون',data.users],['النشطون',data.active_users],
    ['الغرف المفتوحة',data.active_rooms],['هدايا اليوم',data.gifts_today],
-   ['Coins المتداولة',data.coins_in_circulation],['الوكالات',data.agencies],
-   ['المضيفون',data.hosts],['طلبات الوكالة المعلقة',data.pending_agency_registrations]
-  ].map(([label,n])=>metric(label,n)));
+   ['Coins المتداولة',data.coins_in_circulation]
+  ];
+  if(state.session?.owner||state.session?.primary_partner===true){
+   cards.push(['الوكالات',data.agencies],['المضيفون',data.hosts],
+    ['طلبات الوكالة المعلقة',data.pending_agency_registrations]);
+  }
+  content.append(...cards.map(([label,n])=>metric(label,n)));
  });
 }
 export function users(work){
