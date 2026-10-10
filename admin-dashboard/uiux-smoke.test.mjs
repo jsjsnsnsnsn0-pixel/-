@@ -82,25 +82,33 @@ test('unverified prototype controls are disabled, never faked',()=>{
 
 const roleCreate=readFileSync(new URL('./pages-role-create.js',import.meta.url),'utf8');
 const staffRolePage=readFileSync(new URL('./pages-roles.js',import.meta.url),'utf8');
-test('add-role action lists all agreed identities without creating Owner or partner duplicates',()=>{
- for(const id of ['owner','primary_partner','extra_super','admin','support','db','charging_agent','host_agent'])
-  assert.ok(roleCreate.includes("key:'"+id+"'"));
- assert.ok(roleCreate.includes('＋ إضافة رتبة'));
- assert.ok(roleCreate.includes("roles.filter(r=>r.key!=='owner')"), 'Owner must not be selectable in Add Role');
- assert.ok(roleCreate.includes('readonly:true'));
- assert.ok(roleCreate.includes("role.key==='owner'"));
- assert.ok(roleCreate.includes("role.key==='primary_partner'"));
+test('Owner and main partner can open permission on/off toggles',()=>{
+ assert.ok(roleCreate.includes('state.session?.owner===true||state.session?.primary_partner===true'));
+ assert.ok(roleCreate.includes('＋ إضافة رتبة / تعديل صلاحيات'));
+ assert.ok(roleCreate.includes('rankPermissionSwitch'));
+ assert.ok(roleCreate.includes("role:'switch'"));
+ assert.ok(roleCreate.includes("aria-checked"));
+ assert.ok(roleCreate.includes("if(check.checked)active.add(permission);else active.delete(permission)"));
  assert.ok(staffRolePage.includes('addRoleToolbar(work,data)'));
 });
-test('new role editor keeps charging/host app-only and DB limited to opening host agencies',()=>{
- assert.ok(roleCreate.includes('صلاحيات داخل تطبيق TotiChat فقط'));
- assert.ok(roleCreate.includes('فتح وكالات المضيفين'));
- assert.ok(roleCreate.includes('agency_manager'));
- assert.ok(roleCreate.includes('blockedForAdmin'));
- assert.ok(roleCreate.includes('permissions'));
- assert.ok(roleCreate.includes('dashboard_save_role'));
+test('No creation of duplicate Owner or main partner role',()=>{
+ assert.ok(!roleCreate.includes("key:'owner'"));
+ assert.ok(!roleCreate.includes("key:'primary_partner'"));
+ assert.ok(roleCreate.includes('ROLE_CATALOG'));
+ assert.ok(roleCreate.includes("key:'extra_super'"));
 });
-test('role editor is included in deployable frontend and Super Admin template stays read-only',()=>{
+test('protected agency permissions and app-only agents are separated',()=>{
+ assert.ok(roleCreate.includes("DB_ALLOWED"));
+ assert.ok(roleCreate.includes('SUPPORT_ALLOWED'));
+ assert.ok(roleCreate.includes('EXTRA_BLOCKED'));
+ assert.ok(roleCreate.includes('APP_ONLY'));
+ assert.ok(roleCreate.includes('إدارة وكالات المضيفين'));
+ assert.ok(!staffRolePage.includes("picker.value==='super_admin'"));
+});
+test('real saves only use authenticated RPC and never claim partner success without server permission',()=>{
  assert.ok(build.includes("'pages-role-create.js'"));
- assert.ok(staffRolePage.includes("picker.value==='super_admin'"));
+ assert.ok(roleCreate.includes("rpc('dashboard_save_role'"));
+ assert.ok(roleCreate.includes("if(!isPrincipal()"));
+ assert.ok(roleCreate.includes("if(ok){close();state.refresh?.()}"));
+ assert.ok(roleCreate.includes("الخادم الحالي ما يسمح بحفظ الشريك بعد"));
 });
