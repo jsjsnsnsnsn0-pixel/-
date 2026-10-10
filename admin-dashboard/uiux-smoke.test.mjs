@@ -47,3 +47,35 @@ test('restricted agency pages require owner or trusted partner flag in UI',()=>{
  assert.match(app,/state\.session\?\.primary_partner===true/);
  assert.match(app,/principal\(\)\&\&allowed/);
 });
+
+const liveFrontend=readFileSync(new URL('./approved-front.js',import.meta.url),'utf8');
+const liveHTML=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+const liveCSS=readFileSync(new URL('./approved-front.css',import.meta.url),'utf8');
+test('root is now the original approved interface with an authenticated live frontend',()=>{
+ assert.match(liveHTML,/id="dashboardShell" hidden/);
+ assert.match(liveHTML,/id="authGate"/);
+ assert.match(liveHTML,/approved-front\\.js/);
+ assert.match(liveHTML,/id="globalSearch"/);
+ assert.match(liveHTML,/class="stats"/);
+ assert.match(liveHTML,/class="agency-grid"/);
+ assert.doesNotMatch(liveHTML,/<script>\\s*const users=/);
+});
+test('real frontend never sends demo account or finance data into Supabase',()=>{
+ assert.doesNotMatch(liveFrontend,/const users=\\[/);
+ assert.doesNotMatch(liveFrontend,/Math\\.random/);
+ assert.match(liveFrontend,/rpc\\('dashboard_overview'\\)/);
+ assert.match(liveFrontend,/rpc\\('dashboard_users'/);
+ assert.match(liveFrontend,/rpc\\('dashboard_agency_registrations'\\)/);
+ assert.match(liveFrontend,/rpc\\('dashboard_audit_history'\\)/);
+});
+test('principal partner and DB agency-opening paths are separated',()=>{
+ assert.match(liveFrontend,/state\\.session\\?\\.primary_partner===true/);
+ assert.match(liveFrontend,/if\\(isDB\\(\\)\\)return false/);
+ assert.match(liveFrontend,/id==='agency-requests'/);
+ assert.match(liveFrontend,/id==='agencies'\\&\\&!principal\\(\\)/);
+});
+test('unsupported preview buttons cannot perform fictional actions',()=>{
+ assert.match(liveFrontend,/removeAttribute\\('onclick'\\)/);
+ assert.match(liveFrontend,/x\\.disabled=true/);
+ assert.match(liveCSS,/\\[hidden\\]/);
+});
