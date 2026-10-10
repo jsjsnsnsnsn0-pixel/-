@@ -32,18 +32,18 @@ test('approved Oct 7 dashboard is preserved as the visual reference',()=>{
  assert.match(reference,/data-page="agencies"/);
  assert.match(approved,/--purple:#9d63ff/);
  assert.match(approved,/approvedOwnerPill/);
- assert.match(build,/approved-theme\\.css/);
+ assert.match(build,/approved-theme\.css/);
 });
 test('original search and dashboard use real authenticated APIs in production interface',()=>{
- assert.match(app,/state\\.userSearchQuery/);
- assert.match(app,/state\\.section='users'/);
- assert.match(core,/rpc\\('dashboard_users'/);
- assert.match(core,/rpc\\('dashboard_audit_history'/);
- assert.match(core,/rpc\\('dashboard_overview'/);
+ assert.match(app,/state\.userSearchQuery/);
+ assert.match(app,/state\.section='users'/);
+ assert.match(core,/rpc\('dashboard_users'/);
+ assert.match(core,/rpc\('dashboard_audit_history'/);
+ assert.match(core,/rpc\('dashboard_overview'/);
  assert.doesNotMatch(core,/128,420/);
- assert.doesNotMatch(core,/Math\\.random/);
+ assert.doesNotMatch(core,/Math\.random/);
 });
 test('restricted agency pages require owner or trusted partner flag in UI',()=>{
- assert.match(app,/state\\.session\\?\\.primary_partner===true/);
- assert.match(app,/principal\\(\\)\\&\\&allowed/);
+ assert.match(app,/state\.session\?\.primary_partner===true/);
+ assert.match(app,/principal\(\)\&\&allowed/);
 });
