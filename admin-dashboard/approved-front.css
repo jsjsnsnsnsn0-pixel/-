@@ -62,3 +62,61 @@ body.approved-live{background:radial-gradient(circle at 15% 0%,#26133b 0%,#0b071
  .section .toolbar input{min-width:100%}.agencyRealList .agency-request{grid-template-columns:42px minmax(0,1fr)}
  .authPanel{padding:26px 18px}
 }
+
+
+/* Add-role wizard. Matches Oct 7 approved deep violet/pink dashboard identity. */
+.rankActionBar{display:flex;align-items:center;justify-content:space-between;gap:14px;
+ background:linear-gradient(120deg,#23152f,#15101e);border:1px solid rgba(157,99,255,.22);
+ padding:16px 18px;border-radius:17px;margin:0 0 15px}
+.rankActionTitle strong{display:block;color:#fff;font-size:14px}
+.rankActionTitle .muted{font-size:11px;margin:5px 0 0}
+.rankAddButton{white-space:nowrap;padding:11px 16px;min-height:42px;background:linear-gradient(135deg,#8252ef,#a961ff)!important}
+.rankModal[hidden]{display:none!important}
+.rankModal{position:fixed;inset:0;z-index:190;display:grid;place-items:center;padding:21px}
+.rankModalShade{position:absolute;inset:0;background:#08050bd9;backdrop-filter:blur(7px)}
+.rankModalDialog{position:relative;z-index:1;width:min(760px,100%);max-height:91dvh;
+ display:flex;flex-direction:column;overflow:hidden;background:#160e20;
+ border:1px solid rgba(180,112,252,.36);border-radius:22px;box-shadow:0 25px 90px #0009}
+.rankModalHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;
+ padding:22px 25px;background:linear-gradient(140deg,#29173a,#160e20);
+ border-bottom:1px solid rgba(255,255,255,.075)}
+.rankModalHeader small{color:#b795ea;font-size:10px;letter-spacing:.6px}
+.rankModalHeader h2{font-size:23px;margin:7px 0 0}
+.rankModalClose{width:36px;height:36px;border:1px solid rgba(255,255,255,.11);
+ background:#291933;color:white;border-radius:11px;font-size:23px;cursor:pointer}
+.rankModalBody{min-height:0;overflow:auto;padding:21px 25px;overscroll-behavior:contain}
+.rankPreviewNote{background:rgba(243,190,88,.065);border:1px solid rgba(255,198,90,.20);
+ padding:13px;border-radius:11px;color:#ffe1a4;font-size:11px;line-height:1.8;margin-bottom:17px}
+.rankLabel{display:block;font-size:12px;color:#e6d7f3;font-weight:bold;margin:0 0 8px}
+#rankRoleSelect{width:100%;min-height:45px;border-radius:11px;border:1px solid rgba(173,111,255,.42);
+ background:#241630;color:#fff;font:inherit;font-size:13px;padding:10px 13px}
+.rankDialogInfo{font-size:12px;color:#c4afcf;padding:13px 1px;line-height:1.8}
+.rankDivider{display:flex;justify-content:space-between;align-items:center;gap:10px;
+ border-top:1px solid rgba(255,255,255,.075);padding:14px 0}
+.rankDivider strong{font-size:14px}.rankPermissionCounter{font-size:11px;color:#b796ff}
+.rankPermissionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rankGroup{padding:14px;border:1px solid rgba(255,255,255,.075);border-radius:13px;background:#1e1428}
+.rankGroup h3{font-size:12px;color:#dac0fa;margin:0 0 8px}
+.rankPermission{display:flex;gap:9px;align-items:flex-start;cursor:pointer;
+ padding:9px 0;border-bottom:1px solid rgba(255,255,255,.045);line-height:1.4}
+.rankPermission:last-child{border:0}
+.rankPermission input{width:17px;height:17px;flex:none;min-height:17px;margin:1px 0 0;accent-color:#a56aff}
+.rankPermission>div{display:grid;gap:3px}
+.rankPermission strong{font-size:11px;font-weight:600;color:#f8ecff;word-break:break-word}
+.rankPermission small{font-size:10px;color:#a28fae;line-height:1.5}
+.rankPermission.locked{opacity:.58;cursor:not-allowed}
+.rankSecurityNote{border:1px solid rgba(255,198,90,.19);color:#e5c79a;
+ background:rgba(255,198,90,.055);padding:12px;border-radius:12px;margin-top:15px;
+ font-size:11px;line-height:1.8}
+.rankModalFooter{display:flex;justify-content:flex-end;align-items:center;gap:10px;
+ background:#160e21;border-top:1px solid rgba(255,255,255,.065);padding:15px 25px}
+.rankModalFooter button{padding:11px 17px;min-height:42px;border-radius:11px}
+.rankModalOpen{overflow:hidden}
+@media(max-width:750px){.rankActionBar{align-items:flex-start;flex-direction:column}
+ .rankAddButton{width:100%}
+ .rankModal{padding:0;align-items:end}
+ .rankModalDialog{border-radius:20px 20px 0 0;max-height:94dvh;width:100%;border-bottom:0}
+ .rankModalHeader,.rankModalBody,.rankModalFooter{padding:17px}
+ .rankPermissionGrid{grid-template-columns:1fr}
+ .rankModalFooter button{flex:1}
+}
