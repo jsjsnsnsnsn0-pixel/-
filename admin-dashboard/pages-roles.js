@@ -1,10 +1,12 @@
 import {state,rpc,change,load} from './context.js';
 import {el,box,panel,title,note,btn,field} from './ui.js';
+import {addRoleToolbar} from './pages-role-create.js';
 
 export function roles(work){
  const result=panel(title('نظام رتب الموظفين'));work.append(result);
  load(result,()=>rpc('dashboard_roles_state'),data=>{
   const choices=data.roles||[],permissions=data.permissions||[];
+  addRoleToolbar(work,data);
   result.append(title('صلاحيات كل رتبة'));
   const picker=el('select',{},...choices.filter(x=>['super_admin','admin','support','agency_manager'].includes(x.id))
    .map(x=>el('option',{value:x.id},x.label)));
