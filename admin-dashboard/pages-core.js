@@ -47,7 +47,7 @@ export function overview(work){
    box('approvedInfoRow',note('Coins المتداولة'),el('strong',{},money(data.coins_in_circulation))),
    ...(state.session?.owner||state.session?.primary_partner===true?
     [box('approvedInfoRow',note('وكالات المضيفين'),el('strong',{},money(data.agencies))),
-     box('approvedInfoRow',note('المضيفون'),el('strong',{},money(data.hosts))]:[])));
+     box('approvedInfoRow',note('المضيفون'),el('strong',{},money(data.hosts)))]:[])));
  });
  if(allowed('audit.view')){
   load(activityList,()=>rpc('dashboard_audit_history'),data=>{
