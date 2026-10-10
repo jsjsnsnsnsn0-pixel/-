@@ -59,14 +59,27 @@ function login(message=''){
  },'btn primary oauthButton');
  root.append(box('loginPage',
   box('loginGlow'),
-  box('login',
-   box('loginLogo',
-    box('logo','T'),
-    el('span',{class:'loginKicker'},'ADMINISTRATIVE CONSOLE'),
-    el('h1',{},'TotiChat Admin'),
-    note('لوحة التحكم الرسمية المستقلة')),
-   panel(box('loginHeadline',el('h2',{},'تسجيل الدخول'),note('للمالك والموظفين المخوّلين فقط')),
-    msg,google)
+  box('loginSplit',
+   box('loginShowcase',
+    box('showcaseBrand',box('logo','T'),el('strong',{},'TotiChat'),el('span',{},'ADMIN')),
+    box('showcaseBody',
+     el('span',{class:'loginKicker'},'THE OPERATIONS WORKSPACE'),
+     el('h2',{},'مكان واحد لإدارة عالم TotiChat'),
+     note('الوكالات، المستخدمون، التقارير والصلاحيات. لوحة منظمة، مرتبطة ببيانات حقيقية، ومخصصة للإدارة المخوّلة.'),
+     box('showcaseChips',
+      el('span',{},'✦  صلاحيات مخصصة'),
+      el('span',{},'◈  سجلات موثقة'),
+      el('span',{},'◎  بيانات مباشرة'))),
+    box('showcaseBottom',el('span',{},'TotiChat'),el('span',{},'SECURE ADMIN ACCESS'))),
+   box('login',
+    box('loginLogo',
+     box('logo','T'),
+     el('span',{class:'loginKicker'},'ADMINISTRATIVE CONSOLE'),
+     el('h1',{},'TotiChat Admin'),
+     note('لوحة التحكم الرسمية المستقلة')),
+    panel(box('loginHeadline',el('h2',{},'مرحباً بعودتك'),note('سجّل الدخول باستخدام حساب Google الإداري المصرح به')),
+     msg,google)
+   )
   )
  ));
 }
