@@ -2,7 +2,8 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.117.2';
 import {state,rpc,allowed} from './context.js';
 import {el,box,title,note,panel,btn,field} from './ui.js';
 import {overview,users,wallet,audit,health,settings} from './pages-core.js';
-import {roles,agencies,catalog,rooms,tickets} from './pages-admin.js';
+import {roles,catalog,rooms,tickets} from './pages-admin.js';
+import {agencies,agencyApplications} from './pages-agencies.js';
 import {settlements} from './pages-finance.js';
 
 const root=document.getElementById('app');
@@ -12,7 +13,8 @@ const sections=[
  ['users','المستخدمون','users.view','♙',users],
  ['wallet','الخزينة والعملات','wallet.history','◈',wallet],
  ['roles','الرتب والصلاحيات','roles.view','⚿',roles],
- ['agencies','الوكالات','agencies.view','⌂',agencies],
+ ['agencies','إدارة وكالات المضيفين','agencies.view','⌂',agencies],
+ ['agency-applications','فتح وكالات المضيفين','agencies.view','✛',agencyApplications],
  ['settlements','تسويات الماس','settlements.view','▤',settlements],
  ['gifts','الهدايا','gifts.manage','✧',root=>catalog(root,'gift')],
  ['store','المتجر','store.manage','◇',root=>catalog(root,'store')],
@@ -22,7 +24,15 @@ const sections=[
  ['health','مراقبة Beta','reports.view','◌',health],
  ['settings','إعدادات Beta','system.settings','⚙',settings]
 ];
-const visible=s=>allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+const agencyPrincipal=()=>Boolean(state.session?.owner||state.session?.primary_partner===true);
+const agencyOpener=()=>agencyPrincipal()||['db_employee','agency_manager'].includes(state.session?.role);
+const visible=s=>{
+ if(['agencies','settlements'].includes(s[0]))
+  return agencyPrincipal()&&allowed(s[2]);
+ if(s[0]==='agency-applications')
+  return agencyOpener()&&allowed('agencies.view');
+ return allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+};
 function inform(message,severity='success'){
  const feedback=document.getElementById('feedback');
  if(feedback)feedback.replaceChildren(box('message'+(severity==='error'?' error':''),message));
@@ -66,13 +76,14 @@ function render(){
  if(!selected){login('لا توجد صلاحيات متاحة لهذا الحساب.');return}
  state.section=selected[0];state.version++;root.replaceChildren();
  const groupFor=id=>['overview','users','rooms','tickets'].includes(id)?'التشغيل والمتابعة':
-  ['wallet','agencies','settlements','gifts','store'].includes(id)?'المالية والمحتوى':'الإدارة والنظام';
+  ['wallet','agencies','agency-applications','settlements','gifts','store'].includes(id)?'المالية والمحتوى':'الإدارة والنظام';
  const description={
   overview:'نظرة موحدة على نشاط المنصة ومؤشراتها المباشرة',
   users:'البحث عن الحسابات ومتابعة بيانات المستخدمين',
   wallet:'إدارة العملات والسجلات المالية وفق الصلاحيات',
   roles:'تعيين الموظفين وتحديد صلاحيات الوصول',
-  agencies:'طلبات الوكالات والمراجعة الإدارية',
+  agencies:'إدارة الوكالات والمضيفين والتارجت والمستحقات للشريكين فقط',
+  'agency-applications':'فتح وكالات المضيفين ومراجعة طلباتها',
   settlements:'متابعة مستحقات المضيفين والوكالات الشهرية',
   gifts:'إدارة عناصر الهدايا وأسعارها',
   store:'مراجعة عناصر المتجر وحالتها',
