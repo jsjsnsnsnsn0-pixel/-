@@ -11,7 +11,7 @@ if(!key||!key.startsWith('sb_publishable_')){
  throw Error('Only the sb_publishable_ public key is allowed. Never use service_role, anon JWT, or secret keys.');
 }
 const files=[
- 'index.html','app.js','styles.css','context.js','ui.js',
+ 'index.html','approved-20261007-original.html','app.js','styles.css','approved-theme.css','context.js','ui.js',
  'pages-core.js','pages-wallet.js','pages-monitoring.js',
  'pages-admin.js','pages-roles.js','pages-agencies.js',
  'pages-catalog.js','pages-moderation.js','pages-finance.js'
