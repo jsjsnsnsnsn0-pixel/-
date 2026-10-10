@@ -315,7 +315,13 @@ async function start(){
   if(!usersCache.length)return say('لا توجد نتائج بحث لتصديرها.',true);
   const data=[['User ID','Name','Username','VIP','Level','Coins'],
    ...usersCache.map(u=>[u.public_id,u.display_name,u.username,u.vip_level,u.level,u.gold])];
-  const csv=data.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');
+  const safeCell=v=>{
+   let s=String(v??'');
+   // Avoid CSV formula injection when exported user-supplied names are opened in Excel.
+   if(/^[\\s]*[=+@-]/.test(s))s="'"+s;
+   return '"'+s.replaceAll('"','""')+'"';
+  };
+  const csv=data.map(row=>row.map(safeCell).join(',')).join('\r\n');
   const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
   const anchor=el('a',{href:url,download:'totichat-users.csv'});
   anchor.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
