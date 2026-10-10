@@ -22,3 +22,93 @@ test('overview continues to use authenticated Supabase RPC, not mock counters',(
  assert.match(core,/allowed\(permission\)/);
  assert.doesNotMatch(core,/Math\.random/);
 });
+
+const approved=readFileSync(new URL('./approved-theme.css',import.meta.url),'utf8');
+const reference=readFileSync(new URL('./approved-20261007-original.html',import.meta.url),'utf8');
+const build=readFileSync(new URL('./build.mjs',import.meta.url),'utf8');
+test('approved Oct 7 dashboard is preserved as the visual reference',()=>{
+ assert.match(reference,/TotiChat Admin Dashboard — Prototype/);
+ assert.match(reference,/id="globalSearch"/);
+ assert.match(reference,/data-page="agencies"/);
+ assert.match(approved,/--purple:#9d63ff/);
+ assert.match(approved,/approvedOwnerPill/);
+ assert.match(build,/approved-theme\.css/);
+});
+test('original search and dashboard use real authenticated APIs in production interface',()=>{
+ assert.match(app,/state\.userSearchQuery/);
+ assert.match(app,/state\.section='users'/);
+ assert.match(core,/rpc\('dashboard_users'/);
+ assert.match(core,/rpc\('dashboard_audit_history'/);
+ assert.match(core,/rpc\('dashboard_overview'/);
+ assert.doesNotMatch(core,/128,420/);
+ assert.doesNotMatch(core,/Math\.random/);
+});
+test('restricted agency pages require owner or trusted partner flag in UI',()=>{
+ assert.match(app,/state\.session\?\.primary_partner===true/);
+ assert.match(app,/principal\(\)\&\&allowed/);
+});
+
+const liveFrontend=readFileSync(new URL('./approved-front.js',import.meta.url),'utf8');
+const liveHTML=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+const liveCSS=readFileSync(new URL('./approved-front.css',import.meta.url),'utf8');
+test('root uses Owner-approved look with real authentication gate',()=>{
+ assert.ok(liveHTML.includes('id="dashboardShell" hidden'));
+ assert.ok(liveHTML.includes('id="authGate"'));
+ assert.ok(liveHTML.includes('src="/approved-front.js"'));
+ assert.ok(liveHTML.includes('id="globalSearch"'));
+ assert.ok(liveHTML.includes('class="stats"'));
+ assert.ok(liveHTML.includes('class="agency-grid"'));
+ assert.ok(!liveHTML.includes('const users=['));
+ assert.ok(!liveHTML.includes('128,420'));
+});
+test('connected frontend reads real Supabase data without fake seeds',()=>{
+ assert.ok(!liveFrontend.includes('const users=['));
+ assert.ok(!liveFrontend.includes('Math.random'));
+ for(const fn of ['dashboard_overview','dashboard_users','dashboard_agency_registrations','dashboard_audit_history']){
+  assert.ok(liveFrontend.includes("rpc('"+fn+"'"));
+ }
+});
+test('Owner and trusted partner have distinct permissions from DB employee',()=>{
+ assert.ok(liveFrontend.includes('primary_partner===true'));
+ assert.ok(liveFrontend.includes('if(isDB())return false'));
+ assert.ok(liveFrontend.includes("id==='agency-requests'"));
+ assert.ok(liveFrontend.includes("id==='agencies'&&!principal()"));
+});
+test('unverified prototype controls are disabled, never faked',()=>{
+ assert.ok(liveFrontend.includes("removeAttribute('onclick')"));
+ assert.ok(liveFrontend.includes('x.disabled=true'));
+ assert.ok(liveCSS.includes('[hidden]'));
+});
+
+const roleCreate=readFileSync(new URL('./pages-role-create.js',import.meta.url),'utf8');
+const staffRolePage=readFileSync(new URL('./pages-roles.js',import.meta.url),'utf8');
+test('Owner and main partner can open permission on/off toggles',()=>{
+ assert.ok(roleCreate.includes('state.session?.owner===true||state.session?.primary_partner===true'));
+ assert.ok(roleCreate.includes('＋ إضافة رتبة / تعديل صلاحيات'));
+ assert.ok(roleCreate.includes('rankPermissionSwitch'));
+ assert.ok(roleCreate.includes("role:'switch'"));
+ assert.ok(roleCreate.includes("aria-checked"));
+ assert.ok(roleCreate.includes("if(check.checked)active.add(permission);else active.delete(permission)"));
+ assert.ok(staffRolePage.includes('addRoleToolbar(work,data)'));
+});
+test('No creation of duplicate Owner or main partner role',()=>{
+ assert.ok(!roleCreate.includes("key:'owner'"));
+ assert.ok(!roleCreate.includes("key:'primary_partner'"));
+ assert.ok(roleCreate.includes('ROLE_CATALOG'));
+ assert.ok(roleCreate.includes("key:'extra_super'"));
+});
+test('protected agency permissions and app-only agents are separated',()=>{
+ assert.ok(roleCreate.includes("DB_ALLOWED"));
+ assert.ok(roleCreate.includes('SUPPORT_ALLOWED'));
+ assert.ok(roleCreate.includes('EXTRA_BLOCKED'));
+ assert.ok(roleCreate.includes('APP_ONLY'));
+ assert.ok(roleCreate.includes('إدارة وكالات المضيفين'));
+ assert.ok(!staffRolePage.includes("picker.value==='super_admin'"));
+});
+test('real saves only use authenticated RPC and never claim partner success without server permission',()=>{
+ assert.ok(build.includes("'pages-role-create.js'"));
+ assert.ok(roleCreate.includes("rpc('dashboard_save_role'"));
+ assert.ok(roleCreate.includes("if(!isPrincipal()"));
+ assert.ok(roleCreate.includes("if(ok){close();state.refresh?.()}"));
+ assert.ok(roleCreate.includes("الخادم الحالي ما يسمح بحفظ الشريك بعد"));
+});

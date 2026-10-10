@@ -1,25 +1,58 @@
-# TotiChat Admin — independent administration website
+# TotiChat Admin — approved frontend implementation
 
-## Live site
+## Current entry point
 
-- https://bfadhdnudmsggylunhlh.supabase.co/functions/v1/totichat-admin
-- Hosted independently as a Supabase Edge Function. The existing TotiChat Vercel application remains unchanged.
-- Dedicated Vercel project creation is blocked by a 403 account-scope permission error, so deployment through the existing Vercel application is deliberately avoided.
+The **root `index.html`** on branch `feature/restore-approved-admin-ui-20261010`
+uses the October 7, 2026 purple/pink dashboard HTML layout approved by the Owner.
 
-## Owner and login
+It is **real frontend code** backed by the existing Supabase:
+- `index.html` — approved sidebar, topbar, dashboard cards, mobile navigation, detail drawer, authenticated gate.
+- `approved-front.css` — responsive styling for real forms and data views without changing approved visual identity.
+- `approved-front.js` — Google OAuth, `dashboard_session` RBAC, safe navigation, live users, overview, agency applications, audits, CSV export, and reused live catalog, wallet, moderation, roles, settlements and beta-monitoring pages.
+- `approved-20261007-original.html` — **unchanged visual reference** with demo data (not production, no database writes).
+- `approved-live.html` — independent frontend integration review entry.
+- `legacy-connected.html` + `app.js` — previous connected frontend retained for rollback.
 
-- Owner's existing Supabase Auth account: xxjjh20@gmail.com, confirmed as the only Owner in admin_roles.
-- Username 'admin' is only an alias to this real Owner email. Its password must be the Owner's genuine Supabase Auth password, NOT 'admin'.
-- Google OAuth for the same email is also available; the dashboard URL needs to be allowlisted in Supabase Auth redirects.
-- Staff use individual Supabase Auth accounts and receive permissions only through Owner-controlled server-side RBAC.
+### What is real
 
-## Verified backend
+All live data is retrieved via existing Supabase RPCs with each staff user's OAuth session.
+There are no seeded users or fake balances in the frontend runtime.
+UI calls for agency review, wallet modification and catalog edits use the existing
+authenticated, server-side RPCs only after role checks and confirmations.
+If an operation lacks verified backend support, the UI says so; it does not
+pretend to complete the operation.
 
-Eight production migrations successfully applied 2026-10-08: beta_admin_roles_wallet, room_music_state, beta_roles_realtime, dashboard_agency_review, beta_telemetry, dashboard_monthly_settlements, beta_catalog_administration, beta_support_rooms.
-24 public dashboard_* functions registered. Owner has audited, authenticated APIs for users, wallets, role assignments, agency applications, host/agent compensation and settlements, gift/store catalogs, room moderation, tickets, audit, beta telemetry and flags.
-Tests: no-session dashboard_session yields allowed=false; unauthenticated overview and wallet adjustment denied; RLS enabled on administrative tables with no authenticated direct UPDATE grant. No actual wallet balance or monthly settlement was changed by these tests.
-Some prior features (such as general user ban, arbitrary VIP/levels, advanced CP administration) do not yet have dedicated tested dashboard actions; they must not be presented as complete.
+### Access rules
 
-## Alternative dedicated Vercel deployment
+Owner and **explicitly trusted primary Super Admin partner** only may view
+the comprehensive host agency section in UI. Other Super Admins are blocked
+there. DB staff may use the dedicated host agency application approval section
+only. Customer Service sees complaints without sanction actions.
+Host Agent and Charging Agent roles are app-side rather than general dashboard accounts.
 
-Create a new Vercel project 'totichat-admin' with Root Directory 'admin-dashboard', build 'npm run build' and Output Directory 'dist'; set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (a publishable key only). Never point this build at the existing TotiChat app Vercel project. Run npm run check and browser tests before activating production.
+**Security work remains blocking:** the current backend `dashboard_session` does
+**not** issue `primary_partner`, and some existing agency/settlement RPCs still
+authorize too broadly. Before merge, deploy a carefully reviewed additive
+backend migration that identifies exactly two trusted accounts and enforces access
+for all sensitive RPCs, documents and monthly compensation data. Frontend hiding
+alone is not a security boundary. Do not edit financial records as part of UI work.
+
+### Development verification
+
+```sh
+cd admin-dashboard
+npm run check
+npm run build
+```
+
+`npm run build` requires the existing TotiChat `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY` (public key), already configured for the
+independent Vercel project. Never ship service_role secrets in frontend assets.
+
+**Deployment note:** Latest GitHub branch contains the new connected frontend.
+Vercel preview publication currently needs renewed authorization for the
+`xd-481e` team (403). Do not claim an old preview deployment represents
+the latest commit.
+
+No Supabase migrations, currency entries, or production app front-end
+components were modified on this branch.

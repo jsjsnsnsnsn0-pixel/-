@@ -70,23 +70,23 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:280px 1
       <button data-page="security"><span class="ico">🔒</span>مركز الأمان</button>
       <button data-page="reports"><span class="ico">▥</span>التقارير والتحليلات</button>
     </nav>
-    <div class="sidebar-foot"><div class="owner-mini"><div class="avatar">O</div><div><b>—</b><small>Owner • صلاحية المالك</small></div></div></div>
+    <div class="sidebar-foot"><div class="owner-mini"><div class="avatar">O</div><div><b>xxjjh20@gmail.com</b><small>Owner • صلاحية المالك</small></div></div></div>
   </aside>
 
   <main class="main">
     <header class="topbar">
       <div class="search"><input id="globalSearch" placeholder="بحث عام: مستخدم، Room ID، Agency ID..." /></div>
-      <div class="top-actions"><button class="icon-btn menu-btn" id="menuBtn">☰</button><button class="icon-btn">🔔</button><div class="owner-pill"><div class="avatar">O</div><div><b>المالك</b><span>—</span></div></div></div>
+      <div class="top-actions"><button class="icon-btn menu-btn" id="menuBtn">☰</button><button class="icon-btn">🔔</button><div class="owner-pill"><div class="avatar">O</div><div><b>المالك</b><span>xxjjh20@gmail.com</span></div></div></div>
     </header>
 
     <div class="content">
       <section class="section active" id="overview">
-        <div class="header-row"><div><h2>نظرة عامة</h2><p>مؤشرات تشغيل TotiChat لحظياً — بيانات فعلية من قاعدة TotiChat.</p></div><div class="date-filter"><button class="active">اليوم</button><button>7 أيام</button><button>30 يوم</button><button>هذا العام</button></div></div>
+        <div class="header-row"><div><h2>نظرة عامة</h2><p>مؤشرات تشغيل TotiChat لحظياً — بيانات معاينة مؤقتة للـUI/UX فقط.</p></div><div class="date-filter"><button class="active">اليوم</button><button>7 أيام</button><button>30 يوم</button><button>هذا العام</button></div></div>
         <div class="stats">
-          <div class="stat"><div class="stat-head"><label>إجمالي المستخدمين</label><div class="badge-icon">👥</div></div><strong>—</strong><span class="trend">بانتظار البيانات</span></div>
-          <div class="stat"><div class="stat-head"><label>النشطون الآن</label><div class="badge-icon">●</div></div><strong>—</strong><span class="trend">بانتظار البيانات</span></div>
-          <div class="stat"><div class="stat-head"><label>الغرف النشطة</label><div class="badge-icon">🎙</div></div><strong>—</strong><span class="trend">بانتظار البيانات</span></div>
-          <div class="stat"><div class="stat-head"><label>بلاغات معلّقة</label><div class="badge-icon">⚠</div></div><strong>—</strong><span class="trend down">بانتظار البيانات</span></div>
+          <div class="stat"><div class="stat-head"><label>إجمالي المستخدمين</label><div class="badge-icon">👥</div></div><strong>128,420</strong><span class="trend">▲ 8.4% هذا الشهر</span></div>
+          <div class="stat"><div class="stat-head"><label>النشطون الآن</label><div class="badge-icon">●</div></div><strong>4,862</strong><span class="trend">▲ 12.1% خلال الساعة</span></div>
+          <div class="stat"><div class="stat-head"><label>الغرف النشطة</label><div class="badge-icon">🎙</div></div><strong>326</strong><span class="trend">▲ 19 غرفة</span></div>
+          <div class="stat"><div class="stat-head"><label>بلاغات معلّقة</label><div class="badge-icon">⚠</div></div><strong>47</strong><span class="trend down">▲ 6 تحتاج مراجعة عاجلة</span></div>
         </div>
         <div class="grid2">
           <div class="card"><div class="card-title"><h3>نشاط المنصة</h3><div class="chart-legend"><span><i class="dot"></i>المستخدمون</span><span><i class="dot pink"></i>الغرف</span></div></div><div class="chart" id="chart"></div></div>
@@ -102,19 +102,19 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:280px 1
 
       <section class="section" id="users">
         <div class="header-row"><div><h2>إدارة المستخدمين</h2><p>بحث، مراجعة الحساب، VIP، المستويات، العقوبات والمعاملات.</p></div><button class="primary" id="exportUsers">تصدير لاحقاً</button></div>
-        <div class="kpis-small"><div class="mini-kpi"><label>المستخدمون الجدد اليوم</label><b>—</b></div><div class="mini-kpi"><label>المحظورون</label><b>—</b></div><div class="mini-kpi"><label>الحسابات الموثقة</label><b>—</b></div></div>
+        <div class="kpis-small"><div class="mini-kpi"><label>المستخدمون الجدد اليوم</label><b>1,284</b></div><div class="mini-kpi"><label>المحظورون</label><b>392</b></div><div class="mini-kpi"><label>الحسابات الموثقة</label><b>8,713</b></div></div>
         <div class="card table-card"><div class="card-title"><h3>قائمة المستخدمين</h3><div class="toolbar"><input id="userSearch" placeholder="بحث بالاسم أو User ID"/><select><option>كل الحالات</option><option>نشط</option><option>محظور</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>المستخدم</th><th>User ID</th><th>الحالة</th><th>VIP</th><th>Level</th><th>Gold</th><th>الغرفة الحالية</th><th>إجراء</th></tr></thead><tbody id="userRows"></tbody></table></div></div>
       </section>
 
       <section class="section" id="agencies">
         <div class="header-row"><div><h2>الوكالات</h2><p>إدارة الوكالات وطلبات الوكلاء وطلبات انضمام المضيفين.</p></div><button class="primary" id="newAgencyBtn">+ إضافة إدارية</button></div>
-        <div class="kpis-small"><div class="mini-kpi"><label>وكالات فعالة</label><b>—</b></div><div class="mini-kpi"><label>طلبات وكلاء قيد المراجعة</label><b>—</b></div><div class="mini-kpi"><label>طلبات مضيفين اليوم</label><b>—</b></div></div>
+        <div class="kpis-small"><div class="mini-kpi"><label>وكالات فعالة</label><b>184</b></div><div class="mini-kpi"><label>طلبات وكلاء قيد المراجعة</label><b>12</b></div><div class="mini-kpi"><label>طلبات مضيفين اليوم</label><b>46</b></div></div>
         <div class="agency-grid">
           <div class="card"><div class="card-title"><h3>طلبات تسجيل الوكلاء</h3><span>Pending</span></div><div id="agencyRequests"></div></div>
           <div class="card"><div class="card-title"><h3>ملخص</h3><span>هذا الأسبوع</span></div><div class="activity">
-            <div class="activity-row"><div class="bubble">✓</div><div><b>تمت الموافقة</b><p>—</p></div><time>+24%</time></div>
-            <div class="activity-row"><div class="bubble">⌛</div><div><b>قيد المراجعة</b><p>—</p></div><time>الآن</time></div>
-            <div class="activity-row"><div class="bubble">✕</div><div><b>مرفوض</b><p>—</p></div><time>-8%</time></div>
+            <div class="activity-row"><div class="bubble">✓</div><div><b>تمت الموافقة</b><p>19 وكالة جديدة</p></div><time>+24%</time></div>
+            <div class="activity-row"><div class="bubble">⌛</div><div><b>قيد المراجعة</b><p>12 طلباً</p></div><time>الآن</time></div>
+            <div class="activity-row"><div class="bubble">✕</div><div><b>مرفوض</b><p>5 طلبات</p></div><time>-8%</time></div>
           </div></div>
         </div>
       </section>
@@ -122,7 +122,7 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:280px 1
       <section class="section" id="staff">
         <div class="header-row"><div><h2>الموظفون والصلاحيات</h2><p>RBAC حقيقي: كل رتبة ترى وتنفذ فقط ما تسمح به صلاحياتها.</p></div><button class="primary">+ إضافة موظف</button></div>
         <div class="roles">
-          <div class="role"><h4>Owner — —</h4><p>الحساب المالك الأعلى للنظام. لا يمكن لأي موظف ترقية نفسه لهذه الرتبة أو تعديل صلاحياتها.</p><div class="perm"><span>All Access</span><span>Economy</span><span>Roles</span><span>Security</span></div></div>
+          <div class="role"><h4>Owner — xxjjh20@gmail.com</h4><p>الحساب المالك الأعلى للنظام. لا يمكن لأي موظف ترقية نفسه لهذه الرتبة أو تعديل صلاحياتها.</p><div class="perm"><span>All Access</span><span>Economy</span><span>Roles</span><span>Security</span></div></div>
           <div class="role"><h4>Super Admin</h4><p>إدارة واسعة مع استثناء صلاحيات المالك والأسرار الحساسة.</p><div class="perm"><span>Users</span><span>Rooms</span><span>Agencies</span><span>Moderation</span></div></div>
           <div class="role"><h4>Admin</h4><p>إدارة تشغيلية للمستخدمين والغرف وفق الحدود والسياسات المعتمدة.</p><div class="perm"><span>Users</span><span>Rooms</span><span>Reports</span></div></div>
           <div class="role"><h4>Customer Service</h4><p>خدمة المستخدمين بدون صلاحيات مالية أو ترقية ذاتية.</p><div class="perm"><span>View Users</span><span>Tickets</span><span>Notes</span></div></div>
@@ -133,7 +133,11 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:280px 1
 
       <section class="section" id="audit">
         <div class="header-row"><div><h2>Audit Log</h2><p>كل عملية حساسة تترك أثراً: من نفذها، ماذا تغيّر، السبب والتوقيت.</p></div><button class="ghost">تصدير لاحقاً</button></div>
-        <div class="card table-card"><div class="table-wrap"><table class="data-table"><thead><tr><th>الموظف</th><th>الإجراء</th><th>الهدف</th><th>القيمة القديمة</th><th>القيمة الجديدة</th><th>السبب</th><th>التوقيت</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card table-card"><div class="table-wrap"><table class="data-table"><thead><tr><th>الموظف</th><th>الإجراء</th><th>الهدف</th><th>القيمة القديمة</th><th>القيمة الجديدة</th><th>السبب</th><th>التوقيت</th></tr></thead><tbody>
+          <tr><td>Owner</td><td>Wallet Adjustment</td><td>User #104829</td><td>8,200</td><td>33,200</td><td>تعويض دعم</td><td>02:31</td></tr>
+          <tr><td>Moderator-07</td><td>Temp Ban</td><td>User #552011</td><td>Active</td><td>24h Ban</td><td>إساءة متكررة</td><td>02:19</td></tr>
+          <tr><td>Admin-02</td><td>Agency Review</td><td>Agency #A-2291</td><td>Pending</td><td>Approved</td><td>المستندات مكتملة</td><td>01:58</td></tr>
+        </tbody></table></div></div>
       </section>
 
       <section class="section" id="rooms"><div class="placeholder card"><div><div class="big">🎙</div><h2>إدارة الغرف</h2><p>سيتم ربط Room ID، المالك، المشرفين، المقاعد، الـBlacklist، النشاط، وإجراءات الإغلاق/إعادة الفتح دون لمس نظام الصوت نفسه.</p><span class="soon">UI skeleton جاهز للمرحلة التالية</span></div></div></section>
@@ -152,7 +156,7 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:280px 1
   </main>
 </div>
 
-<div class="drawer" id="userDrawer"><div class="drawer-backdrop" id="drawerBackdrop"></div><div class="drawer-panel"><button class="drawer-close" id="drawerClose">×</button><div class="profile-head"><div class="avatar" id="drawerAvatar">A</div><div><h3 id="drawerName">أحمد</h3><p id="drawerId">User ID: 104829</p></div></div><div class="info-grid"><div class="info"><label>الحالة</label><b>نشط الآن</b></div><div class="info"><label>VIP</label><b id="drawerVip">VIP 6</b></div><div class="info"><label>Level</label><b id="drawerLevel">48</b></div><div class="info"><label>Gold</label><b>—</b></div><div class="info"><label>آخر نشاط</label><b>الآن</b></div><div class="info"><label>الغرفة الحالية</label><b>#R-93021</b></div></div><div class="drawer-section"><h4>إجراءات إدارية</h4><button class="ghost" onclick="toast('تم فتح سجل المعاملات — معاينة فقط')">المعاملات</button> <button class="ghost" onclick="toast('تعديل VIP سيكون محمياً بسبب + Audit Log')">VIP</button></div><div class="drawer-section danger-zone"><h4>منطقة حساسة</h4><p style="color:var(--muted);font-size:11px">هذه العمليات ستتطلب سبباً واضحاً وتأكيداً إضافياً عند ربط الـBackend.</p><button class="reject" onclick="toast('الحظر غير منفذ في الـPrototype')">حظر</button><button class="ghost" onclick="toast('تعديل الرصيد غير منفذ في الـPrototype')">تعديل الرصيد</button></div></div></div>
+<div class="drawer" id="userDrawer"><div class="drawer-backdrop" id="drawerBackdrop"></div><div class="drawer-panel"><button class="drawer-close" id="drawerClose">×</button><div class="profile-head"><div class="avatar" id="drawerAvatar">A</div><div><h3 id="drawerName">أحمد</h3><p id="drawerId">User ID: 104829</p></div></div><div class="info-grid"><div class="info"><label>الحالة</label><b>نشط الآن</b></div><div class="info"><label>VIP</label><b id="drawerVip">VIP 6</b></div><div class="info"><label>Level</label><b id="drawerLevel">48</b></div><div class="info"><label>Gold</label><b>33,200</b></div><div class="info"><label>آخر نشاط</label><b>الآن</b></div><div class="info"><label>الغرفة الحالية</label><b>#R-93021</b></div></div><div class="drawer-section"><h4>إجراءات إدارية</h4><button class="ghost" onclick="toast('تم فتح سجل المعاملات — معاينة فقط')">المعاملات</button> <button class="ghost" onclick="toast('تعديل VIP سيكون محمياً بسبب + Audit Log')">VIP</button></div><div class="drawer-section danger-zone"><h4>منطقة حساسة</h4><p style="color:var(--muted);font-size:11px">هذه العمليات ستتطلب سبباً واضحاً وتأكيداً إضافياً عند ربط الـBackend.</p><button class="reject" onclick="toast('الحظر غير منفذ في الـPrototype')">حظر</button><button class="ghost" onclick="toast('تعديل الرصيد غير منفذ في الـPrototype')">تعديل الرصيد</button></div></div></div>
 <div class="toast" id="toast"></div>
 <nav class="mobile-nav"><button class="active" data-jump="overview"><span class="micon">⌂</span>الرئيسية</button><button data-jump="users"><span class="micon">👥</span>المستخدمون</button><button data-jump="agencies"><span class="micon">🏢</span>الوكالات</button><button data-jump="staff"><span class="micon">🔐</span>الصلاحيات</button></nav>
 </div>

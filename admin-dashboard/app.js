@@ -8,21 +8,27 @@ import {settlements} from './pages-finance.js';
 const root=document.getElementById('app');
 const config=window.TOTICHAT_ADMIN_CONFIG;
 const sections=[
- ['overview','الرئيسية','dashboard.view','▦',overview],
- ['users','المستخدمون','users.view','♙',users],
- ['wallet','الخزينة والعملات','wallet.history','◈',wallet],
- ['roles','الرتب والصلاحيات','roles.view','⚿',roles],
- ['agencies','الوكالات','agencies.view','⌂',agencies],
+ ['overview','الرئيسية','dashboard.view','⌂',overview],
+ ['users','المستخدمون','users.view','👥',users],
+ ['wallet','الاقتصاد والخزينة','wallet.history','◎',wallet],
+ ['roles','الموظفون والصلاحيات','roles.view','🔐',roles],
+ ['agencies','الوكالات','agencies.view','🏢',agencies],
  ['settlements','تسويات الماس','settlements.view','▤',settlements],
- ['gifts','الهدايا','gifts.manage','✧',root=>catalog(root,'gift')],
- ['store','المتجر','store.manage','◇',root=>catalog(root,'store')],
- ['rooms','إدارة الغرف','rooms.view','◉',rooms],
- ['tickets','الدعم الفني','reports.view','▣',tickets],
- ['audit','سجل الإدارة','audit.view','☷',audit],
+ ['gifts','الهدايا','gifts.manage','✦',root=>catalog(root,'gift')],
+ ['store','المتجر','store.manage','🎁',root=>catalog(root,'store')],
+ ['rooms','الغرف الصوتية','rooms.view','🎙',rooms],
+ ['tickets','المراقبة والبلاغات','reports.view','🛡',tickets],
+ ['audit','سجل الإدارة','audit.view','≡',audit],
  ['health','مراقبة Beta','reports.view','◌',health],
  ['settings','إعدادات Beta','system.settings','⚙',settings]
 ];
-const visible=s=>allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+// Protect restricted UI while server-side partner identity and RPC guards are completed.
+const principal=()=>Boolean(state.session?.owner||state.session?.primary_partner===true);
+const visible=s=>{
+ if(['agencies','settlements'].includes(s[0]))return principal()&&allowed(s[2]);
+ if(['support','customer_service'].includes(state.session?.role)&&s[0]!=='tickets')return false;
+ return allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+};
 function inform(message,severity='success'){
  const feedback=document.getElementById('feedback');
  if(feedback)feedback.replaceChildren(box('message'+(severity==='error'?' error':''),message));
@@ -113,13 +119,34 @@ function render(){
  const logout=btn('تسجيل الخروج',async()=>{
   await state.client.auth.signOut();state.session=null;state.user=null;login();
  },'btn ghost logout');
- const main=el('main',{class:'main'},box('topbar',
-  box('topbarHeading',menuToggle,box('pageHeading',
-    el('div',{class:'breadcrumb'},'TotiChat Admin  /  '+groupFor(selected[0])),
-    el('h1',{},selected[1]),note(description[selected[0]]||''))),
-  box('toolbar',
-   box('pill rolePill',state.session.owner?'المالك الرئيسي':state.session.role),
-   btn('↻ تحديث',()=>render(),'btn ghost refresh'),logout)),
+ // Restore the approved October 7 layout: top search + Owner identity,
+ // followed by a full-width page heading (never a fake search).
+ const globalSearch=el('input',{
+  type:'search',id:'adminGlobalSearch',autocomplete:'off',
+  placeholder:'بحث عام: اسم مستخدم أو User ID…',
+  'aria-label':'البحث العام عن مستخدم',
+  value:state.userSearchQuery||''
+ });
+ const searchForm=el('form',{class:'adminGlobalSearchForm',role:'search'},globalSearch);
+ searchForm.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!allowed('users.view'))return inform('لا تملك صلاحية البحث عن المستخدمين.','error');
+  state.userSearchQuery=globalSearch.value.trim().slice(0,100);
+  state.section='users';closeNav();render();
+ });
+ if(!allowed('users.view'))globalSearch.disabled=true;
+ const identity=box('approvedOwnerPill',
+  box('approvedOwnerAvatar',state.session.owner?'O':'◈'),
+  box('approvedOwnerCopy',
+   el('strong',{},state.session.owner?'المالك':'حساب إداري'),
+   el('span',{},state.user?.email||state.session.role)));
+ const main=el('main',{class:'main'},
+  box('topbar',
+   box('approvedSearchWrap',menuToggle,searchForm),
+   box('approvedTopActions',btn('↻ تحديث',()=>render(),'btn ghost refresh'),logout,identity)),
+  box('approvedPageHeading',
+   el('div',{class:'breadcrumb'},'TotiChat Admin  /  '+groupFor(selected[0])),
+   el('h1',{},selected[1]),note(description[selected[0]]||'')),
   feedback,work,box('mainFoot','© TotiChat • الإدارة الرسمية'));
  const backdrop=btn('',closeNav,'navBackdrop');
  backdrop.setAttribute('aria-label','إغلاق قائمة الأقسام');

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs",
-    "check": "for f in app.js context.js ui.js pages-*.js build.mjs; do node --check \"$f\" || exit 1; done && node --test uiux-smoke.test.mjs"
+    "build": "npm run check && node build.mjs",
+    "check": "for f in approved-front.js app.js context.js ui.js pages-*.js build.mjs; do node --check \"$f\" || exit 1; done && node --test uiux-smoke.test.mjs"
   }
 }
