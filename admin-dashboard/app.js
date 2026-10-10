@@ -22,7 +22,13 @@ const sections=[
  ['health','مراقبة Beta','reports.view','◌',health],
  ['settings','إعدادات Beta','system.settings','⚙',settings]
 ];
-const visible=s=>allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+// Protect restricted UI while server-side partner identity and RPC guards are completed.
+const principal=()=>Boolean(state.session?.owner||state.session?.primary_partner===true);
+const visible=s=>{
+ if(['agencies','settlements'].includes(s[0]))return principal()&&allowed(s[2]);
+ if(['support','customer_service'].includes(state.session?.role)&&s[0]!=='tickets')return false;
+ return allowed(s[2])||(s[0]==='wallet'&&(allowed('wallet.credit')||allowed('wallet.debit')));
+};
 function inform(message,severity='success'){
  const feedback=document.getElementById('feedback');
  if(feedback)feedback.replaceChildren(box('message'+(severity==='error'?' error':''),message));
