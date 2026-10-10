@@ -3,6 +3,7 @@ import {el,box,btn,note} from './ui.js';
 
 // Approved TotiChat roles: this UI never promotes a user, alters balances or
 // creates new database role identifiers by itself. The server is authoritative.
+// The Owner account is unique and is deliberately excluded from Add Role options.
 const roles=[
  {key:'owner',label:'Owner — المالك الرئيسي',description:'حساب المالك الوحيد، محمي من الاستنساخ أو تعديل صلاحياته.',readonly:true},
  {key:'primary_partner',label:'Super Admin — الشريك الرئيسي',description:'هوية الشريك الرئيسي محمية؛ لا تُمنح صلاحياته لرتبة Super Admin أخرى.',readonly:true},
@@ -52,7 +53,7 @@ export function addRoleToolbar(work,data){
  const closeButton=btn('×',close,'rankModalClose');
  closeButton.setAttribute('aria-label','إغلاق');
  const select=el('select',{id:'rankRoleSelect'},el('option',{value:''},'اختر الرتبة...'),
-  ...roles.map(r=>el('option',{value:r.key},r.label)));
+  ...roles.filter(r=>r.key!=='owner').map(r=>el('option',{value:r.key},r.label)));
  const intro=box('rankDialogInfo','اختر الرتبة حتى تظهر الصلاحيات');
  const counter=el('span',{class:'rankPermissionCounter'},'0 صلاحيات');
  const grid=box('rankPermissionGrid');
