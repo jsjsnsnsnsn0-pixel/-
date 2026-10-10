@@ -19,10 +19,12 @@ export function roles(work){
     el('label',{},el('input',{type:'checkbox',value:permission,
      checked:current?.permissions?.includes(permission),disabled:!state.session.owner||picker.value==='super_admin'}),permission)));
   }
-  picker.addEventListener('change',fill);fill();
+  picker.addEventListener('change',()=>{fill();const save=editor.querySelector('[data-role-template-save]');if(save)save.disabled=!state.session.owner||picker.value==='super_admin'});fill();
   const editor=el('form',{class:'stack'},el('label',{class:'field'},el('span',{},'الرتبة'),picker),
    box('fields',roleId.label,label.label),checkGrid);
-  editor.append(btn('حفظ الرتبة والصلاحيات',()=>editor.requestSubmit(),'btn primary',!state.session.owner));
+  const templateSave=btn('حفظ الرتبة والصلاحيات',()=>editor.requestSubmit(),'btn primary',!state.session.owner||picker.value==='super_admin');
+  templateSave.setAttribute('data-role-template-save','true');
+  editor.append(templateSave);
   editor.addEventListener('submit',event=>{
    event.preventDefault();if(!state.session.owner||picker.value==='super_admin')return;
    const grants=[...checkGrid.querySelectorAll('input:checked')].map(x=>x.value);
