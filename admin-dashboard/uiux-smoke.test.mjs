@@ -79,3 +79,27 @@ test('unverified prototype controls are disabled, never faked',()=>{
  assert.ok(liveFrontend.includes('x.disabled=true'));
  assert.ok(liveCSS.includes('[hidden]'));
 });
+
+const roleCreate=readFileSync(new URL('./pages-role-create.js',import.meta.url),'utf8');
+const staffRolePage=readFileSync(new URL('./pages-roles.js',import.meta.url),'utf8');
+test('add-role action lists all agreed identities without creating Owner or partner duplicates',()=>{
+ for(const id of ['owner','primary_partner','extra_super','admin','support','db','charging_agent','host_agent'])
+  assert.ok(roleCreate.includes("key:'"+id+"'"));
+ assert.ok(roleCreate.includes('＋ إضافة رتبة'));
+ assert.ok(roleCreate.includes('readonly:true'));
+ assert.ok(roleCreate.includes("role.key==='owner'"));
+ assert.ok(roleCreate.includes("role.key==='primary_partner'"));
+ assert.ok(staffRolePage.includes('addRoleToolbar(work,data)'));
+});
+test('new role editor keeps charging/host app-only and DB limited to opening host agencies',()=>{
+ assert.ok(roleCreate.includes('صلاحيات داخل تطبيق TotiChat فقط'));
+ assert.ok(roleCreate.includes('فتح وكالات المضيفين'));
+ assert.ok(roleCreate.includes('agency_manager'));
+ assert.ok(roleCreate.includes('blockedForAdmin'));
+ assert.ok(roleCreate.includes('permissions'));
+ assert.ok(roleCreate.includes('dashboard_save_role'));
+});
+test('role editor is included in deployable frontend and Super Admin template stays read-only',()=>{
+ assert.ok(build.includes("'pages-role-create.js'"));
+ assert.ok(staffRolePage.includes("picker.value==='super_admin'"));
+});
