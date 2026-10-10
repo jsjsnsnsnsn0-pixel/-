@@ -13,7 +13,7 @@ if(!key||!key.startsWith('sb_publishable_')){
 const files=[
  'index.html','approved-live.html','legacy-connected.html','approved-front.js','approved-front.css',
  'approved-20261007-original.html','app.js','styles.css','approved-theme.css','context.js','ui.js',
- 'pages-core.js','pages-wallet.js','pages-monitoring.js',
+ 'pages-core.js','pages-wallet.js','pages-monitoring.js','pages-role-create.js',
  'pages-admin.js','pages-roles.js','pages-agencies.js',
  'pages-catalog.js','pages-moderation.js','pages-finance.js'
 ];
