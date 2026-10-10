@@ -85,3 +85,38 @@
  .agencyProfileLogo{width:54px;height:54px;font-size:29px}.agencyProfileTitle h2{font-size:19px}}
 @media(max-width:360px){.agencyInfoGrid,.agencyApplication .agencyInfoGrid{grid-template-columns:1fr}.agencySummary.metrics{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.agencyCard,.agencyHero{transition:none}}
+
+/* A real administrative login experience, preserving Google-only authentication. */
+.loginSplit{position:relative;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(370px,.92fr);
+ width:min(1050px,100%);min-height:575px;background:rgba(15,25,44,.86);
+ border:1px solid rgba(141,170,235,.19);border-radius:28px;overflow:hidden;z-index:2;
+ box-shadow:0 36px 90px rgba(0,5,19,.46)}
+.loginShowcase{position:relative;padding:37px 44px 34px;display:flex;flex-direction:column;
+ background:radial-gradient(ellipse at 12% 70%,rgba(44,179,187,.20),transparent 52%),
+ radial-gradient(ellipse at 80% 4%,rgba(101,99,239,.23),transparent 45%),#1d3053;
+ border-left:1px solid rgba(142,175,247,.13);overflow:hidden}
+.loginShowcase:before{content:'';position:absolute;width:370px;height:370px;border:1px solid rgba(164,195,255,.09);
+ border-radius:50%;bottom:-170px;left:-130px;box-shadow:0 0 0 60px rgba(164,195,255,.03),0 0 0 130px rgba(164,195,255,.018)}
+.showcaseBrand{display:flex;align-items:center;gap:11px;position:relative;z-index:1}
+.showcaseBrand .logo{width:36px;height:36px;font-size:20px;border-radius:11px}
+.showcaseBrand strong{font-size:19px;letter-spacing:-.3px}
+.showcaseBrand>span{font-size:10px;color:#9db8f6;letter-spacing:1.4px;margin-inline-start:auto}
+.showcaseBody{margin:auto 0;position:relative;z-index:1}
+.showcaseBody h2{font-size:clamp(28px,3.8vw,46px);line-height:1.32;margin:19px 0 16px;
+ letter-spacing:-.7px;max-width:450px}
+.showcaseBody .muted{color:#c2d5f0;max-width:410px;font-size:14px;line-height:2}
+.showcaseChips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:26px}
+.showcaseChips>span{border:1px solid rgba(171,197,248,.22);background:rgba(35,55,97,.52);
+ color:#d5e3ff;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:750}
+.showcaseBottom{display:flex;justify-content:space-between;gap:15px;position:relative;z-index:1;
+ color:#90a9d3;font-size:10px;letter-spacing:1px;font-weight:800}
+.loginSplit>.login{align-self:center;max-width:none;padding:45px 34px;width:100%}
+.loginSplit .loginLogo{text-align:right;margin-bottom:22px}
+.loginSplit .loginLogo .logo{margin:0 0 13px;width:52px;height:52px;font-size:27px;border-radius:15px}
+.loginSplit .loginLogo h1{font-size:30px}
+.loginSplit .login .panel{box-shadow:none;border-color:rgba(153,183,235,.17);background:rgba(19,33,55,.75)}
+@media(max-width:830px){.loginSplit{grid-template-columns:minmax(0,1fr);width:min(465px,100%);min-height:0}
+ .loginShowcase{display:none}.loginSplit>.login{padding:24px 17px}.loginSplit .loginLogo{text-align:center}
+ .loginSplit .loginLogo .logo{margin:0 auto 13px}}
+@media(max-width:460px){.loginPage{padding:15px}.loginSplit{border-radius:19px}
+ .loginSplit>.login{padding:16px 12px}.loginSplit .loginLogo h1{font-size:26px}}
