@@ -42,7 +42,7 @@ export function overview(work){
   ];
   content.append(...cards.map(([label,value,icon])=>box('approvedStat',
    box('approvedStatTop',el('span',{},label),el('span',{class:'approvedStatIcon'},icon)),
-   el('strong',{},money(value)),el('small',{},'بيانات مباشرة')));
+   el('strong',{},money(value)),el('small',{},'بيانات مباشرة'))));
   left.append(box('approvedCompactStats',
    box('approvedInfoRow',note('Coins المتداولة'),el('strong',{},money(data.coins_in_circulation))),
    ...(state.session?.owner||state.session?.primary_partner===true?
