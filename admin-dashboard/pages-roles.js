@@ -6,7 +6,7 @@ export function roles(work){
  load(result,()=>rpc('dashboard_roles_state'),data=>{
   const choices=data.roles||[],permissions=data.permissions||[];
   result.append(title('صلاحيات كل رتبة'));
-  const picker=el('select',{},...choices.filter(x=>!['owner','user'].includes(x.id))
+  const picker=el('select',{},...choices.filter(x=>['super_admin','admin','support','agency_manager'].includes(x.id))
    .map(x=>el('option',{value:x.id},x.label)));
   const roleId=field('كود الرتبة'),label=field('اسم الرتبة');
   const checkGrid=box('checks');
@@ -15,14 +15,14 @@ export function roles(work){
    roleId.input.value=current?.id||'';label.input.value=current?.label||'';
    checkGrid.replaceChildren(...permissions.map(permission=>
     el('label',{},el('input',{type:'checkbox',value:permission,
-     checked:current?.permissions?.includes(permission),disabled:!state.session.owner}),permission)));
+     checked:current?.permissions?.includes(permission),disabled:!state.session.owner||picker.value==='super_admin'}),permission)));
   }
   picker.addEventListener('change',fill);fill();
   const editor=el('form',{class:'stack'},el('label',{class:'field'},el('span',{},'الرتبة'),picker),
    box('fields',roleId.label,label.label),checkGrid);
   editor.append(btn('حفظ الرتبة والصلاحيات',()=>editor.requestSubmit(),'btn primary',!state.session.owner));
   editor.addEventListener('submit',event=>{
-   event.preventDefault();if(!state.session.owner)return;
+   event.preventDefault();if(!state.session.owner||picker.value==='super_admin')return;
    const grants=[...checkGrid.querySelectorAll('input:checked')].map(x=>x.value);
    change(()=>rpc('dashboard_save_role',{p_role:roleId.input.value.trim(),
     p_label:label.input.value.trim(),p_permissions:grants}));
@@ -34,7 +34,7 @@ export function roles(work){
   staffEmail.input.placeholder='employee@gmail.com';
   staffEmail.input.autocomplete='email';
   const rank=el('select',{},
-   ...choices.filter(x=>x.id!=='owner'&&x.id!=='user')
+   ...choices.filter(x=>['admin','support','agency_manager'].includes(x.id))
      .map(x=>el('option',{value:x.id},x.label)),
    el('option',{value:'user'},'إلغاء صلاحية الداش بورد'));
   const assign=el('form',{class:'stack'},
@@ -55,7 +55,7 @@ export function roles(work){
   });
   work.append(panel(title('تعيين الموظفين عن طريق البريد'),
    note('حدد بريد الموظف المرتبط بحسابه في Google، ثم اختر الرتبة. إذا لم يسجل بعد، تحفظ الدعوة وتتفعل عند دخوله بنفس البريد.'),
-   assign));
+   note('إنشاء Super Admin إضافي يتطلب تفويضاً فردياً من الخادم ولا يتم عبر قالب الرتبة العام.'),assign));
   const staffPanel=panel(title('الموظفون والدعوات'));
   work.append(staffPanel);
   load(staffPanel,()=>rpc('dashboard_staff_email_invites_list'),items=>{
