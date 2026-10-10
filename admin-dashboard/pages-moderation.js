@@ -31,7 +31,7 @@ export function tickets(work){
    const card=box('item',el('b',{},ticket.category+' • ID '+ticket.public_id),
     note(ticket.message),note('الحالة: '+ticket.status+' • '+date(ticket.created_at)));
    if(ticket.response)card.append(note('الرد السابق: '+ticket.response));
-   if(allowed('reports.manage')&&ticket.status!=='closed'){
+   if(!['support','customer_service'].includes(state.session?.role)&&allowed('reports.manage')&&ticket.status!=='closed'){
     const response=field('رد الدعم الفني الرسمي');
     card.append(response.label,btn('إرسال الرد',()=>{
      const memo=response.input.value.trim();
