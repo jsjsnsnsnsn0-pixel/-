@@ -1,0 +1,87 @@
+/* TotiChat Admin • Host Agencies workspace — additive to the existing dark design system. */
+.agencyHero{display:flex;justify-content:space-between;align-items:center;gap:20px;position:relative;overflow:hidden;
+ min-height:170px;border:1px solid rgba(132,161,255,.25);border-radius:20px;padding:28px 32px;
+ background:radial-gradient(ellipse at 15% 90%,rgba(68,191,200,.11),transparent 48%),linear-gradient(115deg,#263d65,#192846 65%,#1a3350)}
+.agencyHero.compact{min-height:132px}
+.agencyHeroCopy{position:relative;z-index:1;max-width:620px}
+.agencyHero h2{margin:10px 0 8px;font-size:clamp(22px,2.6vw,30px);line-height:1.3;letter-spacing:-.4px}
+.agencyHero .muted{font-size:13px;margin:0;color:#b9cbea}
+.agencyHeroArt{display:grid;place-items:center;flex:none;font-size:73px;width:148px;height:130px;color:#aec4ff;
+ background:radial-gradient(circle,rgba(125,162,244,.20),transparent 70%);transform:rotate(-12deg)}
+.agencyBadge{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(135,158,197,.24);
+ background:rgba(99,130,177,.12);padding:5px 10px;border-radius:999px;color:#b9c8e2;
+ font-size:11px;font-weight:700;white-space:nowrap}
+.agencyBadge.trusted{color:#a9eff0;border-color:rgba(67,218,204,.28);background:rgba(42,188,181,.11)}
+.agencyBadge.live,.agencyBadge.done{color:#82eed6;border-color:rgba(81,210,169,.31);background:rgba(32,155,117,.11)}
+.agencyBadge.live:before{content:'';width:6px;height:6px;background:#4cd9b4;border-radius:100%}
+.agencyBadge.pending{color:#ffdaa0;border-color:rgba(237,180,92,.29);background:rgba(189,127,58,.12)}
+.agencyBadge.month{color:#b3c6ff}
+.agencyControlRow,.agencyFilterBar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,230px);gap:14px;align-items:end}
+.agencyControlRow .field,.agencyFilterBar .field{margin:0}
+.agencySummary.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:18px}
+.agencySummary .metric{min-height:97px;padding:14px 17px;border-radius:12px;background:linear-gradient(145deg,#1b2b45,#16253a)}
+.agencySummary .metric b{font-size:22px;margin-top:4px}
+.agencyWorkspace{display:grid;grid-template-columns:minmax(255px,340px) minmax(0,1fr);gap:17px;align-items:start}
+.agencyDirectoryPanel{background:linear-gradient(160deg,#14223a,#111d30);border:1px solid rgba(158,177,214,.16);border-radius:18px;
+ padding:18px;max-height:min(84vh,850px);overflow:auto;scrollbar-width:thin;scrollbar-color:#456289 transparent}
+.agencyDirectoryPanel h2{font-size:16px;margin:0}
+.agencyDirectoryPanel .rowHead{margin-bottom:19px}
+.agencyCardList{display:grid;gap:9px}
+.agencyCard{display:flex;align-items:center;text-align:right;gap:11px;width:100%;padding:13px 11px;color:#f0f5ff;
+ border:1px solid transparent;background:#101b30;border-radius:13px;min-height:77px}
+.agencyCard:hover{background:#1a2c49;border-color:rgba(113,150,218,.28)}
+.agencyCard.selected{background:linear-gradient(110deg,rgba(76,103,210,.30),rgba(40,77,125,.20));
+ border-color:rgba(120,156,245,.53);box-shadow:inset -3px 0 0 #85a4ff}
+.agencyAvatar,.agencyProfileLogo{flex:none;display:grid;place-items:center;border-radius:13px;
+ background:linear-gradient(138deg,#4d68c1,#4587a2);color:#e9f7ff}
+.agencyAvatar{width:40px;height:40px;font-size:21px}
+.agencyCardText{display:grid;gap:2px;flex:1;min-width:0}
+.agencyCardText strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agencyCardText .muted{margin:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agencyCardMeta{font-size:10px;color:#84e1cc;font-weight:700}
+.agencyCardArrow{font-size:22px;color:#91a6ce}
+.agencyDetails,.agencyReport{display:grid;gap:16px;min-width:0}
+.agencyProfileTop{display:flex;align-items:center;gap:16px;padding-bottom:21px;border-bottom:1px solid rgba(155,179,219,.14)}
+.agencyProfileLogo{width:74px;height:74px;font-size:38px;border-radius:19px;box-shadow:0 12px 25px #02091d35}
+.agencyProfileTitle h2{font-size:22px;margin:8px 0 4px;line-height:1.25;overflow-wrap:anywhere}
+.agencyProfileTitle .muted{margin:0}
+.agencyInfoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:20px}
+.agencyInfo{background:#101c2f;padding:13px 14px;border:1px solid rgba(146,174,216,.14);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.agencyInfo .muted{font-size:11px;margin:0 0 7px}
+.agencyInfo strong{font-size:14px;color:#eef5ff}
+.agencySectionFoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.agencySectionFoot .muted{margin:0;font-size:11px}
+.agencyReportControls{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.agencyReportControls h3,.agencyReport h3{font-size:15px;margin:3px 0 9px}
+.agencyEmpty{text-align:center;display:grid;justify-items:center;gap:8px;padding:32px 16px;min-height:160px}
+.emptyGlyph{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(131,159,218,.22);border-radius:14px;
+ background:rgba(100,130,210,.10);font-size:30px;color:#8fb2eb}
+.agencyEmpty strong{font-size:14px;color:#dae7fd}
+.agencyEmpty .muted{margin:0;max-width:420px}
+.agencyTableWrap{width:100%;overflow-x:auto;border:1px solid rgba(150,176,217,.17);border-radius:12px;margin:12px 0 15px}
+.agencyTable{border-collapse:collapse;width:100%;min-width:675px;text-align:right}
+.agencyTable th,.agencyTable td{padding:12px 13px;border-bottom:1px solid rgba(153,176,217,.12);font-size:12px}
+.agencyTable th{background:#1f304b;color:#b8cae6;font-weight:800;white-space:nowrap}
+.agencyTable td{color:#e4edff}.agencyTable tbody tr:nth-child(2n){background:rgba(94,123,176,.055)}
+.agencyTable tbody tr:last-child td{border-bottom:0}
+.agencyCaution{display:grid;gap:4px;margin-top:16px;padding:13px 15px;border-radius:12px;border:1px solid rgba(232,170,83,.26);
+ background:rgba(120,83,39,.12);color:#fbe5bd}
+.agencyCaution strong{font-size:12px}.agencyCaution .muted{color:#dfc89f;margin:0}
+.agencyApplicationList{display:grid;gap:13px;margin-top:18px}
+.agencyApplication{padding:19px;background:#111e32;border:1px solid rgba(147,177,226,.17);border-radius:14px}
+.agencyApplicationTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.agencyAppTitle{display:grid;gap:4px}.agencyAppTitle strong{font-size:15px}.agencyAppTitle .muted{margin:0}
+.agencyApplication .agencyInfoGrid{grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0}
+.agencyReviewActions{margin-top:10px}
+.agencyReviewActions .btn{min-height:40px}
+@media(max-width:1170px){.agencyWorkspace{grid-template-columns:minmax(220px,270px) minmax(0,1fr)}.agencySummary.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:850px){.agencyWorkspace{grid-template-columns:minmax(0,1fr)}.agencyDirectoryPanel{max-height:none;overflow:visible}
+ .agencyCardList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.agencyHero{min-height:144px;padding:22px 19px}.agencyHeroArt{display:none}
+ .agencyControlRow,.agencyFilterBar{grid-template-columns:1fr}.agencySummary.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .agencyCardList{grid-template-columns:1fr}.agencyInfoGrid{grid-template-columns:1fr 1fr}
+ .agencyApplication .agencyInfoGrid{grid-template-columns:1fr 1fr}
+ .agencyReportControls{align-items:stretch}.agencyReportButton{width:100%}
+ .agencyProfileLogo{width:54px;height:54px;font-size:29px}.agencyProfileTitle h2{font-size:19px}}
+@media(max-width:360px){.agencyInfoGrid,.agencyApplication .agencyInfoGrid{grid-template-columns:1fr}.agencySummary.metrics{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.agencyCard,.agencyHero{transition:none}}
