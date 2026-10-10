@@ -37,11 +37,13 @@ function permissionSet(data,role){
 export function addRoleToolbar(work,data){
  // Reuses the existing Supabase-provided role/permission catalog. The active
  // Owner alone can edit the Admin role template via the existing RPC.
- const openButton=btn('＋ إضافة رتبة',open,'btn primary rankAddButton',!state.session?.owner);
+ const openButton=btn('＋ إضافة رتبة',open,'btn primary rankAddButton',!state.session?.owner&&!state.session?.primary_partner);
  const bar=box('rankActionBar',
   box('rankActionTitle',el('strong',{},'إنشاء وتحديد صلاحيات رتبة'),note('اختر من الرتب المتفق عليها وراجع الصلاحيات المسموحة.')),
   openButton);
- work.insertBefore(bar,work.firstChild);
+ const header=work.querySelector('.header-row');
+ if(header)header.append(openButton);
+ else work.insertBefore(bar,work.firstChild);
  const modal=box('rankModal');
  modal.hidden=true;
  const shade=box('rankModalShade');
@@ -83,7 +85,7 @@ export function addRoleToolbar(work,data){
   if(!role){intro.textContent='اختر رتبة لتظهر صلاحياتها.';saveButton.disabled=true;counter.textContent='0 صلاحيات';return}
   intro.textContent=role.description;
   const template=originalRole(data,role.id);
-  selected=new Set(template?.permissions||[]);
+  selected=new Set(role.key==='owner'?(data.permissions||[]):role.key==='primary_partner'?(originalRole(data,'super_admin')?.permissions||[]):template?.permissions||[]);
   const canSave=state.session?.owner===true&&role.key==='admin'&&Boolean(template);
   const permitted=permissionSet(data,role);
   const permissibleSet=new Set(permitted);
