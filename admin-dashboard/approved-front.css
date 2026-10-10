@@ -120,3 +120,37 @@ body.approved-live{background:radial-gradient(circle at 15% 0%,#26133b 0%,#0b071
  .rankPermissionGrid{grid-template-columns:1fr}
  .rankModalFooter button{flex:1}
 }
+
+
+/* Owner + primary partner permission controls — real on/off switches */
+.rankActorInfo{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:13px;
+ background:linear-gradient(115deg,rgba(148,87,234,.18),rgba(75,42,117,.11));
+ border:1px solid rgba(177,113,248,.25);border-radius:13px}
+.rankActorIcon{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:12px;
+ background:linear-gradient(125deg,#7141c3,#b369df);font-size:20px;color:white}
+.rankActorInfo strong{display:block;font-size:13px;color:#faf3ff}
+.rankActorInfo .muted{font-size:11px;margin:4px 0 0}
+.rankPermissionSwitch{display:flex;align-items:center;justify-content:space-between;gap:13px}
+.rankPermissionInfo{min-width:0;display:grid;gap:5px}
+.rankPermissionSwitch input[role="switch"]{
+ appearance:none;-webkit-appearance:none;position:relative;flex:none;cursor:pointer;
+ width:47px!important;height:27px!important;min-height:27px!important;max-width:47px;
+ margin:0!important;padding:0!important;outline:0;border-radius:999px!important;
+ background:#43344c!important;border:1px solid #776180!important;
+ transition:background .18s,border-color .18s}
+.rankPermissionSwitch input[role="switch"]:after{
+ content:"";position:absolute;left:3px;top:3px;width:19px;height:19px;
+ background:#d9d2e0;border-radius:50%;box-shadow:0 2px 5px #0004;transition:transform .18s}
+.rankPermissionSwitch input[role="switch"]:checked{
+ background:linear-gradient(135deg,#8959ec,#b070ff)!important;border-color:#bf86ff!important}
+.rankPermissionSwitch input[role="switch"]:checked:after{transform:translateX(19px);background:#fff}
+.rankPermissionSwitch input[role="switch"]:focus-visible{box-shadow:0 0 0 4px #a564ff55}
+.rankRegisteredList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:13px}
+.rankRegisteredCard{border:1px solid rgba(171,130,218,.15);border-radius:13px;
+ padding:13px;background:#1e1428;min-width:0}
+.rankRegisteredTitle{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.rankRegisteredTitle strong{font-size:13px}
+.rankRegisteredCount{font-size:10px;padding:5px 8px;border:1px solid #74518b;border-radius:99px;color:#cfadfa}
+.rankRegisteredCard .muted{margin:8px 0 0;font-size:11px}
+@media(max-width:620px){.rankRegisteredList{grid-template-columns:1fr}
+ .rankPermissionSwitch input[role="switch"]{width:47px!important}}
