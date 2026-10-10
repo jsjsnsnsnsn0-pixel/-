@@ -27,6 +27,7 @@ const sections=[
 const agencyPrincipal=()=>Boolean(state.session?.owner||state.session?.primary_partner===true);
 const agencyOpener=()=>agencyPrincipal()||['db_employee','agency_manager'].includes(state.session?.role);
 const visible=s=>{
+ if(['support','customer_service'].includes(state.session?.role)&&!['tickets'].includes(s[0]))return false;
  if(['agencies','settlements'].includes(s[0]))
   return agencyPrincipal()&&allowed(s[2]);
  if(s[0]==='agency-applications')
