@@ -118,7 +118,7 @@ async function loadDirect(fn,render,container){
  const seq=sequence;
  container?.replaceChildren(placeholder('جاري تحميل البيانات الفعلية من Supabase…'));
  try{const data=await fn();if(seq!==sequence)return;render(data)}
- catch(err){if(seq!==sequence)return;container?.replaceChildren(box('message error',err.message||'تعذر التحميل'))}
+ catch(err){if(seq!==sequence)return;if(container)container.replaceChildren(box('message error',err.message||'تعذر التحميل'));else say(err.message||'تعذر تحميل البيانات',true)}
 }
 function renderOverview(seq){
  $('overview').dataset.loaded='true';
@@ -300,6 +300,8 @@ async function start(){
  document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
  document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.jump)));
  $('menuBtn').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
+ const bell=document.querySelector('.top-actions .icon-btn:not(#menuBtn)');
+ if(bell)bell.addEventListener('click',()=>permitted('notifications')?navigate('notifications'):say('الإشعارات الإدارية غير متاحة لصلاحيتك.',true));
  $('drawerBackdrop').addEventListener('click',()=>$('userDrawer').classList.remove('open'));
  $('drawerClose').addEventListener('click',()=>$('userDrawer').classList.remove('open'));
  $('globalSearch').addEventListener('keydown',e=>{
@@ -319,7 +321,7 @@ async function start(){
   anchor.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
  });
  // Legacy preview controls with no real safe handler must not trigger pretend success.
- document.querySelectorAll('[onclick]').forEach(x=>x.removeAttribute('onclick'));
+ document.querySelectorAll('[onclick]').forEach(x=>{x.removeAttribute('onclick');if(x.tagName==='BUTTON'){x.disabled=true;x.title='هذا الإجراء بانتظار ربط Backend مخوّل'}});
  document.querySelectorAll('#overview .date-filter button').forEach(x=>x.disabled=true);
  window.addEventListener('keydown',event=>{if(event.key==='Escape'){
   $('sidebar').classList.remove('open');$('userDrawer').classList.remove('open')}});
